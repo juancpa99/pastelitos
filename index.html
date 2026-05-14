@@ -103,6 +103,7 @@
     const xMax = Math.sqrt(3);
     const yMin = -2.7;
     const yMax = 2.7;
+    const horizontalScale = 0.72;
 
     let animationId = null;
     let startTime = 0;
@@ -124,7 +125,8 @@
     }
 
     function mapX(x) {
-      return ((x - xMin) / (xMax - xMin)) * canvas.width;
+      const normalized = (x - xMin) / (xMax - xMin);
+      return canvas.width / 2 + (normalized - 0.5) * canvas.width * horizontalScale;
     }
 
     function mapY(y) {
