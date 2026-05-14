@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>play</title>
+
+  <style>
+    :root {
+      --red: #ff1f1f;
+      --text: #f7f7f7;
+      --soft: #dcdcdc;
+      --bg: #030303;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, rgba(120, 0, 0, 0.28), transparent 42%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    main {
+      width: min(900px, 100%);
+      text-align: center;
+    }
+
+    .message {
+      font-size: clamp(1.45rem, 5vw, 2.6rem);
+      font-weight: 750;
+      margin: 0 0 10px;
+      line-height: 1.15;
+    }
+
+    .instruction {
+      font-size: clamp(1.1rem, 4vw, 1.55rem);
+      color: var(--soft);
+      margin: 0 0 18px;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1.35 / 1;
+      display: block;
+      border-radius: 22px;
+      background: #050505;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 80px rgba(255, 0, 0, 0.16);
+      touch-action: manipulation;
+    }
+
+    button {
+      margin-top: 18px;
+      border: 0;
+      border-radius: 999px;
+      width: 72px;
+      height: 72px;
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, #ff6262, #d00000);
+      box-shadow: 0 10px 30px rgba(255, 0, 0, 0.38);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <p class="message">es un poco frikada, espero que te guste</p>
+    <p class="instruction">dale al play &lt;3</p>
+
+    <canvas id="plot" width="1100" height="820"></canvas>
+
+    <button id="playButton" type="button" aria-label="play" onclick="startExperience()">▶</button>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("plot");
+    const ctx = canvas.getContext("2d");
+    const playButton = document.getElementById("playButton");
+
+    const xMin = -Math.sqrt(3);
+    const xMax = Math.sqrt(3);
+    const yMin = -2.7;
+    const yMax = 2.7;
+
+    let animationId = null;
+    let startTime = 0;
+    let isPlaying = false;
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+
+    function powerTwoThirds(x) {
+      return Math.pow(Math.abs(x), 2 / 3);
+    }
+
+    function f(x) {
+      const inside = 3 - x * x;
+      if (inside < 0) {
+        return 0;
+      }
+      return powerTwoThirds(x) + Math.sqrt(inside) * Math.sin(16 * Math.PI * x);
+    }
+
+    function mapX(x) {
+      return ((x - xMin) / (xMax - xMin)) * canvas.width;
+    }
+
+    function mapY(y) {
+      return canvas.height - ((y - yMin) / (yMax - yMin)) * canvas.height;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawAxes() {
+      const xZero = mapX(0);
+      const yZero = mapY(0);
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(40, yZero);
+      ctx.lineTo(canvas.width - 40, yZero);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(xZero, canvas.height - 40);
+      ctx.lineTo(xZero, 40);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawCurveLine(progress, strokeStyle, lineWidth, shadowBlur) {
+      const totalPoints = 1800;
+      const lastPoint = Math.max(1, Math.floor(totalPoints * progress));
+
+      ctx.save();
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = lineWidth;
+      ctx.shadowColor = "rgba(255, 0, 0, 0.95)";
+      ctx.shadowBlur = shadowBlur;
+      ctx.beginPath();
+
+      for (let i = 0; i <= lastPoint; i++) {
+        const x = xMin + (i / totalPoints) * (xMax - xMin);
+        const y = f(x);
+        const px = mapX(x);
+        const py = mapY(y);
+
+        if (i === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPoint(progress) {
+      const x = xMin + progress * (xMax - xMin);
+      const y = f(x);
+      const px = mapX(x);
+      const py = mapY(y);
+
+      ctx.save();
+      ctx.fillStyle = "white";
+      ctx.shadowColor = "white";
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(px, py, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFrame(progress) {
+      clearCanvas();
+      drawAxes();
+
+      if (progress > 0) {
+        drawCurveLine(progress, "rgba(255, 0, 0, 0.78)", 8, 30);
+        drawCurveLine(progress, "#ff1f1f", 3.4, 0);
+        drawPoint(progress);
+      }
+    }
+
+    function yToFrequency(y) {
+      const normalized = Math.max(0, Math.min(1, (y - yMin) / (yMax - yMin)));
+      return 190 + normalized * 850;
+    }
+
+    async function startSound() {
+      try {
+        const AudioEngine = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioEngine) {
+          return;
+        }
+
+        audioContext = new AudioEngine();
+
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+
+        oscillator = audioContext.createOscillator();
+        gainNode = audioContext.createGain();
+
+        oscillator.type = "sine";
+        gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.35, audioContext.currentTime + 0.08);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start();
+      } catch (error) {
+        audioContext = null;
+        oscillator = null;
+        gainNode = null;
+      }
+    }
+
+    function updateSound(progress) {
+      if (!audioContext || !oscillator || !gainNode) {
+        return;
+      }
+
+      const x = xMin + progress * (xMax - xMin);
+      const y = f(x);
+      const frequency = yToFrequency(y);
+
+      try {
+        oscillator.frequency.setTargetAtTime(frequency, audioContext.currentTime, 0.01);
+      } catch (error) {
+        // Keep the drawing running even if sound is blocked.
+      }
+    }
+
+    function stopSound() {
+      if (gainNode && audioContext) {
+        try {
+          gainNode.gain.setTargetAtTime(0.0001, audioContext.currentTime, 0.04);
+        } catch (error) {}
+      }
+
+      if (oscillator) {
+        try {
+          oscillator.stop(audioContext.currentTime + 0.12);
+        } catch (error) {}
+      }
+
+      oscillator = null;
+      gainNode = null;
+
+      if (audioContext) {
+        const contextToClose = audioContext;
+        window.setTimeout(function () {
+          try {
+            contextToClose.close();
+          } catch (error) {}
+        }, 200);
+      }
+
+      audioContext = null;
+    }
+
+    function animate(now) {
+      if (!isPlaying) {
+        return;
+      }
+
+      const durationMs = 6500;
+      const progress = Math.min(1, (now - startTime) / durationMs);
+
+      drawFrame(progress);
+      updateSound(progress);
+
+      if (progress >= 1) {
+        isPlaying = false;
+        playButton.disabled = false;
+        stopSound();
+        drawFrame(1);
+        return;
+      }
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function stopAnimationOnly() {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+
+    async function startExperience() {
+      stopAnimationOnly();
+      stopSound();
+
+      isPlaying = true;
+      playButton.disabled = true;
+      startTime = performance.now();
+
+      drawFrame(0);
+      animationId = requestAnimationFrame(animate);
+
+      await startSound();
+    }
+
+    playButton.addEventListener("touchend", function (event) {
+      event.preventDefault();
+      startExperience();
+    }, { passive: false });
+
+    drawFrame(0);
+  </script>
+</body>
+</html>
