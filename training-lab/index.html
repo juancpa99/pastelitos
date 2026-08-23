@@ -9,8 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Training Lab">
 <title>Training Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="app.css">
+<link rel="apple-touch-icon" href="icon.svg">
 </head>
 <body>
 <div class="app">
@@ -41,12 +40,25 @@
 </div></div>
 <div id="toast" class="toast">Guardado</div>
 <div id="modalRoot"></div>
-<script src="app-01.js"></script>
-<script src="app-02.js"></script>
-<script src="app-03.js"></script>
-<script src="app-04.js"></script>
-<script src="app-05.js"></script>
-<script src="app-06.js"></script>
-<script src="app-07.js"></script>
-<script src="app-08.js"></script>
+<script src="payload-css.js"></script>
+<script src="payload-js-1.js"></script>
+<script src="payload-js-2.js"></script>
+<script src="payload-js-3.js"></script>
+<script>
+(async()=>{
+  async function ungzip64(s){
+    const bytes=Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    return await new Response(stream).text();
+  }
+  try{
+    const [css,js]=await Promise.all([ungzip64(window.__TL_CSS),ungzip64(window.__TL_JS)]);
+    const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
+    (0,eval)(js);
+  }catch(e){
+    console.error(e);
+    document.body.innerHTML='<main style="padding:24px;font-family:system-ui;background:#07101d;color:white;min-height:100vh"><h1>Training Lab</h1><p>No se pudo iniciar la aplicación. Recarga la página.</p></main>';
+  }
+})();
+</script>
 </body></html>
