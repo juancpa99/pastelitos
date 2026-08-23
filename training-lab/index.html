@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Training Lab">
 <title>Training Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 
 </head>
 <body>
@@ -30,6 +30,7 @@
  <section id="viewWorkout" class="hidden"></section>
  <section id="viewFood" class="hidden"></section>
  <section id="viewProgress" class="hidden"></section>
+ <section id="viewSettings" class="hidden"></section>
 </main>
 <div class="page-end-spacer" aria-hidden="true"></div>
 </div>
@@ -38,28 +39,31 @@
  <button data-view="Workout" onclick="showView('Workout')">▦<br>Entreno <span id="badgeWorkout"></span></button>
  <button data-view="Food" onclick="showView('Food')">◫<br>Comidas</button>
  <button data-view="Progress" onclick="showView('Progress')">↗<br>Progreso</button>
+ <button data-view="Settings" onclick="showView('Settings')">⚙<br>Ajustes</button>
 </div></div>
 <div id="toast" class="toast">Guardado</div>
 <div id="modalRoot"></div>
+
 <script src="payload-css.js"></script>
 <script src="payload-js-1.js"></script>
 <script src="payload-js-2.js"></script>
 <script src="payload-js-3.js"></script>
 <script src="payload-js-4.js"></script>
 <script>
+async function __tlInflate(b64){
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  if(!("DecompressionStream" in window))throw new Error("Este navegador necesita una versión más reciente para abrir Training Lab.");
+  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return await new Response(stream).text();
+}
 (async()=>{
-  async function ungzip64(s){
-    const bytes=Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    return await new Response(stream).text();
-  }
   try{
-    const [css,js]=await Promise.all([ungzip64(window.__TL_CSS),ungzip64(window.__TL_JS)]);
-    const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
-    (0,eval)(js);
+    const css=await __tlInflate(window.__TL_CSS);
+    const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);
+    const code=await __tlInflate(window.__TL_JS);
+    const script=document.createElement("script");script.textContent=code;document.body.appendChild(script);
   }catch(e){
-    console.error(e);
-    document.body.innerHTML='<main style="padding:24px;font-family:system-ui;background:#07101d;color:white;min-height:100vh"><h1>Training Lab</h1><p>No se pudo iniciar la aplicación. Recarga la página.</p></main>';
+    document.body.innerHTML='<div style="font-family:system-ui;padding:24px;color:#fff;background:#07101d;min-height:100vh"><h1>Training Lab</h1><p>'+String(e.message||e)+'</p></div>';
   }
 })();
 </script>
