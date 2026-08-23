@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v4-22-hotfix1';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./plantilla_plan.csv','./payload-css.js','./payload-js-1.js','./payload-js-2.js','./payload-js-3.js','./payload-js-4.js'];
+const CACHE='training-lab-pages-v4-22-direct-1';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./plantilla_plan.csv','./app.css','./app.js'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();

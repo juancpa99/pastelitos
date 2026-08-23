@@ -44,29 +44,8 @@
 <div id="toast" class="toast">Guardado</div>
 <div id="modalRoot"></div>
 
-<script src="payload-css.js"></script>
-<script src="payload-js-1.js"></script>
-<script src="payload-js-2.js"></script>
-<script src="payload-js-3.js"></script>
-<script src="payload-js-4.js"></script>
-<script>
-async function __tlInflate(b64){
-  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
-  if(!("DecompressionStream" in window))throw new Error("Este navegador necesita una versión más reciente para abrir Training Lab.");
-  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return await new Response(stream).text();
-}
-(async()=>{
-  try{
-    const css=await __tlInflate(window.__TL_CSS);
-    const style=document.createElement("style");style.textContent=css;document.head.appendChild(style);
-    const code=await __tlInflate(window.__TL_JS);
-    const script=document.createElement("script");script.textContent=code;document.body.appendChild(script);
-  }catch(e){
-    document.body.innerHTML='<div style="font-family:system-ui;padding:24px;color:#fff;background:#07101d;min-height:100vh"><h1>Training Lab</h1><p>'+String(e.message||e)+'</p></div>';
-  }
-})();
-</script>
+<link rel="stylesheet" href="app.css?v=422-direct-1">
+<script src="app.js?v=422-direct-1"></script>
 
 <style>
 .navinner{grid-template-columns:repeat(5,1fr)!important;gap:4px!important}
