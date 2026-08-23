@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08111e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Lab">
+<title>Training Lab</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+<header>
+ <div class="brand">TRAINING LAB</div>
+ <div class="headrow">
+  <div><h1 id="pageTitle">Hoy</h1><div id="pageSubtitle" class="subtitle">Resumen del día.</div></div>
+  <div class="datebox"><input id="selectedDate" type="date" onchange="renderAll()"></div>
+ </div>
+ <div class="mode-switch" aria-label="Modo de entrenamiento">
+  <button id="modeSoloGym" type="button" onclick="setTrainingMode('summer')">Solo gym</button>
+  <button id="modeGymSwim" type="button" onclick="setTrainingMode('season')">Gym + natación</button>
+ </div>
+</header>
+<main>
+ <section id="viewHome"></section>
+ <section id="viewWorkout" class="hidden"></section>
+ <section id="viewFood" class="hidden"></section>
+ <section id="viewProgress" class="hidden"></section>
+</main>
+<div class="page-end-spacer" aria-hidden="true"></div>
+</div>
+<div class="nav"><div class="navinner">
+ <button data-view="Home" class="active" onclick="showView('Home')">●<br>Hoy <span id="badgeHome"></span></button>
+ <button data-view="Workout" onclick="showView('Workout')">▦<br>Entreno <span id="badgeWorkout"></span></button>
+ <button data-view="Food" onclick="showView('Food')">◫<br>Comidas</button>
+ <button data-view="Progress" onclick="showView('Progress')">↗<br>Progreso</button>
+</div></div>
+<div id="toast" class="toast">Guardado</div>
+<div id="modalRoot"></div>
+<script src="app-01.js"></script>
+<script src="app-02.js"></script>
+<script src="app-03.js"></script>
+<script src="app-04.js"></script>
+<script src="app-05.js"></script>
+<script src="app-06.js"></script>
+<script src="app-07.js"></script>
+<script src="app-08.js"></script>
+</body></html>
