@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v5-0';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=500','./app.js?v=500'];
+const CACHE='training-lab-pages-v5-1';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=501','./app.js?v=501'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
