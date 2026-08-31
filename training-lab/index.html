@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#08111e">
+<meta name="description" content="Entrenamiento, alimentación y progreso en un solo lugar.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Training Lab">
 <title>Training Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 
 </head>
 <body>
@@ -18,11 +19,12 @@
  <div class="brand">TRAINING LAB</div>
  <div class="headrow">
   <div><h1 id="pageTitle">Hoy</h1><div id="pageSubtitle" class="subtitle">Resumen del día.</div></div>
-  <div class="datebox"><input id="selectedDate" type="date" onchange="renderAll()"></div>
- </div>
- <div class="mode-switch" aria-label="Modo de entrenamiento">
-  <button id="modeSoloGym" type="button" onclick="setTrainingMode('summer')">Solo gym</button>
-  <button id="modeGymSwim" type="button" onclick="setTrainingMode('season')">Gym + natación</button>
+  <div class="date-nav" aria-label="Cambiar fecha">
+   <button type="button" class="date-step" aria-label="Día anterior" onclick="shiftSelectedDate(-1)">‹</button>
+   <div class="datebox"><input id="selectedDate" type="date" aria-label="Fecha seleccionada" onchange="renderAll()"></div>
+   <button type="button" class="date-step" aria-label="Día siguiente" onclick="shiftSelectedDate(1)">›</button>
+   <button type="button" class="today-btn" onclick="goToToday()">Hoy</button>
+  </div>
  </div>
 </header>
 <main>
@@ -35,127 +37,16 @@
 <div class="page-end-spacer" aria-hidden="true"></div>
 </div>
 <div class="nav"><div class="navinner">
- <button data-view="Home" class="active" onclick="showView('Home')">●<br>Hoy <span id="badgeHome"></span></button>
- <button data-view="Workout" onclick="showView('Workout')">▦<br>Entreno <span id="badgeWorkout"></span></button>
- <button data-view="Food" onclick="showView('Food')">◫<br>Comidas</button>
- <button data-view="Progress" onclick="showView('Progress')">↗<br>Progreso</button>
- <button data-view="Settings" onclick="showView('Settings')">⚙<br>Ajustes</button>
+ <button data-view="Home" class="active" onclick="showView('Home')" aria-label="Hoy"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 21v-7h6v7"/></svg><span class="nav-label">Hoy</span><span id="badgeHome"></span></button>
+ <button data-view="Workout" onclick="showView('Workout')" aria-label="Entreno"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8v8M2.5 9.5v5M19 8v8M21.5 9.5v5M5 12h14"/></svg><span class="nav-label">Entreno</span><span id="badgeWorkout"></span></button>
+ <button data-view="Food" onclick="showView('Food')" aria-label="Comidas"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M4.5 3v5A2.5 2.5 0 0 0 7 10.5 2.5 2.5 0 0 0 9.5 8V3M7 10.5V21M16 3v18M16 3c3 2 4 5 4 8h-4"/></svg><span class="nav-label">Comidas</span></button>
+ <button data-view="Progress" onclick="showView('Progress')" aria-label="Progreso"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg><span class="nav-label">Progreso</span></button>
+ <button data-view="Settings" onclick="showView('Settings')" aria-label="Ajustes"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.55v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.1 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.55h.4A1.7 1.7 0 0 0 4.1 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06L6.56 3.7l.06.06A1.7 1.7 0 0 0 8.5 4.1a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2h4.05v.4a1.7 1.7 0 0 0 1.05 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 8.5a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.9v4.05h-.9A1.7 1.7 0 0 0 19.4 15z"/></svg><span class="nav-label">Ajustes</span></button>
 </div></div>
-<div id="toast" class="toast">Guardado</div>
+<div id="toast" class="toast" role="status" aria-live="polite">Guardado</div>
 <div id="modalRoot"></div>
 
-<link rel="stylesheet" href="app.css?v=422-direct-1">
-<script src="app.js?v=422-direct-1"></script>
-
-<style>
-.navinner{grid-template-columns:repeat(5,1fr)!important;gap:4px!important}
-@media(max-width:390px){.nav button{font-size:9px!important;padding-left:2px!important;padding-right:2px!important}}
-.settings-status-row{align-items:flex-start;gap:10px}
-.settings-status-row strong{display:block;font-size:13px}
-.settings-status-row small{display:block;color:var(--muted);font-size:10px;line-height:1.35;margin-top:3px}
-.install-mini-steps{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:11px}
-.install-mini-steps span{padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:var(--soft);font-size:10px;font-weight:800}
-.install-mini-steps b{color:var(--muted)}
-</style>
-<script>
-(function applyV422(){
-  if(typeof renderProgress!=="function"||typeof notificationSettingsHTML!=="function"){
-    setTimeout(applyV422,40);return;
-  }
-  const originalRenderProgress=renderProgress;
-  renderProgress=function(){
-    originalRenderProgress();
-    const root=document.getElementById("viewProgress");
-    if(!root)return;
-    const moveOut=new Set(["Notificaciones","Plan de entrenamiento","Ajustes","Kcal activas","Datos"]);
-    [...root.querySelectorAll(".section")].forEach(section=>{
-      if(moveOut.has(section.textContent.trim())){
-        const card=section.nextElementSibling;
-        section.remove();
-        if(card?.classList?.contains("card"))card.remove();
-      }
-    });
-  };
-
-  window.installationSettingsHTML=function(){
-    return `<div class="section">Instalación</div><div class="card">
-      <div class="row between settings-status-row"><div><strong>Training Lab como app</strong><small>${appIsStandalone()?"Ya se está ejecutando desde la pantalla de inicio.":"En iPhone puedes añadirla a la pantalla de inicio desde Safari."}</small></div>${appIsStandalone()?'<span class="pill good">Instalada</span>':'<span class="pill">Navegador</span>'}</div>
-      ${appIsStandalone()?"":`<div class="install-mini-steps"><span>Compartir</span><b>→</b><span>Añadir a pantalla de inicio</span><b>→</b><span>Añadir</span></div>`}
-    </div>`;
-  };
-
-  window.renderSettings=function(){
-    let html=`<div class="section">Entrenamiento</div><div class="card">
-      <div class="field"><label>Modo</label><select id="setMode" onchange="saveSettings()"><option value="summer" ${state.settings.mode==="summer"?"selected":""}>Solo gym</option><option value="season" ${state.settings.mode==="season"?"selected":""}>Gym + natación</option></select></div>
-      <div class="field" style="margin-top:9px"><label>Hora del check-in final</label><select id="setHour" onchange="saveSettings()">${[19,20,21,22,23].map(h=>`<option value="${h}" ${state.settings.checkHour===h?"selected":""}>${h}:00</option>`).join("")}</select></div>
-    </div>`;
-    html+=notificationSettingsHTML();
-    html+=`<div class="section" id="planSection">Plan de entrenamiento</div><div class="card">
-      <div class="callout">${state.customPlans?`Plan personalizado activo: ${state.settings.planName||"creado en la app"}.`:"Estás usando el plan base incluido en Training Lab."}</div>
-      <div class="plan-action-grid">
-       <button type="button" class="btn" onclick="openPlanManager()">Montar / editar en la app</button>
-       <label class="btn secondary">Importar CSV<input type="file" accept=".csv,text/csv" onchange="importPlanCSV(event)"></label>
-       <button type="button" class="btn secondary" onclick="downloadPlanTemplate()">Descargar plantilla CSV</button>
-       <button type="button" class="btn ghost" onclick="downloadCurrentPlan()">Exportar mi plan</button>
-       ${state.customPlans?'<button type="button" class="btn danger" onclick="resetImportedPlan()">Volver al plan base</button>':""}
-      </div>
-      <div class="subtitle" style="margin-top:10px"><strong>Plantilla CSV:</strong> descárgala y rellénala usando días como Lunes, Martes, Miércoles, etc. En <strong>tipo_sesion</strong> puedes usar fuerza, cardio, natación o descanso. Para una sesión de fuerza, añade los ejercicios y completa series, repeticiones, RIR y descanso cuando corresponda. También puedes construir toda la semana directamente desde la interfaz.</div>
-    </div>`;
-    html+=`<div class="section">Datos y copias</div><div class="card">
-      <div class="subtitle">Guarda una copia periódica de tus registros, plan y ajustes. Las fotos permanecen almacenadas aparte en el dispositivo.</div>
-      <div class="actions" style="margin-top:10px">
-       <button type="button" class="btn" onclick="exportJSON()">Exportar copia JSON</button>
-       <label class="btn secondary">Restaurar copia JSON<input type="file" accept=".json,application/json" onchange="importBackupJSON(event)"></label>
-       <button type="button" class="btn secondary" onclick="exportCSV()">CSV de registros</button>
-      </div>
-      <div class="callout" style="margin-top:10px"><strong>Kcal activas:</strong> son opcionales y se registran manualmente. Si no las introduces, no se usan en los resúmenes.</div>
-    </div>`;
-    html+=installationSettingsHTML();
-    document.getElementById("viewSettings").innerHTML=html;
-  };
-
-  window.showView=function(v){
-    activeView=v;
-    ["Home","Workout","Food","Progress","Settings"].forEach(x=>{
-      document.getElementById("view"+x)?.classList.toggle("hidden",x!==v);
-      document.querySelector(`[data-view="${x}"]`)?.classList.toggle("active",x===v);
-    });
-    const meta={Home:["Hoy","Resumen del día."],Workout:["Entreno","Plan, registro y guía semanal."],Food:["Comidas","Registra cantidades; la app calcula el resto."],Progress:["Progreso","Tendencias y evolución."],Settings:["Ajustes","Plan, notificaciones y datos."]}[v];
-    document.getElementById("pageTitle").textContent=meta[0];
-    document.getElementById("pageSubtitle").textContent=meta[1];
-    if(v==="Workout")renderWorkout();
-    if(v==="Food")renderFood();
-    if(v==="Progress")renderProgress();
-    if(v==="Settings")renderSettings();
-    scrollViewToTop();
-  };
-
-  window.renderAll=function(){
-    autoMode();updateModeSwitch();renderHome();
-    if(activeView==="Workout")renderWorkout();
-    else if(activeView==="Food")renderFood();
-    else if(activeView==="Progress")renderProgress();
-    else if(activeView==="Settings")renderSettings();
-    renderBadges();
-  };
-
-  window.goToPlanSettings=function(){
-    showView("Settings");
-    setTimeout(()=>document.getElementById("planSection")?.scrollIntoView({behavior:"smooth",block:"start"}),80);
-  };
-
-  const oldSaveNotificationSettings=saveNotificationSettings;
-  window.saveNotificationSettings=function(){
-    oldSaveNotificationSettings();
-    if(activeView==="Settings")renderSettings();
-  };
-
-  const oldRequestAppNotifications=requestAppNotifications;
-  window.requestAppNotifications=async function(){
-    await oldRequestAppNotifications();
-    if(activeView==="Settings")renderSettings();
-  };
-})();
-</script>
+<link rel="stylesheet" href="app.css?v=500">
+<script src="app.js?v=500"></script>
 
 </body></html>
