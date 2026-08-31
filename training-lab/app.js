@@ -1771,7 +1771,7 @@ function nutritionPeriodSummary(ref,period){
  const dates=[...new Set(state.foods.filter(i=>inProgressPeriod(i.date,ref,period)).map(i=>i.date))].sort(),totals={kcal:0,p:0,c:0,f:0};
  dates.forEach(date=>{const n=dayNutrition(date);["kcal","p","c","f"].forEach(k=>totals[k]+=n[k])});
  const days=dates.length,avg=Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,days?v/days:0]));
- const goals=state.settings.nutritionGoals||{},adherent=dates.filter(date=>{const n=dayNutrition(date),checks=[];if(+goals.kcal)checks.push(n.kcal>=goals.kcal*.9&&n.kcal<=goals.kcal*1.1);if(+goals.p)checks.push(n.p>=goals.p*.9);return checks.length&&checks.every(Boolean)}).length;
+ const goals=state.settings.nutritionGoals||{},adherent=dates.filter(date=>{const n=dayNutrition(date),checks=[];if(+goals.kcal)checks.push(n.kcal>=goals.kcal*.9&&n.kcal<=goals.kcal*1.1);if(+goals.p)checks.push(n.p>=goals.p*.9);if(+goals.c)checks.push(n.c>=goals.c*.9&&n.c<=goals.c*1.1);if(+goals.f)checks.push(n.f>=goals.f*.9&&n.f<=goals.f*1.1);return checks.length&&checks.every(Boolean)}).length;
  return {dates,days,avg,adherent}
 }
 function nutritionProgressHTML(ref,period){
