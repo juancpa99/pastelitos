@@ -89,6 +89,7 @@ main > section:not(.hidden) > :last-child{
 .body-metric-card{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:11px;min-width:0}
 .body-metric-card .k{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 .body-v{font-size:20px;font-weight:900;margin-top:3px}
+.body-spark-empty{margin-top:10px;color:var(--muted);font-size:10px;line-height:1.35}
 .mini-chart{height:84px;margin-top:8px;overflow:hidden}
 .mini-chart .chart{height:84px;padding:4px}
 .mini-chart .empty{font-size:10px;padding:20px 4px}

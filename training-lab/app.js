@@ -285,6 +285,19 @@ function renderAll(){
  else if(activeView==="Settings")renderSettings();
  renderBadges()
 }
+function enhanceFormAccessibility(root=document){
+ root.querySelectorAll?.(".field").forEach((field,index)=>{
+  const label=field.querySelector("label"),control=field.querySelector("input:not([type='hidden']),select,textarea");if(!label||!control)return;
+  if(!control.id)control.id=`field_${Date.now().toString(36)}_${index}`;
+  label.htmlFor=control.id;
+  if(!control.getAttribute("aria-label"))control.setAttribute("aria-label",label.textContent.trim())
+ })
+}
+function installAccessibilityEnhancer(){
+ enhanceFormAccessibility();
+ if(!("MutationObserver" in window))return;
+ const observer=new MutationObserver(()=>enhanceFormAccessibility());observer.observe(document.body,{childList:true,subtree:true})
+}
 function renderBadges(){
  const x=currentDate(),p=planFor(x);let h=0,w=0;
  if(!sessionDone(x,p)&&p.type!=="rest"){h++;w++}
@@ -1269,7 +1282,7 @@ function saveCardioMobility(){
 function renderFood(){
  const x=currentDate(),items=foodsFor(x),nut=dayNutrition(x);
  let html=`<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">Comidas</div><div class="subtitle">Añade cada comida cuando la hagas. Solo aparecerán en la pantalla las que hayas registrado.</div><div class="actions"><button class="btn" onclick="openMealChooser()">Añadir comida</button><button class="btn secondary" onclick="copyYesterdayFood()">Copiar ayer</button></div></div>`;
- html+=`<div class="card"><div class="row between"><div><div class="eyebrow">Estimación del día</div><strong>${items.length?`${items.length} ${items.length===1?"alimento":"alimentos"} registrados`:"Sin registros todavía"}</strong></div><button type="button" class="btn ghost small" onclick="goToNutritionSettings()">Objetivos</button></div>${nutritionDashboardHTML(nut)}<div class="nutrition-note">Valores estimados a partir de las cantidades registradas; pueden variar según marca y preparación.</div></div>`;
+ html+=`<div class="card"><div class="row between"><div><div class="eyebrow">Estimación del día</div><strong>${items.length?`${items.length} ${items.length===1?"alimento registrado":"alimentos registrados"}`:"Sin registros todavía"}</strong></div><button type="button" class="btn ghost small" onclick="goToNutritionSettings()">Objetivos</button></div>${nutritionDashboardHTML(nut)}<div class="nutrition-note">Valores estimados a partir de las cantidades registradas; pueden variar según marca y preparación.</div></div>`;
 
  const activeMeals=MEAL_TYPES.filter(mt=>items.some(i=>i.meal===mt));
  if(!activeMeals.length){
@@ -1290,7 +1303,7 @@ function foodOptions(meal){
  const allowed=[...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).map(f=>f.key)],cats=["Mis alimentos","Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
  return cats.map(cat=>{
   const opts=allowed.map(k=>[k,foodRecord(k)]).filter(([k,v])=>v&&(v.custom?(cat==="Mis alimentos"):v.cat===cat));
-  return opts.length?`<optgroup label="${cat}">${opts.map(([k,v])=>`<option value="${k}">${v.name}</option>`).join("")}</optgroup>`:""
+  return opts.length?`<optgroup label="${cat}">${opts.map(([k,v])=>`<option value="${k}">${esc(v.name)}</option>`).join("")}</optgroup>`:""
  }).join("")
 }
 function recentFoodForMeal(meal){
@@ -1740,7 +1753,8 @@ function latestForField(field){
 }
 function bodyMetricBlock(label,field,unit,period){
  const rows=bodyDataForPeriod(field,period),vals=rows.map(x=>+x[field]),latestVal=vals.length?vals[vals.length-1]:null,delta=vals.length>1?latestVal-vals[0]:null;
- return `<div class="body-metric-card"><div class="row between"><div><div class="k">${esc(label)}</div><div class="body-v">${latestVal==null?"—":latestVal.toFixed(1)} <small>${unit}</small></div></div>${delta==null?"":`<span class="pill">${delta>0?"+":""}${delta.toFixed(1)} ${unit}</span>`}</div><div class="mini-chart">${spark(vals)}</div></div>`
+ const trend=vals.length>=2?`<div class="mini-chart">${spark(vals)}</div>`:`<div class="body-spark-empty">${vals.length?"Añade una medición más para ver la tendencia.":"Sin mediciones en este periodo."}</div>`;
+ return `<div class="body-metric-card ${vals.length<2?"no-trend":""}"><div class="row between"><div><div class="k">${esc(label)}</div><div class="body-v">${latestVal==null?"—":latestVal.toFixed(1)} <small>${unit}</small></div></div>${delta==null?"":`<span class="pill">${delta>0?"+":""}${delta.toFixed(1)} ${unit}</span>`}</div>${trend}</div>`
 }
 
 
@@ -2133,6 +2147,7 @@ installBottomNavInsetObserver();
 installRuntimeRecovery();
 setTimeout(checkDueNotifications,800);
 renderAll();
+installAccessibilityEnhancer();
 setTimeout(showInstallHint,450);
 syncRuntimeTimers();
 if(state.restTimer||state.cardioRuntime)startRuntimeTicker();
