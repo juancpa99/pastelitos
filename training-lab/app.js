@@ -550,7 +550,12 @@ function toggleGymPause(){
   if(state.restTimer&&!state.restTimer.done&&!state.restTimer.paused){state.restTimer.paused=true;state.restTimer.pausedBySession=true;state.restTimer.pausedRemaining=Math.max(0,Math.ceil((state.restTimer.endAt-Date.now())/1000))}
   releaseSessionWakeLock()
  }
- saveState(true);updateRestTimerPanel()
+ saveState(true);updateRestTimerPanel();
+ if(s.pausedAt)stopRuntimeTickerIfIdle();else startRuntimeTicker()
+}
+function toggleGymSession(){
+ const s=findSession(currentDate(),planFor(currentDate()).key);
+ if(!s?.startedAt)startGym();else toggleGymPause()
 }
 const CARDIO_TEMPLATES={
  z2:{name:"Zona 2",description:"Cardio continuo. Debes poder hablar en frases cortas.",phases:[{type:"steady",label:"Zona 2",seconds:35*60,target:"RPE 3–4 · ritmo sostenible"}]},
@@ -759,8 +764,8 @@ function updateRestTimerPanel(){
  const gymSession=findSession(currentDate(),planFor(currentDate()).key),elapsed=sessionElapsedSeconds(gymSession);
  const t=state.restTimer&&(!state.restTimer.date||state.restTimer.date===currentDate())?state.restTimer:null;
  if(!t){
-  if(!gymSession?.startedAt){el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">Cronómetro de sesión</div><strong>Listo para empezar</strong><div class="timer-caption">Al iniciar, el tiempo continúa aunque cambies de pantalla.</div></div><button type="button" class="btn small" onclick="startGym()">Iniciar</button></div>`;return}
-  el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">${gymSession.pausedAt?"Sesión en pausa":"Sesión activa"}</div><div class="timer-big">${formatClock(elapsed)}</div><div class="timer-caption">${gymSession.pausedAt?"El tiempo está detenido.":"Incluye trabajo y descansos."}</div></div><div class="coach-session-actions"><button type="button" class="btn ghost small" onclick="toggleGymPause()">${gymSession.pausedAt?"Reanudar":"Pausar"}</button><button type="button" class="btn small" onclick="openFinishGym()">Finalizar</button></div></div>`;
+  if(!gymSession?.startedAt){el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">Cronómetro de sesión</div><strong>Listo para empezar</strong><div class="timer-caption">Al iniciar, el tiempo continúa aunque cambies de pantalla.</div></div><button type="button" class="btn small" onclick="toggleGymSession()">Iniciar</button></div>`;return}
+  el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">${gymSession.pausedAt?"Sesión en pausa":"Sesión activa"}</div><div class="timer-big">${formatClock(elapsed)}</div><div class="timer-caption">${gymSession.pausedAt?"El tiempo está detenido.":"Incluye trabajo y descansos."}</div></div><div class="coach-session-actions"><button type="button" class="btn small" onclick="toggleGymSession()">${gymSession.pausedAt?"Reanudar":"Pausar"}</button><button type="button" class="btn secondary small" onclick="openFinishGym()">Finalizar</button></div></div>`;
   return
  }
  const remaining=t.paused?(t.pausedRemaining||0):Math.max(0,Math.ceil((t.endAt-Date.now())/1000));
@@ -1025,7 +1030,7 @@ function ensureDraftSession(x,p){
 }
 function gymHTML(p,x){
  const s=ensureDraftSession(x,p);
- const primaryAction=s.completed?'<span class="pill good">Sesión guardada</span>':s.startedAt?'<button class="btn small" onclick="openFinishGym()">Finalizar y guardar</button>':'<button class="btn small" onclick="startGym()">Iniciar sesión</button>';
+ const primaryAction=s.completed?'<span class="pill good">Sesión guardada</span>':`<button class="btn small" onclick="toggleGymSession()">${!s.startedAt?"Iniciar sesión":s.pausedAt?"Reanudar sesión":"Pausar sesión"}</button>${s.startedAt?'<button class="btn secondary small" onclick="openFinishGym()">Finalizar</button>':""}`;
  let html=`<div class="card hero"><div class="row between"><div><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">${esc(p.title)}</div><div class="subtitle">${esc(p.subtitle||"")}</div></div><div id="autosaveStatus" class="autosave">Guardado</div></div><div class="hero-status">${s.startedAt&&!s.completed?`<span class="pill ${s.pausedAt?"warn":"teal"}">${s.pausedAt?"En pausa":"En curso"}</span>`:""}</div><div class="actions">${primaryAction}</div></div>${s.completed?'<div class="callout good">Sesión terminada. Puedes revisar todas las series debajo.</div>':'<div id="sessionCoachPanel" class="session-coach"></div>'}`;
  s.exercises.forEach((e,i)=>html+=exerciseCardHTML(e,i,"planned"));
  if(!s.completed)html+=`<div class="session-options"><div class="session-options-label">Opciones de sesión</div><button class="btn secondary" onclick="openExercisePicker('add','planned')">Añadir ejercicio extra</button>${s.startedAt?'<button class="btn" onclick="openFinishGym()">Finalizar y guardar</button>':""}<button class="btn danger" onclick="discardPlannedWorkout()">Descartar entrenamiento</button></div>`;
@@ -1108,17 +1113,15 @@ function commitGymFinish(values){
 function finishGym(){
  const s=collectPlannedInputs(),sum=sessionEffectiveSummary(s);
  const values={duration:num("finDur"),rpe:num("finRPE"),kcal:num("finKcal")};
- if(sum.remaining){
-  openAppConfirm(
-   "Finalizar sesión incompleta",
-   `Faltan ${sum.remaining} series efectivas. La sesión se guardará como incompleta, conservando todo lo realizado.`,
-   "Finalizar y guardar",
-   ()=>commitGymFinish(values),
-   ()=>openFinishGym()
-  );
-  return
- }
- commitGymFinish(values)
+ if(!Number.isFinite(values.duration)||values.duration<=0){toast("Introduce una duración válida");return}
+ if(values.rpe!==null&&(!Number.isFinite(values.rpe)||values.rpe<1||values.rpe>10)){toast("El RPE debe estar entre 1 y 10");return}
+ openAppConfirm(
+  sum.remaining?"Finalizar sesión incompleta":"¿Finalizar el entrenamiento?",
+  sum.remaining?`Faltan ${sum.remaining} series efectivas. Se guardará como incompleta y se conservará todo lo realizado.`:"La sesión se guardará y el cronómetro se detendrá.",
+  "Sí, finalizar",
+  ()=>commitGymFinish(values),
+  ()=>openFinishGym()
+ )
 }
 function saveMobilityDone(scope,i,checked){if(scope==="planned"){const s=normalizePlannedSession();s.exercises[i].done=checked}else{const s=state.extraSessions.find(x=>x.id===scope);if(s)s.exercises[i].done=checked}saveState(true)}
 
@@ -1331,7 +1334,9 @@ function openFoodModal(defaultMeal="Desayuno"){
  <input type="hidden" id="fdMeal" value="${esc(meal)}">
  <div id="fdMealHint" class="meal-hint">${esc(MEAL_HINTS[meal]||"")}</div>
  <div class="formgrid food-modal-grid">
-  <div class="field wide"><label>Alimento</label><select id="fdKey" onchange="updateFoodAmountUI()"></select></div>
+  <div class="field wide"><label for="fdSearch">Buscar alimento</label><input id="fdSearch" type="search" placeholder="Escribe arroz, pollo, yogur…" autocomplete="off" oninput="renderFoodPicker()"></div>
+  <div class="field wide"><span class="food-picker-label">Alimento seleccionado</span><button type="button" id="fdSelected" class="food-selected" onclick="document.getElementById('fdSearch').focus()">Elige un alimento de la lista</button><input type="hidden" id="fdKey"></div>
+  <div id="fdPicker" class="food-picker wide" role="listbox" aria-label="Alimentos disponibles"></div>
   <div class="field wide"><label id="fdAmountLabel">Cantidad</label><input id="fdAmount" inputmode="decimal"></div>
  </div>
  <div id="fdHelp" class="subtitle"></div>
@@ -1343,12 +1348,26 @@ function openFoodModal(defaultMeal="Desayuno"){
  updateFoodMealUI()
 }
 function updateFoodMealUI(){
- const meal=val("fdMeal")||"Desayuno",sel=document.getElementById("fdKey");if(!sel)return;
- sel.innerHTML=foodOptions(meal);
+ const meal=val("fdMeal")||"Desayuno";
  document.getElementById("fdMealHint").textContent=MEAL_HINTS[meal]||"";
  renderFoodCombos(meal);
  renderFoodRecent(meal);
- updateFoodAmountUI()
+ renderFoodPicker();
+ const first=foodKeysForMeal(meal)[0];if(first)setFoodSelection(first)
+}
+function foodKeysForMeal(meal){
+ return [...new Set([...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).map(f=>f.key)])].filter(k=>foodRecord(k))
+}
+function renderFoodPicker(){
+ const root=document.getElementById("fdPicker");if(!root)return;
+ const meal=val("fdMeal")||"Desayuno",query=(val("fdSearch")||"").trim().toLocaleLowerCase("es");
+ const keys=foodKeysForMeal(meal).filter(k=>{const f=foodRecord(k);return !query||`${f.name} ${f.cat}`.toLocaleLowerCase("es").includes(query)});
+ root.innerHTML=keys.length?keys.map(k=>{const f=foodRecord(k),active=val("fdKey")===k;return `<button type="button" class="food-option ${active?"active":""}" role="option" aria-selected="${active}" onclick="setFoodSelection('${k}')"><span><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · ${esc(foodInputMeta(k).reference)}</small></span><b>${active?"✓":"+"}</b></button>`}).join(""):`<div class="empty">No hay resultados. Puedes crear este alimento.</div>`
+}
+function setFoodSelection(key){
+ const f=foodRecord(key),input=document.getElementById("fdKey"),selected=document.getElementById("fdSelected");if(!f||!input)return;
+ input.value=key;if(selected){selected.textContent=f.name;selected.classList.add("chosen")}
+ updateFoodAmountUI();renderFoodPicker()
 }
 function renderFoodCombos(meal){
  const combos=FOOD_QUICK_COMBOS[meal]||[],root=document.getElementById("fdCombos");if(!root)return;
@@ -1598,6 +1617,15 @@ function cancelAppConfirm(){
 }
 
 function closeModal(){document.getElementById("modalRoot").innerHTML=""}
+function installModalAccessibility(){
+ const root=document.getElementById("modalRoot");if(!root)return;
+ new MutationObserver(()=>{
+  const modal=root.querySelector(".modal"),sheet=root.querySelector(".sheet");
+  document.body.classList.toggle("modal-open",!!modal);
+  if(sheet){sheet.setAttribute("role","dialog");sheet.setAttribute("aria-modal","true");sheet.setAttribute("tabindex","-1")}
+ }).observe(root,{childList:true,subtree:true});
+ document.addEventListener("keydown",event=>{if(event.key==="Escape"&&root.children.length)closeModal()})
+}
 
 
 function getRecordedSets(e){
@@ -2145,6 +2173,7 @@ function download(name,content,type){
 document.getElementById("selectedDate").value=todayISO();
 installBottomNavInsetObserver();
 installRuntimeRecovery();
+installModalAccessibility();
 setTimeout(checkDueNotifications,800);
 renderAll();
 installAccessibilityEnhancer();
