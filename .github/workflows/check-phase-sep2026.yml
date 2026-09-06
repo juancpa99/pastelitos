@@ -1,0 +1,28 @@
+name: Check September phase module
+
+on:
+  push:
+    paths:
+      - '.github/workflows/check-phase-sep2026.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax and public references
+        run: |
+          node --check training-lab/phase-sep2026.js
+          grep -q 'phase-sep2026.js?v=605' training-lab/index.html
+          grep -q 'training-lab-pages-v6-5' training-lab/sw.js
+          grep -q 'phase-sep2026.js?v=605' training-lab/sw.js
+      - name: Remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/check-phase-sep2026.yml
+          git commit -m 'Remove one-shot September phase check'
+          git push
