@@ -1,0 +1,30 @@
+name: Check Training Lab September phase v6.6
+
+on:
+  push:
+    paths:
+      - '.github/workflows/check-phase-sep2026-v66.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate phase modules and public wiring
+        run: |
+          node --check training-lab/phase-sep2026.js
+          node --check training-lab/phase-sep2026-integrity.js
+          grep -q 'phase-sep2026.js?v=605' training-lab/index.html
+          grep -q 'phase-sep2026-integrity.js?v=606' training-lab/index.html
+          grep -q 'training-lab-pages-v6-6' training-lab/sw.js
+          grep -q 'phase-sep2026-integrity.js?v=606' training-lab/sw.js
+      - name: Remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/check-phase-sep2026-v66.yml
+          git commit -m 'Remove one-shot v6.6 phase check'
+          git push
