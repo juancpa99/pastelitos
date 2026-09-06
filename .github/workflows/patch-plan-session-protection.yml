@@ -1,0 +1,80 @@
+name: Patch Training Lab session protection
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-plan-session-protection.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Protect started sessions when importing plans
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('training-lab/app.js')
+          text = app.read_text(encoding='utf-8')
+
+          helper = '''function sessionHasRecordedTrainingData(s){
+ if(!s)return false;
+ if(s.completed||s.startedAt||s.finishedAt||s.duration!=null||s.rpe!=null||s.activeKcal!=null)return true;
+ return (s.exercises||[]).some(e=>e.type==="mobility"?!!e.done:getRecordedSets(e).length>0)
+}
+'''
+
+          anchor = 'function importPlanCSV(ev){'
+          if 'function sessionHasRecordedTrainingData(s)' not in text:
+              if anchor not in text:
+                  raise SystemExit('importPlanCSV anchor not found')
+              text = text.replace(anchor, helper + anchor, 1)
+
+          old = 'state.sessions=state.sessions.filter(s=>s.completed||s.date<todayISO());'
+          new = 'state.sessions=state.sessions.filter(s=>s.completed||s.date<todayISO()||sessionHasRecordedTrainingData(s));'
+          if old not in text and new not in text:
+              raise SystemExit('session filter anchor not found')
+          text = text.replace(old, new, 1)
+          app.write_text(text, encoding='utf-8')
+
+          index = Path('training-lab/index.html')
+          html = index.read_text(encoding='utf-8')
+          html = html.replace('app.js?v=601', 'app.js?v=602')
+          index.write_text(html, encoding='utf-8')
+
+          sw = Path('training-lab/sw.js')
+          sw_text = sw.read_text(encoding='utf-8')
+          sw_text = sw_text.replace("training-lab-pages-v6-1", "training-lab-pages-v6-2")
+          sw_text = sw_text.replace('app.js?v=601', 'app.js?v=602')
+          sw.write_text(sw_text, encoding='utf-8')
+
+          test = Path('training-lab/tests/usability.cjs')
+          t = test.read_text(encoding='utf-8')
+          marker = 'console.log(\n  "PASS: bilateral/unilateral accounting, rest, persistence, copy, nominal load, validation, smartwatch and recovery",\n);'
+          addition = '''run(`state.sessions.push({date:todayISO(),key:'protect_today',completed:false,startedAt:null,exercises:[{key:'protect_ex',type:'strength',recordedSets:[{kg:'20',reps:'10',rir:'2',attemptType:'effective'}]}]});state.sessions.push({date:todayISO(),key:'empty_today',completed:false,startedAt:null,exercises:[{key:'empty_ex',type:'strength',recordedSets:[]}]})`);\nassert.equal(run(`sessionHasRecordedTrainingData(state.sessions.find(s=>s.key==='protect_today'))`),true);\nassert.equal(run(`sessionHasRecordedTrainingData(state.sessions.find(s=>s.key==='empty_today'))`),false);\n'''
+          if 'protect_today' not in t:
+              if marker not in t:
+                  raise SystemExit('test marker not found')
+              t = t.replace(marker, addition + marker, 1)
+              test.write_text(t, encoding='utf-8')
+          PY
+      - name: Run Training Lab tests
+        run: |
+          cd training-lab
+          npm init -y >/dev/null 2>&1
+          npm install --silent jsdom@26
+          node tests/usability.cjs
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/patch-plan-session-protection.yml
+          git add training-lab/app.js training-lab/index.html training-lab/sw.js training-lab/tests/usability.cjs
+          git commit -m 'Protect recorded sessions when updating Training Lab plans'
+          git push
