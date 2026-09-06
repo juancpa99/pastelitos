@@ -688,11 +688,11 @@ function strengthChartGroups(ref) {
     a.exercise.name.localeCompare(b.exercise.name),
   );
 }
+let activeStrengthChartKey = null;
 function setStrengthChartExercise(index) {
   const group = strengthChartGroups(currentDate())[+index];
   if (!group) return;
-  state.settings.strengthChartKey = group.key;
-  saveState(true);
+  activeStrengthChartKey = activeStrengthChartKey === group.key ? null : group.key;
   renderProgress();
 }
 function setStrengthChartRange(range) {
@@ -748,35 +748,36 @@ function strengthEvolutionSVG(points, unilateral) {
   svg += `<text x="${left}" y="${height - 12}" fill="#cbd5e1" font-size="13">${esc(points[0].date)}</text><text x="${width - right}" y="${height - 12}" text-anchor="end" fill="#cbd5e1" font-size="13">${points.length > 1 ? esc(points.at(-1).date) : ""}</text></svg>`;
   return svg;
 }
-function strengthMuscleMenu(groups, selected) {
-  const families = new Map();
+function strengthMuscleMenu(groups, selected, ref) {
+  const regions = new Map([['Tren superior',new Map()],['Tren inferior',new Map()],['Core',new Map()]]);
   groups.forEach((group, index) => {
-    const family = exerciseFamily(group.exercise);
+    const source = exerciseFamily(group.exercise);
+    const family = ({Pecho:'Pectoral',Hombro:'Deltoides',Bíceps:'Brazo',Tríceps:'Brazo','Isquios / cadena posterior':'Isquiosurales',Glúteo:'Glúteo'})[source] || source;
+    const region = source === 'Core' ? 'Core' : ['Cuádriceps','Isquios / cadena posterior','Glúteo','Aductores','Gemelos'].includes(source) ? 'Tren inferior' : 'Tren superior';
+    const families = regions.get(region);
     if (!families.has(family)) families.set(family, []);
     families.get(family).push({ group, index });
   });
-  return [...families.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(
-      ([family, items]) =>
-        `<details class="strength-muscle-group" ${state.settings.strengthChartKey && items.some((x) => x.index === selected) ? "open" : ""}><summary><span>${esc(family)}</span><span class="muscle-count">${items.length}</span></summary><div class="strength-muscle-exercises">${items.map(({ group, index }) => `<button type="button" class="strength-exercise-choice" aria-pressed="${index === selected}" onclick="setStrengthChartExercise(${index})"><strong>${esc(group.exercise.name)}</strong><small>${esc(loadLabel(group.exercise))}</small></button>`).join("")}</div></details>`,
-    )
-    .join("");
+  const exercisesHTML = items => items.map(({group,index})=>`<div class="strength-exercise-item"><button type="button" class="strength-exercise-choice" aria-expanded="${index===selected}" aria-pressed="${index===selected}" onclick="setStrengthChartExercise(${index})"><strong>${esc(group.exercise.name)}</strong><small>${esc(loadLabel(group.exercise))}</small></button>${index===selected ? strengthExerciseChartHTML(group,ref) : ''}</div>`).join('');
+  return [...regions.entries()].filter(([,families])=>families.size).map(([region,families])=>{
+    const items=[...families.values()].flat(),open=items.some(x=>x.index===selected);
+    const content=region==='Core' ? `<div class="strength-muscle-exercises">${exercisesHTML(items)}</div>` : [...families.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([family,entries])=>`<details class="strength-muscle-group" ${entries.some(x=>x.index===selected)?'open':''}><summary>${esc(family)}<span class="muscle-count">${entries.length}</span></summary><div class="strength-muscle-exercises">${exercisesHTML(entries)}</div></details>`).join('');
+    return `<details class="strength-region" ${open?'open':''}><summary>${region}<span class="muscle-count">${items.length}</span></summary><div class="strength-region-content">${content}</div></details>`;
+  }).join('');
 }
 strengthProgressHTML = function (ref) {
   const groups = strengthChartGroups(ref);
   if (!groups.length)
     return '<div class="card"><p>Completa una sesión de fuerza para ver la evolución de tus cargas.</p></div>';
-  const selected = Math.max(
-      0,
-      groups.findIndex((g) => g.key === state.settings.strengthChartKey),
-    ),
-    group = groups[selected];
+  const selected = groups.findIndex(g=>g.key===activeStrengthChartKey);
+  return `<div class="card strength-explorer"><p>Despliega una zona y selecciona un ejercicio para ver su evolución.</p><div id="strengthExercise" class="strength-muscle-menu" aria-label="Ejercicios por zona y grupo muscular">${strengthMuscleMenu(groups,selected,ref)}</div></div>`;
+};
+function strengthExerciseChartHTML(group, ref) {
   const range = state.settings.strengthChartRange || "84",
     cutoff = range === "all" ? "0000-01-01" : addDaysISO(ref, -(+range - 1));
   const points = group.points.filter((p) => p.date >= cutoff),
     uni = loadProfile(group.exercise).unilateral;
-  return `<div class="card strength-explorer"><div id="strengthExercise" class="strength-muscle-menu" aria-label="Ejercicios por grupo muscular">${strengthMuscleMenu(groups, selected)}</div><h3 class="strength-selected-title">${esc(group.exercise.name)}</h3><div class="period-tabs" role="group" aria-label="Periodo de la gráfica de fuerza">${[
+  return `<div class="strength-inline-chart" role="region" aria-label="Evolución de ${esc(group.exercise.name)}"><div class="period-tabs" role="group" aria-label="Periodo de la gráfica de fuerza">${[
     ["28", "4 semanas"],
     ["84", "12 semanas"],
     ["all", "Todo"],
@@ -888,6 +889,11 @@ renderWorkout = function () {
   document
     .querySelector("#viewWorkout .hero")
     ?.classList.toggle("rest-day", planFor(currentDate()).type === "rest");
+};
+const nestedStrengthShowView = showView;
+showView = function(view) {
+  if(view === 'Progress' && activeView !== 'Progress') activeStrengthChartKey = null;
+  nestedStrengthShowView(view);
 };
 // Initialize once, after all adapters are installed.
 renderAll();
