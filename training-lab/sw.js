@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v5-3';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=503','./app.js?v=503'];
+const CACHE='training-lab-pages-v6-0';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=600','./app.js?v=600','./usability.js?v=600'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -9,7 +9,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil(
     caches.keys()
-      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(keys=>Promise.all(keys.filter(key=>key.startsWith('training-lab-')&&key!==CACHE).map(key=>caches.delete(key))))
       .then(()=>self.clients.claim())
   );
 });

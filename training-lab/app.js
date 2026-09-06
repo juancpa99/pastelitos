@@ -543,11 +543,11 @@ function toggleGymPause(){
  const s=findSession(currentDate(),planFor(currentDate()).key);if(!s?.startedAt||s.completed)return;
  if(s.pausedAt){
   s.pausedDuration=(+s.pausedDuration||0)+(Date.now()-s.pausedAt);s.pausedAt=null;
-  if(state.restTimer?.pausedBySession){state.restTimer.paused=false;state.restTimer.endAt=Date.now()+(state.restTimer.pausedRemaining||0)*1000;state.restTimer.pausedRemaining=null;state.restTimer.pausedBySession=false}
+  if(state.restTimer?.scope==="planned"&&state.restTimer?.pausedBySession){state.restTimer.paused=false;state.restTimer.endAt=Date.now()+(state.restTimer.pausedRemaining||0)*1000;state.restTimer.pausedRemaining=null;state.restTimer.pausedBySession=false}
   requestSessionWakeLock()
  }else{
   s.pausedAt=Date.now();
-  if(state.restTimer&&!state.restTimer.done&&!state.restTimer.paused){state.restTimer.paused=true;state.restTimer.pausedBySession=true;state.restTimer.pausedRemaining=Math.max(0,Math.ceil((state.restTimer.endAt-Date.now())/1000))}
+  if(state.restTimer?.scope==="planned"&&!state.restTimer.done&&!state.restTimer.paused){state.restTimer.paused=true;state.restTimer.pausedBySession=true;state.restTimer.pausedRemaining=Math.max(0,Math.ceil((state.restTimer.endAt-Date.now())/1000))}
   releaseSessionWakeLock()
  }
  saveState(true);updateRestTimerPanel();
@@ -1752,7 +1752,7 @@ function openHistoryDetail(uid){
   body=exercises.length?exercises.map(e=>{
    if(e.type==="mobility")return `<div class="history-ex"><strong>${esc(e.name)}</strong><small>Movilidad · ${e.done?"realizada":"sin marcar"}</small></div>`;
    const sets=getRecordedSets(e).filter(z=>z.reps||z.kg||z.rir);
-   return `<div class="history-ex"><strong>${esc(e.name)}</strong><small>${sets.length?sets.map((z,i)=>`${inferredAttemptStatus(e,z)==="effective"?"E":inferredAttemptStatus(e,z)==="warmup"?"A":"NE"}${i+1}: ${z.kg||"—"} kg × ${z.reps||"—"} · RIR ${z.rir||"—"}`).join("<br>"):"Sin series registradas"}</small></div>`
+   return `<div class="history-ex"><strong>${esc(e.name)}</strong><small>${esc(typeof loadLabel==="function"?loadLabel(e):"")}<br>${sets.length?sets.map((z,i)=>`${inferredAttemptStatus(e,z)==="effective"?"E":inferredAttemptStatus(e,z)==="warmup"?"A":"NE"}${i+1}: ${esc(z.kg??"—")} kg × ${esc(z.reps??"—")} · RIR ${esc(z.rir??"—")}${z.rightCompletedAt?` / D: ${esc(z.rightKg)} kg × ${esc(z.rightReps)} · RIR ${esc(z.rightRir)}`:""}`).join("<br>"):"Sin series registradas"}</small></div>`
   }).join(""):'<div class="empty">Sin ejercicios guardados.</div>'
  }else if(kind==="swim"){
   body=`<div class="summaryline"><span>Metros</span><span>${s.meters??"—"}</span></div><div class="summaryline"><span>Duración</span><span>${s.duration??"—"} min</span></div><div class="summaryline"><span>RPE</span><span>${s.rpe??"—"}</span></div><div class="summaryline"><span>Hombro</span><span>${s.pain??"—"}/10</span></div>`
@@ -2162,7 +2162,7 @@ function importBackupJSON(event){
  reader.onerror=()=>toast("No se pudo leer el archivo.");
  reader.readAsText(file)
 }
-function exportCSV(){const rows=[["tipo","fecha","a","b","c","d"]];state.body.forEach(x=>rows.push(["medicion",x.date,`peso=${x.weight??""};cintura=${x.waist??""}`,`pecho=${x.chest??""};brazo=${x.arm??""}`,`cadera=${x.hips??""};muslo=${x.thigh??""}`,`gemelo=${x.calf??""}`]));state.daily.forEach(x=>rows.push(["checkin",x.date,x.energy??"",x.fatigue??"",x.hunger??"",x.sleep??""]));state.foods.forEach(x=>{const db=foodRecord(x.foodKey)||{};rows.push(["comida",x.date,x.meal,db.name||x.foodKey,x.amount,db.unit||""])});[...state.sessions,...state.extraSessions].forEach(s=>s.exercises?.forEach(e=>(e.recordedSets||[]).forEach((z,i)=>rows.push(["gym",s.date,e.name,`S${i+1}`,`${z.kg||""}kg x ${z.reps||""}`,`RIR ${z.rir||""}`]))));download("Training_Lab_registros_"+todayISO()+".csv",rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n"),"text/csv")}
+function exportCSV(){const rows=[["tipo","fecha","a","b","c","d"]];state.body.forEach(x=>rows.push(["medicion",x.date,`peso=${x.weight??""};cintura=${x.waist??""}`,`pecho=${x.chest??""};brazo=${x.arm??""}`,`cadera=${x.hips??""};muslo=${x.thigh??""}`,`gemelo=${x.calf??""}`]));state.daily.forEach(x=>rows.push(["checkin",x.date,x.energy??"",x.fatigue??"",x.hunger??"",x.sleep??""]));state.foods.forEach(x=>{const db=foodRecord(x.foodKey)||{};rows.push(["comida",x.date,x.meal,db.name||x.foodKey,x.amount,db.unit||""])});[...state.sessions,...state.extraSessions].forEach(s=>s.exercises?.forEach(e=>(e.recordedSets||[]).forEach((z,i)=>rows.push(["gym",s.date,e.name,`S${i+1}`,`${z.kg||""}kg x ${z.reps||""}`,`RIR ${z.rir??""};derecha=${z.rightKg??""}kg x ${z.rightReps??""};RIR_D=${z.rightRir??""};equipo=${JSON.stringify(e.loadProfile||{})};izquierda_completada=${z.leftCompletedAt??""};derecha_completada=${z.rightCompletedAt??""}`]))));download("Training_Lab_registros_"+todayISO()+".csv",rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n"),"text/csv")}
 function download(name,content,type){
  const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");
  a.href=url;a.download=name;a.rel="noopener";a.style.display="none";
