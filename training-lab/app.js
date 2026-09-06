@@ -2069,6 +2069,11 @@ function parseCSV(text){
  for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(q){if(c==='"'&&n==='"'){field+='"';i++}else if(c==='"')q=false;else field+=c}else{if(c==='"')q=true;else if(c===','){row.push(field);field=""}else if(c==='\n'){row.push(field);rows.push(row);row=[];field=""}else if(c!=='\r')field+=c}}
  if(field.length||row.length){row.push(field);rows.push(row)}return rows
 }
+function sessionHasRecordedTrainingData(s){
+ if(!s)return false;
+ if(s.completed||s.startedAt||s.finishedAt||s.duration!=null||s.rpe!=null||s.activeKcal!=null)return true;
+ return (s.exercises||[]).some(e=>e.type==="mobility"?!!e.done:getRecordedSets(e).length>0)
+}
 function importPlanCSV(ev){
  const file=ev.target.files[0];if(!file)return;const reader=new FileReader();
  reader.onload=()=>{
@@ -2114,7 +2119,7 @@ function importPlanCSV(ev){
     state.customPlans=all
    }
    state.settings.planName=file.name;
-   state.sessions=state.sessions.filter(s=>s.completed||s.date<todayISO());
+   state.sessions=state.sessions.filter(s=>s.completed||s.date<todayISO()||sessionHasRecordedTrainingData(s));
    saveState();renderAll();toast("Plan importado")
   }catch(e){toast("No pude importar el plan: "+e.message)}
  };
