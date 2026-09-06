@@ -98,7 +98,9 @@ assert.match(w.document.getElementById("modalRoot").textContent, /smartwatch/);
 assert.equal(run(`normalizePlannedSession().startedAt`), null);
 w.document.getElementById("watchReady").click();
 assert.ok(run(`normalizePlannedSession().startedAt`));
-run(`openPendingWorkouts()`);
+assert.equal(run(`pendingWorkouts().length`),0);
+run(`document.getElementById('selectedDate').value='2026-09-13';renderAll();openPendingWorkouts()`);
+assert.ok(run(`pendingWorkouts().every(x=>x.date>='2026-09-07'&&x.date<'2026-09-13')`));
 assert.match(
   w.document.getElementById("modalRoot").textContent,
   /no realizado/,
@@ -132,6 +134,15 @@ assert.equal(
   ),
   1,
 );
+assert.equal(run(`strengthChartGroups('2026-09-13').find(g=>g.exercise.key==='progress_test').points.length`),2);
+assert.match(run(`strengthProgressHTML('2026-09-13')`),/strengthExercise/);
+assert.match(run(`strengthProgressHTML('2026-09-13')`),/<svg/);
+assert.match(run(`strengthProgressHTML('2026-09-13')`),/<details>/);
+assert.doesNotMatch(run(`strengthProgressHTML('2026-09-13')`),/<details open/);
+assert.match(run(`strengthEvolutionSVG([{date:'2026-09-01',left:0,right:0}],true)`),/Derecha/);
+assert.doesNotMatch(run(`strengthEvolutionSVG([{date:'2026-09-01',left:0,right:0}],true)`),/NaN|Infinity/);
+run(`setStrengthChartRange('28')`);
+assert.equal(run(`state.settings.strengthChartRange`),'28');
 console.log(
   "PASS: bilateral/unilateral accounting, rest, persistence, copy, nominal load, validation, smartwatch and recovery",
 );

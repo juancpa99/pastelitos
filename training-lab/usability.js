@@ -463,7 +463,7 @@ renderWorkout = function () {
 };
 function pendingWorkouts() {
   const out = [];
-  for (let n = 1; n <= 28; n++) {
+  for (let n = 1; n <= (weekday(currentDate()) + 6) % 7; n++) {
     const d = new Date(currentDate() + "T12:00:00");
     d.setDate(d.getDate() - n);
     const date = d.toISOString().slice(0, 10),
@@ -484,13 +484,13 @@ function pendingWorkouts() {
 function openPendingWorkouts() {
   saveScopeInputs("planned");
   document.getElementById("modalRoot").innerHTML =
-    `<div class="modal"><div class="sheet"><h2>Entrenamientos pendientes</h2><p>Últimos 28 días según tu plan actual. Se registra en la fecha seleccionada; no cambia la plantilla ni el calendario.</p>${
+    `<div class="modal"><div class="sheet"><h2>Entrenamientos pendientes</h2><p>Solo días anteriores de esta semana (lunes a domingo), según la fecha seleccionada y tu plan actual. Se registra en la fecha seleccionada; no cambia la plantilla ni el calendario.</p>${
       pendingWorkouts()
         .map(
           (x, i) =>
             `<button class="btn secondary pending-choice" onclick="recoverWorkout(${i})">Hacer ${esc(x.p.title)} · ${esc(pretty(x.date))} · ${x.s?.startedAt ? "iniciado" : "no realizado"}</button>`,
         )
-        .join("") || "<p>No hay pendientes.</p>"
+        .join("") || "<p>No hay entrenamientos pendientes esta semana.</p>"
     }<button class="btn ghost" onclick="closeModal()">Cerrar</button></div></div>`;
 }
 function recoverWorkout(i) {
@@ -654,33 +654,127 @@ closeModal = function () {
   if (scope) saveScopeInputs(scope);
   legacyCloseModal();
 };
-strengthProgressHTML = function (ref, period) {
-  const records = new Map();
-  sessionsForProgress(ref, period)
-    .filter((s) => s.completed)
-    .sort((a, b) => b.date.localeCompare(a.date))
+// One selected exercise/equipment at a time; chart range is independent of daily totals.
+function strengthChartGroups(ref) {
+  const groups = new Map();
+  [...state.sessions, ...state.extraSessions]
+    .filter((s) => s.completed && s.date <= ref)
+    .sort((a, b) => a.date.localeCompare(b.date))
     .forEach((s) =>
       (s.exercises || []).forEach((e) => {
-        if (e.type !== "mobility" && !records.has(e.key + profileSignature(e)))
-          records.set(e.key + profileSignature(e), e);
+        if (e.type === "mobility") return;
+        const sets = effectiveAttempts(e).filter(
+          (a) => a.kg !== "" && Number.isFinite(+a.kg),
+        );
+        if (!sets.length) return;
+        const key = JSON.stringify([e.key, profileSignature(e)]);
+        if (!groups.has(key)) groups.set(key, { key, exercise: e, points: [] });
+        const right = sets.filter(
+          (a) => a.rightKg !== "" && Number.isFinite(+a.rightKg),
+        );
+        groups
+          .get(key)
+          .points.push({
+            date: s.date,
+            left: Math.max(...sets.map((a) => +a.kg)),
+            right:
+              loadProfile(e).unilateral && right.length
+                ? Math.max(...right.map((a) => +a.rightKg))
+                : null,
+            reps: sets.reduce((n, a) => n + (+a.reps || 0), 0),
+            sets: sets.length,
+          });
       }),
     );
-  return `<div class="card"><p>Últimas cargas por equipo y convención. No se compara el tonelaje entre máquinas diferentes.</p>${
-    [...records.values()]
-      .slice(0, 12)
-      .map(
-        (e) =>
-          `<div class="progress-insight"><div><strong>${esc(e.name)}</strong><p>${esc(loadLabel(e))}</p><small>${effectiveAttempts(
-            e,
-          )
-            .map(
-              (a) =>
-                `${esc(a.kg)} kg × ${esc(a.reps)}${loadProfile(e).unilateral ? ` / D: ${esc(a.rightKg)} kg × ${esc(a.rightReps)}` : ""}`,
-            )
-            .join(" · ")}</small></div></div>`,
-      )
-      .join("") || "<p>Completa una sesión para ver referencias.</p>"
-  }</div>`;
+  return [...groups.values()].sort((a, b) =>
+    a.exercise.name.localeCompare(b.exercise.name),
+  );
+}
+function setStrengthChartExercise(index) {
+  const group = strengthChartGroups(currentDate())[+index];
+  if (!group) return;
+  state.settings.strengthChartKey = group.key;
+  saveState(true);
+  renderProgress();
+}
+function setStrengthChartRange(range) {
+  if (!["28", "84", "all"].includes(range)) return;
+  state.settings.strengthChartRange = range;
+  saveState(true);
+  renderProgress();
+}
+function strengthEvolutionSVG(points, unilateral) {
+  const width = 600,
+    height = 250,
+    left = 48,
+    right = 18,
+    top = 22,
+    bottom = 42;
+  const values = points.flatMap((p) =>
+    p.right == null ? [p.left] : [p.left, p.right],
+  );
+  const max = Math.max(1, ...values) * 1.12,
+    plotW = width - left - right,
+    plotH = height - top - bottom;
+  const times = points.map((p) => Date.parse(p.date + "T12:00:00Z")),
+    start = Math.min(...times),
+    end = Math.max(...times);
+  const x = (i) =>
+      left +
+      (end === start
+        ? plotW / 2
+        : ((times[i] - start) / (end - start)) * plotW),
+    y = (v) => top + plotH * (1 - v / max);
+  let svg = `<svg class="strength-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolución de la carga máxima registrada por sesión, en kilogramos. Valores exactos en el detalle inferior.">`;
+  for (let i = 0; i <= 4; i++) {
+    const value = (max * i) / 4,
+      yy = y(value);
+    svg += `<line x1="${left}" y1="${yy}" x2="${width - right}" y2="${yy}" stroke="#334155"/><text x="${left - 8}" y="${yy + 4}" text-anchor="end" fill="#cbd5e1" font-size="13">${Math.round(value * 10) / 10}</text>`;
+  }
+  svg += '<text x="8" y="14" fill="#cbd5e1" font-size="13">kg</text>';
+  for (const [field, color, label] of unilateral
+    ? [
+        ["left", "#7dd3fc", "Izquierda"],
+        ["right", "#fbbf24", "Derecha"],
+      ]
+    : [["left", "#7dd3fc", "Carga"]]) {
+    const entries = points
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => p[field] != null);
+    svg += `<polyline fill="none" stroke="${color}" stroke-width="3" ${field === "right" ? 'stroke-dasharray="6 4"' : ""} points="${entries.map(({ p, i }) => `${x(i)},${y(p[field])}`).join(" ")}"/>`;
+    entries.forEach(
+      ({ p, i }) =>
+        (svg += `<circle cx="${x(i)}" cy="${y(p[field])}" r="5" fill="${color}"><title>${esc(p.date)} · ${label}: ${p[field]} kg</title></circle>`),
+    );
+  }
+  svg += `<text x="${left}" y="${height - 12}" fill="#cbd5e1" font-size="13">${esc(points[0].date)}</text><text x="${width - right}" y="${height - 12}" text-anchor="end" fill="#cbd5e1" font-size="13">${points.length > 1 ? esc(points.at(-1).date) : ""}</text></svg>`;
+  return svg;
+}
+strengthProgressHTML = function (ref) {
+  const groups = strengthChartGroups(ref);
+  if (!groups.length)
+    return '<div class="card"><p>Completa una sesión de fuerza para ver la evolución de tus cargas.</p></div>';
+  const selected = Math.max(
+      0,
+      groups.findIndex((g) => g.key === state.settings.strengthChartKey),
+    ),
+    group = groups[selected];
+  const range = state.settings.strengthChartRange || "84",
+    cutoff = range === "all" ? "0000-01-01" : addDaysISO(ref, -(+range - 1));
+  const points = group.points.filter((p) => p.date >= cutoff),
+    uni = loadProfile(group.exercise).unilateral;
+  return `<div class="card strength-explorer"><label for="strengthExercise">Ejercicio y equipo</label><select id="strengthExercise" onchange="setStrengthChartExercise(this.value)">${groups.map((g, i) => `<option value="${i}" ${i === selected ? "selected" : ""}>${esc(g.exercise.name)} · ${esc(loadLabel(g.exercise))}</option>`).join("")}</select><div class="period-tabs" role="group" aria-label="Periodo de la gráfica de fuerza">${[
+    ["28", "4 semanas"],
+    ["84", "12 semanas"],
+    ["all", "Todo"],
+  ]
+    .map(
+      ([k, label]) =>
+        `<button type="button" aria-pressed="${range === k}" class="${range === k ? "active" : ""}" onclick="setStrengthChartRange('${k}')">${label}</button>`,
+    )
+    .join(
+      "",
+    )}</div><p class="strength-chart-caption">Carga máxima registrada por sesión · ${esc(loadLabel(group.exercise))}</p>${points.length ? `${strengthEvolutionSVG(points, uni)}${uni ? '<p class="strength-legend"><span>● Izquierda</span><span>┄ Derecha</span></p>' : ""}<p>${points.length === 1 ? "Una sesión registrada. La curva aparecerá al añadir más sesiones." : `${points.length} sesiones en este periodo.`} Los kg siguen tu convención de registro; no equivalen por sí solos a una mejora de fuerza.</p><details><summary>Ver registros y repeticiones</summary><div class="strength-table-wrap"><table><thead><tr><th>Fecha</th><th>${uni ? "Máx. I" : "Máx."} (kg)</th>${uni ? "<th>Máx. D (kg)</th>" : ""}<th>Series</th><th>Reps${uni ? " I" : ""}</th></tr></thead><tbody>${points.map((p) => `<tr><td>${esc(p.date)}</td><td>${p.left}</td>${uni ? `<td>${p.right ?? "—"}</td>` : ""}<td>${p.sets}</td><td>${p.reps}</td></tr>`).join("")}</tbody></table></div></details>` : "<p>No hay registros de este ejercicio en este periodo. Prueba «Todo».</p>"}</div>`;
 };
 // Completed sessions are review-only. No silent edits to historical loads.
 const editableExerciseCard = exerciseCardHTML;

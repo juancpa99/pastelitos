@@ -18,7 +18,7 @@ La plantilla y sus fases no se modifican. La aplicación utiliza los rangos de r
 - La carga calculada es nominal, no fuerza real en la articulación; poleas, ángulos y palancas impiden comparar máquinas por kg.
 - Cada sesión conserva su configuración. Los registros antiguos sin convención confirmada quedan separados de las nuevas referencias.
 - Los atajos copian peso/reps, nunca el esfuerzo subjetivo de una serie anterior. Las series completadas son de solo lectura.
-- Recuperar un entrenamiento crea una sesión vinculada a su fecha de origen, en la fecha seleccionada, sin cambiar el plan. Los candidatos de 28 días se calculan sobre el plan actual: no reconstruyen versiones históricas desconocidas.
+- Recuperar un entrenamiento crea una sesión vinculada a su fecha de origen, en la fecha seleccionada, sin cambiar el plan. Los candidatos de los días anteriores de la semana seleccionada (lunes a domingo) se calculan sobre el plan actual: no reconstruyen versiones históricas desconocidas.
 - El cronómetro usa marcas temporales, incluye descansos y excluye pausas explícitas. El reloj requiere iniciar/pausar por separado.
 
 ## Límites y siguientes pasos
