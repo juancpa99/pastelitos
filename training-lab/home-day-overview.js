@@ -100,10 +100,45 @@ function enhanceHomeDayOverview(){
   pending.insertAdjacentHTML("afterend",homeTaskHTML(date,presentation));
 }
 
+function homeWeekLabel(date){
+  const p=planFor(date),comp=homeComplementFor(date);
+  if(comp&&p.type==="swim")return /movilidad/i.test(comp.title)?"Natación + movilidad":"Natación + complemento";
+  if(comp&&p.type==="rest")return "Movilidad + core";
+  return p.title;
+}
+function enhanceWorkoutDayOverview(){
+  const root=document.getElementById("viewWorkout");
+  if(!root)return;
+  const date=currentDate(),presentation=homeDayPresentation(date);
+
+  if(presentation.p.type==="rest"&&presentation.comp){
+    const restHero=[...root.querySelectorAll(".card.hero")].find(card=>card.querySelector(".hero-title")?.textContent.trim()==="Descanso");
+    if(restHero){
+      const title=restHero.querySelector(".hero-title"),subtitle=restHero.querySelector(".subtitle");
+      if(title)title.textContent=presentation.comp.title;
+      if(subtitle)subtitle.textContent=presentation.comp.timing||presentation.comp.note||"Recuperación activa";
+    }
+  }
+
+  root.querySelectorAll(".compact-week-card .day").forEach(button=>{
+    const match=(button.getAttribute("onclick")||"").match(/selectWeekday\((\d)\)/);
+    if(!match)return;
+    const day=+match[1],targetDate=dateForWeekday(date,day),label=button.querySelector(".w");
+    if(label)label.textContent=homeWeekLabel(targetDate);
+  });
+}
+
 const homeOverviewRenderHome=renderHome;
 renderHome=function(){
   homeOverviewRenderHome();
   enhanceHomeDayOverview();
 };
 
+const homeOverviewRenderWorkout=renderWorkout;
+renderWorkout=function(){
+  homeOverviewRenderWorkout();
+  enhanceWorkoutDayOverview();
+};
+
 enhanceHomeDayOverview();
+enhanceWorkoutDayOverview();
