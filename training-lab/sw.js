@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v6-15';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=615','./app.js?v=602','./usability.js?v=615','./season-complements.js?v=604','./phase-sep2026.js?v=605','./phase-sep2026-integrity.js?v=606','./phase-sep2026-tracking.js?v=607','./phase-sep2026-report.js?v=608','./phase-sep2026-report-fix.js?v=609','./pending-workout-layout.js?v=613','./home-day-overview.js?v=612','./day-order-fix.js?v=613'];
+const CACHE='training-lab-pages-v6-16';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./marevo-mark.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=615','./marevo-brand.css?v=616','./app.js?v=602','./usability.js?v=615','./season-complements.js?v=604','./phase-sep2026.js?v=605','./phase-sep2026-integrity.js?v=606','./phase-sep2026-tracking.js?v=607','./phase-sep2026-report.js?v=608','./phase-sep2026-report-fix.js?v=609','./pending-workout-layout.js?v=613','./home-day-overview.js?v=612','./day-order-fix.js?v=613','./marevo-brand.js?v=616'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -17,7 +17,7 @@ self.addEventListener('activate',event=>{
 self.addEventListener('push',event=>{
   let payload={};
   try{payload=event.data?event.data.json():{}}catch(e){payload={body:event.data?event.data.text():''}}
-  const title=payload.title||'Training Lab';
+  const title=payload.title||'MAREVO';
   event.waitUntil(self.registration.showNotification(title,{
     body:payload.body||'Tienes una tarea pendiente.',
     tag:payload.tag||'training-lab-push',

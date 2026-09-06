@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">MAREVO</title>
+  <desc id="desc">M formada por una mancuerna y una ola</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M68 181v150" stroke="#35dcc5" stroke-width="34"/>
+    <path d="M106 158v196" stroke="#35dcc5" stroke-width="44"/>
+    <path d="M444 181v150" stroke="#7dd3fc" stroke-width="34"/>
+    <path d="M406 158v196" stroke="#7dd3fc" stroke-width="44"/>
+    <path d="M132 337V171L256 294L380 171V337" stroke="#eaf8ff" stroke-width="44"/>
+    <path d="M126 271c48-47 88-47 130 0s82 47 130 0" stroke="#35dcc5" stroke-width="30"/>
+    <path d="M256 271c42 47 82 47 130 0" stroke="#7dd3fc" stroke-width="30"/>
+  </g>
+</svg>
