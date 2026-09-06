@@ -11,15 +11,24 @@ function movePendingWorkoutCard(){
   const pendingCard=pendingButton.closest(".card");
   if(!pendingCard)return;
 
-  const extraButtons=[...root.querySelectorAll("button")].filter(button=>
-    (button.getAttribute("onclick")||"").includes("openExtraSession")
+  const extraSection=[...root.querySelectorAll(".section")].find(section=>
+    section.textContent.trim()==="Sesiones extra"
   );
-  const extraAnchor=extraButtons.at(-1);
-  if(!extraAnchor)return;
+  if(!extraSection)return;
 
-  const target=extraAnchor.closest(".card")||extraAnchor;
-  if(target===pendingCard)return;
-  target.insertAdjacentElement("afterend",pendingCard);
+  // The extra-session area ends immediately before the weekly secondary block.
+  // Put the recovered-workout action after all extra-session cards, regardless of
+  // whether there are already extras recorded for the selected day.
+  let anchor=extraSection;
+  let node=extraSection.nextElementSibling;
+  while(node&&!node.classList.contains("workout-secondary")){
+    if(node!==pendingCard)anchor=node;
+    node=node.nextElementSibling;
+  }
+
+  if(anchor!==pendingCard&&anchor.nextElementSibling!==pendingCard){
+    anchor.insertAdjacentElement("afterend",pendingCard);
+  }
   pendingCard.classList.add("pending-workout-card");
 }
 
