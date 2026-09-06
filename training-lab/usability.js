@@ -672,18 +672,16 @@ function strengthChartGroups(ref) {
         const right = sets.filter(
           (a) => a.rightKg !== "" && Number.isFinite(+a.rightKg),
         );
-        groups
-          .get(key)
-          .points.push({
-            date: s.date,
-            left: Math.max(...sets.map((a) => +a.kg)),
-            right:
-              loadProfile(e).unilateral && right.length
-                ? Math.max(...right.map((a) => +a.rightKg))
-                : null,
-            reps: sets.reduce((n, a) => n + (+a.reps || 0), 0),
-            sets: sets.length,
-          });
+        groups.get(key).points.push({
+          date: s.date,
+          left: Math.max(...sets.map((a) => +a.kg)),
+          right:
+            loadProfile(e).unilateral && right.length
+              ? Math.max(...right.map((a) => +a.rightKg))
+              : null,
+          reps: sets.reduce((n, a) => n + (+a.reps || 0), 0),
+          sets: sets.length,
+        });
       }),
     );
   return [...groups.values()].sort((a, b) =>
@@ -750,6 +748,21 @@ function strengthEvolutionSVG(points, unilateral) {
   svg += `<text x="${left}" y="${height - 12}" fill="#cbd5e1" font-size="13">${esc(points[0].date)}</text><text x="${width - right}" y="${height - 12}" text-anchor="end" fill="#cbd5e1" font-size="13">${points.length > 1 ? esc(points.at(-1).date) : ""}</text></svg>`;
   return svg;
 }
+function strengthMuscleMenu(groups, selected) {
+  const families = new Map();
+  groups.forEach((group, index) => {
+    const family = exerciseFamily(group.exercise);
+    if (!families.has(family)) families.set(family, []);
+    families.get(family).push({ group, index });
+  });
+  return [...families.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([family, items]) =>
+        `<details class="strength-muscle-group" ${state.settings.strengthChartKey && items.some((x) => x.index === selected) ? "open" : ""}><summary><span>${esc(family)}</span><span class="muscle-count">${items.length}</span></summary><div class="strength-muscle-exercises">${items.map(({ group, index }) => `<button type="button" class="strength-exercise-choice" aria-pressed="${index === selected}" onclick="setStrengthChartExercise(${index})"><strong>${esc(group.exercise.name)}</strong><small>${esc(loadLabel(group.exercise))}</small></button>`).join("")}</div></details>`,
+    )
+    .join("");
+}
 strengthProgressHTML = function (ref) {
   const groups = strengthChartGroups(ref);
   if (!groups.length)
@@ -763,7 +776,7 @@ strengthProgressHTML = function (ref) {
     cutoff = range === "all" ? "0000-01-01" : addDaysISO(ref, -(+range - 1));
   const points = group.points.filter((p) => p.date >= cutoff),
     uni = loadProfile(group.exercise).unilateral;
-  return `<div class="card strength-explorer"><label for="strengthExercise">Ejercicio y equipo</label><select id="strengthExercise" onchange="setStrengthChartExercise(this.value)">${groups.map((g, i) => `<option value="${i}" ${i === selected ? "selected" : ""}>${esc(g.exercise.name)} · ${esc(loadLabel(g.exercise))}</option>`).join("")}</select><div class="period-tabs" role="group" aria-label="Periodo de la gráfica de fuerza">${[
+  return `<div class="card strength-explorer"><div id="strengthExercise" class="strength-muscle-menu" aria-label="Ejercicios por grupo muscular">${strengthMuscleMenu(groups, selected)}</div><h3 class="strength-selected-title">${esc(group.exercise.name)}</h3><div class="period-tabs" role="group" aria-label="Periodo de la gráfica de fuerza">${[
     ["28", "4 semanas"],
     ["84", "12 semanas"],
     ["all", "Todo"],
@@ -852,5 +865,29 @@ function adjustSessionSets(scope, i, delta) {
   );
 }
 
+// Apply rest styling to the actual runtime panels, including paused rests.
+const themedRestPanel = updateRestTimerPanel;
+updateRestTimerPanel = function () {
+  themedRestPanel();
+  const t = state.restTimer;
+  document
+    .getElementById("sessionCoachPanel")
+    ?.classList.toggle(
+      "is-rest",
+      !!t && t.date === currentDate() && t.scope === "planned",
+    );
+  const extra = document.getElementById("extraClock");
+  extra?.classList.toggle(
+    "is-rest",
+    !!t && t.scope === extra.closest("[data-extra-scope]")?.dataset.extraScope,
+  );
+};
+const themedWorkout = renderWorkout;
+renderWorkout = function () {
+  themedWorkout();
+  document
+    .querySelector("#viewWorkout .hero")
+    ?.classList.toggle("rest-day", planFor(currentDate()).type === "rest");
+};
 // Initialize once, after all adapters are installed.
 renderAll();

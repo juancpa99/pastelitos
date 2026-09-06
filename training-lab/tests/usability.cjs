@@ -22,8 +22,10 @@ w.ResizeObserver = class {
 const vm = require("node:vm"),
   ctx = dom.getInternalVMContext();
 const run = (s) => vm.runInContext(s, ctx);
-run(fs.readFileSync(root + "app.js", "utf8"));
-run(fs.readFileSync(root + "usability.js", "utf8"));
+// Load every production module in the same order as the page.
+for (const match of fs.readFileSync(root + "index.html", "utf8").matchAll(/<script src="([^"?]+)(?:\?[^\"]*)?"><\/script>/g)) {
+  run(fs.readFileSync(root + match[1], "utf8"));
+}
 run(
   `document.getElementById('selectedDate').value='2026-09-07';renderAll();showView('Workout');state.extraSessions.push({id:'test',date:currentDate(),startedAt:Date.now(),exercises:[{key:'one_row',name:'Remo unilateral',sets:2,min:8,max:12,rir:'1–2',rest:'2 min',type:'strength',loadProfile:{mode:'dumbbell',base:'',machine:'Banco 1',unilateral:true},recordedSets:[{kg:'10',reps:'10',rir:'2',rightKg:'10',rightReps:'9',rightRir:'2',attemptType:'effective'}]}]});editExtraSession('test');`,
 );
@@ -143,6 +145,19 @@ assert.match(run(`strengthEvolutionSVG([{date:'2026-09-01',left:0,right:0}],true
 assert.doesNotMatch(run(`strengthEvolutionSVG([{date:'2026-09-01',left:0,right:0}],true)`),/NaN|Infinity/);
 run(`setStrengthChartRange('28')`);
 assert.equal(run(`state.settings.strengthChartRange`),'28');
+run(`state.settings.strengthChartKey=null;renderProgress()`);
+assert.ok(w.document.querySelector('.strength-muscle-group'));
+assert.equal(w.document.querySelectorAll('.strength-muscle-group[open]').length,0);
+assert.equal(w.document.querySelector('select#strengthExercise'),null);
+assert.ok(run(`typeof buildSep26Report==='function' && typeof enforceChronologicalWorkoutOrder==='function'`));
+run(`state.settings.mode='season';document.getElementById('selectedDate').value='2026-09-09';renderAll();showView('Workout')`);
+assert.equal(run(`planFor(currentDate()).type`),'swim');
+assert.ok(w.document.querySelector('.season-complement-card'));
+assert.ok(w.document.querySelector('.pending-workout-card'));
+run(`showView('Settings')`);
+assert.equal(w.document.body.dataset.view,'Settings');
+run(`showView('Food')`);
+assert.equal(w.document.body.dataset.view,'Food');
 console.log(
   "PASS: bilateral/unilateral accounting, rest, persistence, copy, nominal load, validation, smartwatch and recovery",
 );
