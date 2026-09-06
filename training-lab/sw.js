@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v6-7';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=601','./app.js?v=602','./usability.js?v=601','./season-complements.js?v=604','./phase-sep2026.js?v=605','./phase-sep2026-integrity.js?v=606','./phase-sep2026-tracking.js?v=607'];
+const CACHE='training-lab-pages-v6-8';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./apple-touch-icon.png','./plantilla_plan.csv','./app.css?v=601','./app.js?v=602','./usability.js?v=601','./season-complements.js?v=604','./phase-sep2026.js?v=605','./phase-sep2026-integrity.js?v=606','./phase-sep2026-tracking.js?v=607','./phase-sep2026-report.js?v=608'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
