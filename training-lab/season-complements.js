@@ -68,27 +68,74 @@ function seasonComplementHTML(date=currentDate()){
     strength.length ? `${strength.reduce((n,e)=>n+(+e.sets||0),0)} series de fuerza` : "",
     mobility.length ? `${mobility.length} ejercicios de movilidad` : ""
   ].filter(Boolean).join(" · ");
-  return `<div class="card season-complement-card"><div class="eyebrow">Complemento programado</div><div class="hero-title" style="font-size:18px">${esc(tpl.title)}</div><div class="subtitle">${esc(tpl.timing)} · ${esc(summary)}</div><div class="callout" style="margin-top:8px">${esc(tpl.note)}</div><div class="actions" style="margin-top:10px">${existing?`<button class="btn secondary" onclick="editExtraSession('${existing.id}')">${existing.completed?"Ver complemento guardado":"Abrir complemento"}</button>`:`<button class="btn" onclick="createSeasonComplement()">Añadir y registrar</button>`}</div></div>`;
+  let action;
+  if(existing?.completed) action=`<button class="btn secondary" onclick="editExtraSession('${existing.id}')">Ver complemento guardado</button>`;
+  else if(existing?.startedAt) action=`<button class="btn secondary" onclick="editExtraSession('${existing.id}')">Abrir complemento</button>`;
+  else action=`<button class="btn" onclick="startSeasonComplement(${existing?`'${existing.id}'`:""})">Iniciar complemento</button>`;
+  return `<div class="card season-complement-card"><div class="eyebrow">Complemento programado</div><div class="hero-title" style="font-size:18px">${esc(tpl.title)}</div><div class="subtitle">${esc(tpl.timing)} · ${esc(summary)}</div><div class="callout" style="margin-top:8px">${esc(tpl.note)}</div><div class="actions" style="margin-top:10px">${action}</div></div>`;
 }
-function createSeasonComplement(){
+function createSeasonComplementRecord(){
   const tpl=seasonComplementTemplate();
-  if(!tpl) return;
+  if(!tpl) return null;
   const existing=seasonComplementSession();
-  if(existing){editExtraSession(existing.id);return;}
+  if(existing) return existing;
   const id="season_"+tpl.key+"_"+Date.now().toString(36);
-  state.extraSessions.push({
+  const session={
     id,
     date:currentDate(),
     title:tpl.title,
     templateKey:tpl.key,
     completed:false,
     startedAt:null,
+    pausedAt:null,
+    pausedDuration:0,
+    duration:null,
+    rpe:null,
+    activeKcal:null,
     exercises:structuredClone(tpl.exercises).map(e=>normalizeSessionExercise({...e,recordedSets:[]}))
-  });
+  };
+  state.extraSessions.push(session);
   saveState(true);
-  renderWorkout();
-  editExtraSession(id);
+  return session;
 }
+function mobilityStartReminder(next){
+  document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><h2>Antes de empezar</h2><p>Si quieres contabilizar la sesión, activa en el smartwatch el entrenamiento que uses para movilidad.</p><p>El reloj y la app se inician y se pausan por separado.</p><button class="btn" id="mobilityReady">Listo · iniciar sesión</button><button class="btn ghost" onclick="closeModal()">Todavía no</button></div></div>`;
+  document.getElementById("mobilityReady").onclick=()=>{closeModal();next()};
+}
+function startSeasonComplement(id=null){
+  const tpl=seasonComplementTemplate();
+  if(!tpl) return;
+  let s=id?state.extraSessions.find(x=>x.id===id):seasonComplementSession();
+  if(!s) s=createSeasonComplementRecord();
+  if(!s) return;
+  if(s.completed){editExtraSession(s.id);return;}
+  if(s.startedAt){editExtraSession(s.id);return;}
+  const begin=()=>{
+    s.startedAt=Date.now();
+    s.pausedAt=null;
+    s.pausedDuration=+s.pausedDuration||0;
+    saveState(true);
+    renderWorkout();
+    editExtraSession(s.id);
+    startRuntimeTicker();
+    updateExtraClock();
+  };
+  const hasStrength=tpl.exercises.some(e=>e.type==="strength");
+  if(hasStrength) watchReminder(begin);
+  else mobilityStartReminder(begin);
+}
+// Backwards-compatible entry point for any cached older button.
+function createSeasonComplement(){startSeasonComplement()}
+
+const seasonBaseEditExtraSession=editExtraSession;
+editExtraSession=function(id){
+  const s=state.extraSessions.find(x=>x.id===id);
+  if(s?.templateKey?.startsWith("season_") && !s.completed && !s.startedAt){
+    startSeasonComplement(id);
+    return;
+  }
+  seasonBaseEditExtraSession(id);
+};
 
 const seasonBaseRenderWorkout = renderWorkout;
 renderWorkout = function(){
