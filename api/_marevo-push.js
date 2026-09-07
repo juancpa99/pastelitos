@@ -23,7 +23,7 @@ export function setCors(req,res){
 
 export function originAllowed(req){
   const origin=String(req.headers.origin||'');
-  return !origin||ALLOWED_ORIGINS.has(origin);
+  return ALLOWED_ORIGINS.has(origin);
 }
 
 export function parseBody(req){
