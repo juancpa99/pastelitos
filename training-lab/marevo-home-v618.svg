@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">MAREVO</title>
+  <desc id="desc">Icono de inicio MAREVO con el mismo símbolo usado dentro de la app</desc>
+  <rect width="512" height="512" fill="#06101a"/>
+  <g transform="translate(25.6 25.6) scale(.9)">
+    <defs>
+      <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#24e6c9"/>
+        <stop offset="1" stop-color="#38bdf8"/>
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M54 214v84M91 184v144M458 214v84M421 184v144" stroke="url(#wave)" stroke-width="28"/>
+      <path d="M118 256H394" stroke="#163248" stroke-width="18"/>
+      <path d="M132 354V166L256 286L380 166V354" stroke="#f7fbff" stroke-width="52"/>
+      <path d="M118 278C170 218 216 220 258 270C302 322 350 327 404 258" stroke="url(#wave)" stroke-width="38"/>
+    </g>
+  </g>
+</svg>
