@@ -1,7 +1,7 @@
 import { Client } from '@upstash/qstash';
 
 const DEFAULT_ORIGIN='https://juancpa99.github.io';
-const MAX_HORIZON_MS=9*24*60*60*1000;
+const MAX_HORIZON_MS=7*24*60*60*1000-60*1000;
 const ALLOWED_TYPES=new Set(['rest','workout','checkin','body','monthly','breakfast','lunch','snack','dinner','post-workout','general']);
 
 function cors(req,res){
@@ -32,9 +32,7 @@ function cleanMessageIds(values){
   if(!Array.isArray(values))return [];
   return [...new Set(values.map(v=>cleanText(v,160)).filter(v=>v.startsWith('msg_'))) ].slice(0,64);
 }
-function qstashClient(token){
-  return new Client({token,enableTelemetry:false});
-}
+function qstashClient(token){return new Client({token});}
 async function cancelMessages(client,ids){
   if(!ids.length)return;
   await Promise.allSettled(ids.map(id=>client.messages.cancel(id)));
@@ -45,10 +43,9 @@ async function publishReminder(client,reminder,subscription,deliveryUrl,delivery
     url:deliveryUrl,
     body:{subscription,reminder},
     headers:{'X-Marevo-Delivery-Key':deliveryKey},
-    delay:`${delaySeconds}s`,
+    delay:delaySeconds,
     retries:1,
-    label:`marevo-${reminder.type}`,
-    redact:{body:true,header:['X-Marevo-Delivery-Key']}
+    label:`marevo-${reminder.type}`
   });
   return result?.messageId||null;
 }
@@ -71,21 +68,40 @@ export default async function handler(req,res){
   await cancelMessages(client,cancelIds);
 
   const now=Date.now();
-  const reminders=(Array.isArray(body.reminders)?body.reminders:[]).slice(0,32).map(v=>cleanReminder(v,now)).filter(Boolean);
+  const rawReminders=(Array.isArray(body.reminders)?body.reminders:[]).slice(0,32);
+  const reminders=rawReminders.map(v=>cleanReminder(v,now)).filter(Boolean);
+  const skipped=Math.max(0,rawReminders.length-reminders.length);
   const protocol=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
   const host=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
   const deliveryUrl=`${protocol}://${host}/api/deliver`;
   const messageIds=[];
+  const failures=[];
 
-  try{
-    for(const reminder of reminders){
+  for(const reminder of reminders){
+    try{
       const id=await publishReminder(client,reminder,body.subscription,deliveryUrl,deliveryKey);
       if(id)messageIds.push(id);
+      else failures.push({id:reminder.id,error:'missing_message_id'});
+    }catch(error){
+      const detail=cleanText(error?.message||'unknown_error',180);
+      console.error('[MAREVO push] QStash reminder failed',reminder.id,detail);
+      failures.push({id:reminder.id,error:detail});
     }
-  }catch(error){
-    await cancelMessages(client,messageIds);
-    console.error('[MAREVO push] QStash scheduling failed',error?.message||error);
-    return res.status(502).json({error:'scheduling_failed',detail:cleanText(error?.message||'unknown_error',180)});
   }
-  return res.status(200).json({scheduled:messageIds.length,messageIds});
+
+  if(reminders.length&&messageIds.length===0){
+    return res.status(502).json({
+      error:'scheduling_failed',
+      detail:failures[0]?.error||'no_message_scheduled',
+      failed:failures.length,
+      skipped
+    });
+  }
+
+  return res.status(200).json({
+    scheduled:messageIds.length,
+    messageIds,
+    failed:failures.length,
+    skipped
+  });
 }
