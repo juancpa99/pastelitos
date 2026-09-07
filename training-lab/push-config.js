@@ -1,0 +1,1 @@
+window.MAREVO_PUSH_BACKEND = window.MAREVO_PUSH_BACKEND || "";
