@@ -166,18 +166,20 @@
         toast("La copia es grande: usa también «Guardar archivo»");
         return;
       }
+
+      const timestamp = Date.now();
       const url = new URL("../marevo-backup.html", location.href);
-      url.hash = `backup=${encodeURIComponent(payload)}&ts=${Date.now()}`;
-      const opened = window.open(url.href, "_blank");
-      if (!opened) {
-        toast("Safari bloqueó la ventana. Vuelve a pulsar el botón.");
-        return;
-      }
-      try { opened.opener = null; } catch (_) {}
+      url.hash = `backup=${encodeURIComponent(payload)}&ts=${timestamp}`;
+
       state.settings ||= {};
-      state.settings.marevoBackupAt = Date.now();
+      state.settings.marevoBackupAt = timestamp;
       originalSaveState(true);
-      if (activeView === "Settings") renderSettings();
+
+      // Do not use window.open() here. Safari on iPhone can classify a new
+      // window as a popup because snapshot compression is asynchronous. A
+      // normal navigation is not popup-blocked and the backup page sits
+      // outside the installed PWA scope, so iOS can hand it to Safari.
+      location.assign(url.href);
     } catch (error) {
       toast("No se pudo preparar la copia externa");
       console.error(error);
@@ -247,7 +249,7 @@
           <button class="btn secondary" type="button" onclick="marevoSaveBackupFile()">Guardar archivo</button>
           <button class="btn ghost" type="button" onclick="marevoChooseBackupFile()">Restaurar archivo</button>
         </div>
-        <p class="marevo-data-note">La copia para reinstalación usa cookies de Safari porque iOS sí las copia a una web app nueva. Esas cookies pueden acompañar peticiones al mismo sitio. Si prefieres una copia que quede como archivo bajo tu control, usa «Guardar archivo» y guárdala en Archivos/iCloud.</p>
+        <p class="marevo-data-note">La copia para reinstalación usa cookies de Safari porque iOS sí las copia a una web app nueva. Al pulsar el botón, MAREVO abrirá la página de copia en Safari sin usar ventanas emergentes. Esas cookies pueden acompañar peticiones al mismo sitio. Si prefieres una copia que quede como archivo bajo tu control, usa «Guardar archivo» y guárdala en Archivos/iCloud.</p>
       </div>`;
   }
 
