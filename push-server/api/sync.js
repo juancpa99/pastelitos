@@ -1,3 +1,5 @@
+import { Client } from '@upstash/qstash';
+
 const DEFAULT_ORIGIN='https://juancpa99.github.io';
 const MAX_HORIZON_MS=9*24*60*60*1000;
 const ALLOWED_TYPES=new Set(['rest','workout','checkin','body','monthly','breakfast','lunch','snack','dinner','post-workout','general']);
@@ -30,28 +32,25 @@ function cleanMessageIds(values){
   if(!Array.isArray(values))return [];
   return [...new Set(values.map(v=>cleanText(v,160)).filter(v=>v.startsWith('msg_'))) ].slice(0,64);
 }
-function qstashBase(){return String(process.env.QSTASH_URL||'https://qstash.upstash.io').replace(/\/$/,'');}
-
-async function cancelMessage(id,token){
-  try{await fetch(`${qstashBase()}/v2/messages/${encodeURIComponent(id)}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});}catch(error){}
+function qstashClient(token){
+  return new Client({token,enableTelemetry:false});
 }
-async function publishReminder(reminder,subscription,token,deliveryUrl,deliveryKey){
-  const response=await fetch(`${qstashBase()}/v2/publish/${encodeURIComponent(deliveryUrl)}`,{
-    method:'POST',
-    headers:{
-      Authorization:`Bearer ${token}`,
-      'Content-Type':'application/json',
-      'Upstash-Not-Before':String(Math.floor(reminder.at/1000)),
-      'Upstash-Retries':'1',
-      'Upstash-Label':`marevo-${reminder.type}`,
-      'Upstash-Forward-X-Marevo-Delivery-Key':deliveryKey,
-      'Upstash-Redact-Fields':'body, headers'
-    },
-    body:JSON.stringify({subscription,reminder})
+async function cancelMessages(client,ids){
+  if(!ids.length)return;
+  await Promise.allSettled(ids.map(id=>client.messages.cancel(id)));
+}
+async function publishReminder(client,reminder,subscription,deliveryUrl,deliveryKey){
+  const delaySeconds=Math.max(1,Math.ceil((reminder.at-Date.now())/1000));
+  const result=await client.publishJSON({
+    url:deliveryUrl,
+    body:{subscription,reminder},
+    headers:{'X-Marevo-Delivery-Key':deliveryKey},
+    delay:`${delaySeconds}s`,
+    retries:1,
+    label:`marevo-${reminder.type}`,
+    redact:{body:true,header:['X-Marevo-Delivery-Key']}
   });
-  if(!response.ok)throw new Error(`QStash ${response.status}`);
-  const data=await response.json();
-  return data.messageId||null;
+  return result?.messageId||null;
 }
 
 export default async function handler(req,res){
@@ -67,8 +66,9 @@ export default async function handler(req,res){
   const body=parseBody(req);
   if(!validSubscription(body.subscription))return res.status(400).json({error:'invalid_subscription'});
 
+  const client=qstashClient(token);
   const cancelIds=cleanMessageIds(body.cancelMessageIds);
-  await Promise.all(cancelIds.map(id=>cancelMessage(id,token)));
+  await cancelMessages(client,cancelIds);
 
   const now=Date.now();
   const reminders=(Array.isArray(body.reminders)?body.reminders:[]).slice(0,32).map(v=>cleanReminder(v,now)).filter(Boolean);
@@ -79,12 +79,13 @@ export default async function handler(req,res){
 
   try{
     for(const reminder of reminders){
-      const id=await publishReminder(reminder,body.subscription,token,deliveryUrl,deliveryKey);
+      const id=await publishReminder(client,reminder,body.subscription,deliveryUrl,deliveryKey);
       if(id)messageIds.push(id);
     }
   }catch(error){
-    await Promise.all(messageIds.map(id=>cancelMessage(id,token)));
-    return res.status(502).json({error:'scheduling_failed'});
+    await cancelMessages(client,messageIds);
+    console.error('[MAREVO push] QStash scheduling failed',error?.message||error);
+    return res.status(502).json({error:'scheduling_failed',detail:cleanText(error?.message||'unknown_error',180)});
   }
   return res.status(200).json({scheduled:messageIds.length,messageIds});
 }
