@@ -142,10 +142,10 @@
     f:7
   };
 
-  // Kaiku complete vanilla drink. Label values are per 100 ml; one bottle is 500 ml.
+  // Kaiku complete meal drink. Label values are per 100 ml; one bottle is 500 ml.
   FOOD_DB.kaiku_complete_vanilla={
     cat:'Suplemento',
-    name:'Kaiku comida completa · vainilla',
+    name:'Kaiku comida completa',
     unit:'ml',
     ref:'1 botella = 500 ml; valores de la etiqueta',
     kcal:100,
