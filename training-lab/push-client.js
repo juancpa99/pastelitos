@@ -3,12 +3,14 @@
 
   const BACKEND=(window.MAREVO_PUSH_BACKEND||localStorage.getItem('marevo_push_backend')||'').replace(/\/$/,'');
   const SCHEDULE_STORAGE_KEY='marevo_push_schedule_v1';
+  const STATUS_STORAGE_KEY='marevo_push_status_v1';
   const HORIZON_DAYS=8;
   const SYNC_DEBOUNCE_MS=900;
   let syncTimer=null;
   let syncInFlight=false;
   let syncAgain=false;
   let lastReminderFingerprint='';
+  let lastObservedRestEndAt=Number(state?.restTimer?.endAt)||0;
 
   function canonicalNotificationTag(tag){
     const raw=String(tag||'').toLowerCase();
@@ -50,6 +52,15 @@
     return !!BACKEND&&/^https:\/\//i.test(BACKEND);
   }
 
+  function setPushStatus(next){
+    try{
+      const previous=JSON.parse(localStorage.getItem(STATUS_STORAGE_KEY)||'{}');
+      const value={...previous,...next,updatedAt:Date.now(),backend:BACKEND};
+      localStorage.setItem(STATUS_STORAGE_KEY,JSON.stringify(value));
+      window.dispatchEvent(new CustomEvent('marevo-push-status',{detail:value}));
+    }catch(error){}
+  }
+
   function urlBase64ToUint8Array(base64String){
     const padding='='.repeat((4-base64String.length%4)%4);
     const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
@@ -57,28 +68,55 @@
     return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));
   }
 
+  function sameBytes(a,b){
+    if(!a||!b||a.length!==b.length)return false;
+    for(let i=0;i<a.length;i+=1)if(a[i]!==b[i])return false;
+    return true;
+  }
+
   async function fetchJSON(path,options={}){
     const response=await fetch(`${BACKEND}${path}`,{
       ...options,
       headers:{'Content-Type':'application/json',...(options.headers||{})}
     });
-    if(!response.ok)throw new Error(`Push backend ${response.status}`);
-    return await response.json();
+    let body=null;
+    try{body=await response.json();}catch(error){body=null;}
+    if(!response.ok){
+      const detail=body?.detail||body?.error||`HTTP ${response.status}`;
+      throw new Error(`Push backend ${response.status}: ${detail}`);
+    }
+    return body||{};
   }
 
   async function ensureRemoteSubscription(){
     if(!backendReady())return null;
     if(notificationPermission()!=='granted'||!state?.settings?.notifications?.enabled)return null;
     if(!('serviceWorker' in navigator)||!('PushManager' in window))return null;
+
     const reg=await navigator.serviceWorker.ready;
-    let subscription=await reg.pushManager.getSubscription();
-    if(subscription)return subscription;
     const config=await fetchJSON('/api/config',{method:'GET',headers:{}});
     if(!config?.publicKey)throw new Error('Missing VAPID public key');
-    subscription=await reg.pushManager.subscribe({
-      userVisibleOnly:true,
-      applicationServerKey:urlBase64ToUint8Array(config.publicKey)
-    });
+    const desiredKey=urlBase64ToUint8Array(config.publicKey);
+
+    let subscription=await reg.pushManager.getSubscription();
+    if(subscription){
+      const existingKey=subscription.options?.applicationServerKey
+        ? new Uint8Array(subscription.options.applicationServerKey)
+        : null;
+      if(existingKey&& !sameBytes(existingKey,desiredKey)){
+        try{await subscription.unsubscribe();}catch(error){}
+        subscription=null;
+      }
+    }
+
+    if(!subscription){
+      subscription=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:desiredKey
+      });
+    }
+
+    setPushStatus({subscription:true,lastError:null});
     return subscription;
   }
 
@@ -175,6 +213,29 @@
     return JSON.stringify(reminders.map(({id,type,at,title,body,tag})=>({id,type,at,title,body,tag})));
   }
 
+  async function postRemoteSchedule(reminders){
+    const subscription=await ensureRemoteSubscription();
+    if(!subscription)return null;
+    const result=await fetchJSON('/api/sync',{
+      method:'POST',
+      body:JSON.stringify({
+        subscription:subscription.toJSON?subscription.toJSON():subscription,
+        reminders,
+        cancelMessageIds:readScheduledMessageIds(),
+        timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Madrid'
+      })
+    });
+    storeScheduledMessageIds(Array.isArray(result.messageIds)?result.messageIds:[]);
+    setPushStatus({
+      subscription:true,
+      scheduled:Number(result.scheduled)||0,
+      lastOkAt:Date.now(),
+      lastError:null,
+      nextAt:reminders.length?reminders[0].at:null
+    });
+    return result;
+  }
+
   async function syncRemotePush(force=false){
     if(!backendReady()||notificationPermission()!=='granted'||!state?.settings?.notifications?.enabled)return false;
     if(syncInFlight){syncAgain=true;return false;}
@@ -183,22 +244,12 @@
     if(!force&&fingerprint===lastReminderFingerprint)return true;
     syncInFlight=true;
     try{
-      const subscription=await ensureRemoteSubscription();
-      if(!subscription)return false;
-      const result=await fetchJSON('/api/sync',{
-        method:'POST',
-        body:JSON.stringify({
-          subscription:subscription.toJSON?subscription.toJSON():subscription,
-          reminders,
-          cancelMessageIds:readScheduledMessageIds(),
-          timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Madrid'
-        })
-      });
-      storeScheduledMessageIds(Array.isArray(result.messageIds)?result.messageIds:[]);
+      await postRemoteSchedule(reminders);
       lastReminderFingerprint=fingerprint;
       return true;
     }catch(error){
       console.warn('[MAREVO push] Remote sync failed:',error);
+      setPushStatus({lastError:String(error?.message||error),lastErrorAt:Date.now()});
       return false;
     }finally{
       syncInFlight=false;
@@ -213,11 +264,47 @@
   }
   window.marevoSyncRemotePush=syncRemotePush;
 
+  window.marevoSchedulePushTest=async function(seconds=15){
+    if(!backendReady())throw new Error('Backend remoto no configurado');
+    const at=Date.now()+Math.max(5,Number(seconds)||15)*1000;
+    const test={
+      id:`test:${at}`,
+      type:'general',
+      at,
+      title:'MAREVO · Push remoto',
+      body:'Esta notificación llegó con MAREVO cerrada.',
+      tag:'marevo-test',
+      url:'./'
+    };
+    const reminders=[test,...buildRemoteReminders()]
+      .filter((item,index,array)=>array.findIndex(other=>other.id===item.id)===index)
+      .sort((a,b)=>a.at-b.at)
+      .slice(0,32);
+    try{
+      const result=await postRemoteSchedule(reminders);
+      setPushStatus({testAt:at,lastError:null});
+      return {ok:true,at,scheduled:Number(result?.scheduled)||0};
+    }catch(error){
+      setPushStatus({lastError:String(error?.message||error),lastErrorAt:Date.now()});
+      throw error;
+    }
+  };
+
   if(typeof window.saveState==='function'){
     const previousSaveState=window.saveState;
     window.saveState=function marevoPushAwareSave(silent=false){
       const result=previousSaveState(silent);
-      queueRemotePushSync(false);
+      const activeRest=state?.restTimer&&!state.restTimer.paused&&!state.restTimer.done&&Number(state.restTimer.endAt)>Date.now()+1000
+        ? Number(state.restTimer.endAt)
+        : 0;
+      if(activeRest&&activeRest!==lastObservedRestEndAt){
+        lastObservedRestEndAt=activeRest;
+        clearTimeout(syncTimer);
+        syncRemotePush(true);
+      }else{
+        if(!activeRest)lastObservedRestEndAt=0;
+        queueRemotePushSync(false);
+      }
       return result;
     };
   }
@@ -227,7 +314,10 @@
     window.requestAppNotifications=async function marevoRequestNotifications(){
       const result=await previousRequest();
       if(notificationPermission()==='granted'&&state?.settings?.notifications?.enabled){
-        try{await ensureRemoteSubscription();await syncRemotePush(true);}catch(error){console.warn('[MAREVO push] Subscription failed:',error);}
+        try{await ensureRemoteSubscription();await syncRemotePush(true);}catch(error){
+          console.warn('[MAREVO push] Subscription failed:',error);
+          setPushStatus({lastError:String(error?.message||error),lastErrorAt:Date.now()});
+        }
       }
       return result;
     };
@@ -235,6 +325,9 @@
 
   window.addEventListener('online',()=>queueRemotePushSync(true),{passive:true});
   window.addEventListener('pageshow',()=>queueRemotePushSync(false),{passive:true});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')queueRemotePushSync(false);},{passive:true});
-  setTimeout(()=>queueRemotePushSync(true),1400);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')queueRemotePushSync(false);
+    else if(state?.restTimer&&!state.restTimer.paused&&!state.restTimer.done)syncRemotePush(true);
+  },{passive:true});
+  setTimeout(()=>queueRemotePushSync(true),900);
 })();
