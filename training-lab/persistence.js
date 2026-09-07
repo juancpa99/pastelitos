@@ -1,6 +1,7 @@
 /* MAREVO data-safety layer.
- * Local data is mirrored to IndexedDB and can be copied to Safari so a future
- * Home Screen reinstall can recover it. No training data is sent to a server.
+ * Local data is mirrored to IndexedDB. External reinstall recovery uses
+ * first-party Safari cookies because iOS copies cookies into a newly created
+ * Home Screen web app but does not copy localStorage or IndexedDB.
  */
 (() => {
   const DB_NAME = "marevo-recovery-v1";
@@ -167,11 +168,12 @@
       }
       const url = new URL("../marevo-backup.html", location.href);
       url.hash = `backup=${encodeURIComponent(payload)}&ts=${Date.now()}`;
-      const opened = window.open(url.href, "_blank", "noopener");
+      const opened = window.open(url.href, "_blank");
       if (!opened) {
         toast("Safari bloqueó la ventana. Vuelve a pulsar el botón.");
         return;
       }
+      try { opened.opener = null; } catch (_) {}
       state.settings ||= {};
       state.settings.marevoBackupAt = Date.now();
       originalSaveState(true);
@@ -245,7 +247,7 @@
           <button class="btn secondary" type="button" onclick="marevoSaveBackupFile()">Guardar archivo</button>
           <button class="btn ghost" type="button" onclick="marevoChooseBackupFile()">Restaurar archivo</button>
         </div>
-        <p class="marevo-data-note">«Guardar para reinstalación» abre una página de MAREVO en Safari y deja allí una copia de recuperación. No sube tus datos de entrenamiento ni de dieta a ningún servidor.</p>
+        <p class="marevo-data-note">La copia para reinstalación usa cookies de Safari porque iOS sí las copia a una web app nueva. Esas cookies pueden acompañar peticiones al mismo sitio. Si prefieres una copia que quede como archivo bajo tu control, usa «Guardar archivo» y guárdala en Archivos/iCloud.</p>
       </div>`;
   }
 
