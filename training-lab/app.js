@@ -246,24 +246,16 @@ function installBottomNavInsetObserver(){
  }
 }
 function scrollViewToTop(){
- const reset=()=>{
-  const topAnchor=document.querySelector("header")||document.body;
-  try{topAnchor.scrollIntoView({behavior:"auto",block:"start",inline:"nearest"})}catch(e){}
-  const targets=[document.scrollingElement,document.documentElement,document.body];
-  targets.forEach(el=>{if(el){el.scrollTop=0;el.scrollLeft=0}});
-  try{window.scrollTo(0,0)}catch(e){}
- };
- reset();
- requestAnimationFrame(()=>{reset();requestAnimationFrame(reset)});
- setTimeout(reset,60);
+ window.scrollTo({top:0,left:0,behavior:"instant"});
 }
 
 function showView(v){
+ const changingView=activeView!==v;
  activeView=v;["Home","Workout","Food","Progress","Settings"].forEach(x=>{document.getElementById("view"+x)?.classList.toggle("hidden",x!==v);document.querySelector(`[data-view="${x}"]`)?.classList.toggle("active",x===v)});
  const meta={Home:["Hoy","Lo importante del día."],Workout:["Entreno","Registra la sesión sin perder el ritmo."],Food:["Comidas","Añade alimentos y revisa el total del día."],Progress:["Progreso","Entrenamiento, nutrición y medidas."],Settings:["Ajustes","Plan, objetivos, notificaciones y datos."]}[v];
  document.getElementById("pageTitle").textContent=meta[0];document.getElementById("pageSubtitle").textContent=meta[1];
  if(v==="Workout")renderWorkout();if(v==="Food")renderFood();if(v==="Progress")renderProgress();if(v==="Settings")renderSettings();
- scrollViewToTop();
+ if(changingView)scrollViewToTop();
 }
 function setTrainingMode(mode){
  if(mode!=="summer"&&mode!=="season")return;
@@ -759,13 +751,37 @@ function skipRestTimer(){
  if(!state.restTimer)return;
  state.restTimer=null;saveState(true);updateRestTimerPanel();stopRuntimeTickerIfIdle()
 }
+// Reconcile live panels instead of replacing controls four times per second.
+// Existing inputs retain their typed values, selection and focus.
+function renderLivePanel(el,html){
+ const template=document.createElement('template');template.innerHTML=html;
+ function reconcile(parent,source){
+  const next=[...source.childNodes];
+  next.forEach((node,index)=>{
+   const old=parent.childNodes[index];
+   if(!old){parent.appendChild(node.cloneNode(true));return}
+   if(old.nodeType!==node.nodeType||old.nodeName!==node.nodeName||
+      (old.nodeType===1&&old.getAttribute('onclick')!==node.getAttribute('onclick'))){old.replaceWith(node.cloneNode(true));return}
+   if(node.nodeType===3){if(old.nodeValue!==node.nodeValue)old.nodeValue=node.nodeValue;return}
+   if(node.nodeType!==1)return;
+   for(const attr of [...old.attributes])if(!node.hasAttribute(attr.name))old.removeAttribute(attr.name);
+   for(const attr of [...node.attributes]){
+    if(attr.name==='value'&&old.matches('input,textarea'))continue;
+    if(old.getAttribute(attr.name)!==attr.value)old.setAttribute(attr.name,attr.value);
+   }
+   if(!old.matches('input,textarea'))reconcile(old,node);
+  });
+  while(parent.childNodes.length>next.length)parent.lastChild.remove();
+ }
+ reconcile(el,template.content);
+}
 function updateRestTimerPanel(){
  const el=document.getElementById("sessionCoachPanel");if(!el)return;
  const gymSession=findSession(currentDate(),planFor(currentDate()).key),elapsed=sessionElapsedSeconds(gymSession);
  const t=state.restTimer&&(!state.restTimer.date||state.restTimer.date===currentDate())?state.restTimer:null;
  if(!t){
-  if(!gymSession?.startedAt){el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">Cronómetro de sesión</div><strong>Listo para empezar</strong><div class="timer-caption">Al iniciar, el tiempo continúa aunque cambies de pantalla.</div></div><button type="button" class="btn small" onclick="toggleGymSession()">Iniciar</button></div>`;return}
-  el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">${gymSession.pausedAt?"Sesión en pausa":"Sesión activa"}</div><div class="timer-big">${formatClock(elapsed)}</div><div class="timer-caption">${gymSession.pausedAt?"El tiempo está detenido.":"Incluye trabajo y descansos."}</div></div><div class="coach-session-actions"><button type="button" class="btn small" onclick="toggleGymSession()">${gymSession.pausedAt?"Reanudar":"Pausar"}</button><button type="button" class="btn secondary small" onclick="openFinishGym()">Finalizar</button></div></div>`;
+  if(!gymSession?.startedAt){renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">Cronómetro de sesión</div><strong>Listo para empezar</strong><div class="timer-caption">Al iniciar, el tiempo continúa aunque cambies de pantalla.</div></div><button type="button" class="btn small" onclick="toggleGymSession()">Iniciar</button></div>`);return}
+  renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">${gymSession.pausedAt?"Sesión en pausa":"Sesión activa"}</div><div class="timer-big">${formatClock(elapsed)}</div><div class="timer-caption">${gymSession.pausedAt?"El tiempo está detenido.":"Incluye trabajo y descansos."}</div></div><div class="coach-session-actions"><button type="button" class="btn small" onclick="toggleGymSession()">${gymSession.pausedAt?"Reanudar":"Pausar"}</button><button type="button" class="btn secondary small" onclick="openFinishGym()">Finalizar</button></div></div>`);
   return
  }
  const remaining=t.paused?(t.pausedRemaining||0):Math.max(0,Math.ceil((t.endAt-Date.now())/1000));
@@ -775,9 +791,9 @@ function updateRestTimerPanel(){
   saveState(true);try{if(navigator.vibrate)navigator.vibrate([120,80,120])}catch(e){}
  }
  if(t.done){
-  el.innerHTML=`<div class="coach-main ready"><div><div class="eyebrow">Descanso terminado · sesión ${formatClock(elapsed)}</div><strong>Siguiente serie lista</strong><small>${esc(t.exercise)} · ${esc(t.feedback?.text||"")}</small></div><button type="button" class="btn small" onclick="skipRestTimer()">Cerrar</button></div>`;
+  renderLivePanel(el,`<div class="coach-main ready"><div><div class="eyebrow">Descanso terminado · sesión ${formatClock(elapsed)}</div><strong>Siguiente serie lista</strong><small>${esc(t.exercise)} · ${esc(t.feedback?.text||"")}</small></div><button type="button" class="btn small" onclick="skipRestTimer()">Cerrar</button></div>`);
  }else{
-  el.innerHTML=`<div class="coach-main"><div><div class="eyebrow">Descanso · ${esc(t.exercise)}${t.paused?" · PAUSADO":""}</div><div class="timer-big">${formatClock(remaining)}</div><div class="timer-caption">Sesión ${formatClock(elapsed)}${gymSession?.pausedAt?" · en pausa":""}</div><small>${esc(t.feedback?.title||"")} · ${esc(t.feedback?.text||"")}</small></div><div class="timer-actions"><button type="button" class="btn ghost small" ${t.pausedBySession?"disabled":""} onclick="toggleRestPause()">${t.pausedBySession?"Pausado con sesión":t.paused?"Reanudar descanso":"Pausar descanso"}</button><button type="button" class="btn ghost small" onclick="addRestTime(30)">+30 s</button><button type="button" class="btn ghost small" onclick="skipRestTimer()">Omitir</button><button type="button" class="btn secondary small" onclick="toggleGymPause()">${gymSession?.pausedAt?"Reanudar sesión":"Pausar sesión"}</button></div></div>`
+  renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">Descanso · ${esc(t.exercise)}${t.paused?" · PAUSADO":""}</div><div class="timer-big">${formatClock(remaining)}</div><div class="timer-caption">Sesión ${formatClock(elapsed)}${gymSession?.pausedAt?" · en pausa":""}</div><small>${esc(t.feedback?.title||"")} · ${esc(t.feedback?.text||"")}</small></div><div class="timer-actions"><button type="button" class="btn ghost small" ${t.pausedBySession?"disabled":""} onclick="toggleRestPause()">${t.pausedBySession?"Pausado con sesión":t.paused?"Reanudar descanso":"Pausar descanso"}</button><button type="button" class="btn ghost small" onclick="addRestTime(30)">+30 s</button><button type="button" class="btn ghost small" onclick="skipRestTimer()">Omitir</button><button type="button" class="btn secondary small" onclick="toggleGymPause()">${gymSession?.pausedAt?"Reanudar sesión":"Pausar sesión"}</button></div></div>`)
  }
 }
 function startRuntimeTicker(){
@@ -863,18 +879,18 @@ function cardioIntervalFeedback(choice){
 }
 function updateCardioRuntimePanel(){
  const el=document.getElementById("cardioRuntimePanel"),r=state.cardioRuntime;if(!el)return;
- if(!r||r.date!==currentDate()){el.innerHTML="";return}
+ if(!r||r.date!==currentDate()){renderLivePanel(el,"");return}
  const tpl=CARDIO_TEMPLATES[r.templateKey];if(!tpl)return;
  if(r.completed){
   const mins=Math.max(1,Math.round(((r.completedAt||Date.now())-r.startedAt-(+r.pausedDuration||0))/60000));
-  el.innerHTML=`<div class="card cardio-live completed"><div class="eyebrow">Cardio terminado</div><div class="hero-title">${esc(tpl.name)}</div><div class="subtitle">Registra el esfuerzo global y guarda la sesión.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Duración (min)</label><input id="caDoneMin" inputmode="numeric" value="${mins}"></div><div class="field"><label>RPE global</label><input id="caDoneRPE" inputmode="decimal" placeholder="1–10"></div><div class="field wide"><label>Kcal activas (manual, opcional)</label><input id="caDoneKcal" inputmode="numeric"></div></div><div class="actions"><button type="button" class="btn" onclick="saveCompletedCardio()">Guardar sesión</button><button type="button" class="btn danger" onclick="stopCardioRuntime()">Descartar cardio</button></div></div>`;
+  renderLivePanel(el,`<div class="card cardio-live completed"><div class="eyebrow">Cardio terminado</div><div class="hero-title">${esc(tpl.name)}</div><div class="subtitle">Registra el esfuerzo global y guarda la sesión.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Duración (min)</label><input id="caDoneMin" inputmode="numeric" value="${mins}"></div><div class="field"><label>RPE global</label><input id="caDoneRPE" inputmode="decimal" placeholder="1–10"></div><div class="field wide"><label>Kcal activas (manual, opcional)</label><input id="caDoneKcal" inputmode="numeric"></div></div><div class="actions"><button type="button" class="btn" onclick="saveCompletedCardio()">Guardar sesión</button><button type="button" class="btn danger" onclick="stopCardioRuntime()">Descartar cardio</button></div></div>`);
   return
  }
  const phase=cardioPhase();if(!phase)return;
  let remaining=r.paused?r.pausedRemaining:Math.max(0,Math.ceil((r.phaseEndAt-Date.now())/1000));
  if(!r.paused&&remaining<=0){advanceCardioPhase();return}
  const feedbackButtons=phase.type==="recovery"&&r.templateKey!=="z2"?`<div class="interval-feedback"><span>¿Cómo fue el intervalo?</span><button type="button" onclick="cardioIntervalFeedback('easy')">Fácil</button><button type="button" onclick="cardioIntervalFeedback('ok')">En objetivo</button><button type="button" onclick="cardioIntervalFeedback('hard')">Muy duro</button></div>`:"";
- el.innerHTML=`<div class="card cardio-live ${phase.type}"><div class="row between"><div><div class="eyebrow">${esc(tpl.name)} · ${r.phaseIndex+1}/${tpl.phases.length}</div><div class="hero-title">${esc(phase.label)}</div></div><div class="timer-big">${formatClock(remaining)}</div></div><div class="intensity-target">${esc(phase.target)}</div>${r.guidance?`<div class="callout good" style="margin-top:8px">${esc(r.guidance)}</div>`:""}${feedbackButtons}<div class="actions"><button type="button" class="btn secondary small" onclick="pauseCardioTimer()">${r.paused?"Continuar":"Pausa"}</button><button type="button" class="btn ghost small" onclick="skipCardioPhase()">Siguiente fase</button><button type="button" class="btn danger small" onclick="stopCardioRuntime()">Descartar cardio</button></div></div>`
+ renderLivePanel(el,`<div class="card cardio-live ${phase.type}"><div class="row between"><div><div class="eyebrow">${esc(tpl.name)} · ${r.phaseIndex+1}/${tpl.phases.length}</div><div class="hero-title">${esc(phase.label)}</div></div><div class="timer-big">${formatClock(remaining)}</div></div><div class="intensity-target">${esc(phase.target)}</div>${r.guidance?`<div class="callout good" style="margin-top:8px">${esc(r.guidance)}</div>`:""}${feedbackButtons}<div class="actions"><button type="button" class="btn secondary small" onclick="pauseCardioTimer()">${r.paused?"Continuar":"Pausa"}</button><button type="button" class="btn ghost small" onclick="skipCardioPhase()">Siguiente fase</button><button type="button" class="btn danger small" onclick="stopCardioRuntime()">Descartar cardio</button></div></div>`);
 }
 function saveCompletedCardio(){
  const r=state.cardioRuntime;if(!r)return;const tpl=CARDIO_TEMPLATES[r.templateKey];

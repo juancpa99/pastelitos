@@ -604,7 +604,7 @@ function updateExtraClock() {
     s = state.extraSessions.find((s) => s.id === id);
   if (!el || !s) return;
   const t = state.restTimer?.scope === id ? state.restTimer : null;
-  el.innerHTML = `<strong>${s.pausedAt ? "En pausa" : "Tiempo de sesión"} · ${formatClock(sessionElapsedSeconds(s))}</strong><button class="btn secondary" onclick="toggleExtraPause('${id}')">${s.pausedAt ? "Reanudar" : "Pausar"}</button>${t ? `<p class="rest-status">Descanso · ${formatClock(t.paused ? t.pausedRemaining : Math.max(0, (t.endAt - Date.now()) / 1000))} ${t.paused ? "(pausado)" : ""}</p><button class="btn ghost" onclick="addRestTime(30)">+30 s</button><button class="btn ghost" onclick="skipRestTimer()">Terminar descanso</button>` : ""}`;
+  renderLivePanel(el, `<strong>${s.pausedAt ? "En pausa" : "Tiempo de sesión"} · ${formatClock(sessionElapsedSeconds(s))}</strong><button class="btn secondary" onclick="toggleExtraPause('${id}')">${s.pausedAt ? "Reanudar" : "Pausar"}</button>${t ? `<p class="rest-status">Descanso · ${formatClock(t.paused ? t.pausedRemaining : Math.max(0, (t.endAt - Date.now()) / 1000))} ${t.paused ? "(pausado)" : ""}</p><button class="btn ghost" onclick="addRestTime(30)">+30 s</button><button class="btn ghost" onclick="skipRestTimer()">Terminar descanso</button>` : ""}`);
 }
 const legacyRestPanel = updateRestTimerPanel;
 updateRestTimerPanel = function () {
@@ -693,13 +693,40 @@ function setStrengthChartExercise(index) {
   const group = strengthChartGroups(currentDate())[+index];
   if (!group) return;
   activeStrengthChartKey = activeStrengthChartKey === group.key ? null : group.key;
-  renderProgress();
+  updateStrengthExplorer();
 }
 function setStrengthChartRange(range) {
   if (!["28", "84", "all"].includes(range)) return;
   state.settings.strengthChartRange = range;
   saveState(true);
-  renderProgress();
+  updateStrengthExplorer();
+}
+function updateStrengthExplorer() {
+  const explorer=document.querySelector('.strength-explorer');
+  if(!explorer)return;
+  const groups=strengthChartGroups(currentDate());
+  // Keep the actual disclosure and exercise buttons. Only the selected chart
+  // changes, so unrelated menus, focus and the rest of Progress stay intact.
+  explorer.querySelectorAll('.strength-exercise-choice').forEach(button=>{
+    // DOM order is by muscle group, whereas group indexes are alphabetical.
+    const sourceIndex=Number(button.dataset.exerciseIndex);
+    const group=groups[sourceIndex];
+    const active=group?.key===activeStrengthChartKey;
+    button.setAttribute('aria-expanded',String(active));
+    button.setAttribute('aria-pressed',String(active));
+    const chart=button.parentElement.querySelector('.strength-inline-chart');
+    if(!active){chart?.remove();return;}
+    for(let ancestor=button.parentElement;ancestor&&ancestor!==explorer;ancestor=ancestor.parentElement){
+      if(ancestor.matches('details'))ancestor.open=true;
+    }
+    const template=document.createElement('template');
+    template.innerHTML=strengthExerciseChartHTML(group,currentDate());
+    if(chart){
+      const open=chart.querySelector('details')?.open;
+      renderLivePanel(chart,template.content.firstElementChild.innerHTML);
+      if(chart.querySelector('details'))chart.querySelector('details').open=!!open;
+    }else button.after(template.content);
+  });
 }
 function strengthEvolutionSVG(points, unilateral) {
   const width = 600,
@@ -758,7 +785,7 @@ function strengthMuscleMenu(groups, selected, ref) {
     if (!families.has(family)) families.set(family, []);
     families.get(family).push({ group, index });
   });
-  const exercisesHTML = items => items.map(({group,index})=>`<div class="strength-exercise-item"><button type="button" class="strength-exercise-choice" aria-expanded="${index===selected}" aria-pressed="${index===selected}" onclick="setStrengthChartExercise(${index})"><strong>${esc(group.exercise.name)}</strong><small>${esc(loadLabel(group.exercise))}</small></button>${index===selected ? strengthExerciseChartHTML(group,ref) : ''}</div>`).join('');
+  const exercisesHTML = items => items.map(({group,index})=>`<div class="strength-exercise-item"><button type="button" class="strength-exercise-choice" data-exercise-index="${index}" aria-expanded="${index===selected}" aria-pressed="${index===selected}" onclick="setStrengthChartExercise(${index})"><strong>${esc(group.exercise.name)}</strong><small>${esc(loadLabel(group.exercise))}</small></button>${index===selected ? strengthExerciseChartHTML(group,ref) : ''}</div>`).join('');
   return [...regions.entries()].filter(([,families])=>families.size).map(([region,families])=>{
     const items=[...families.values()].flat(),open=items.some(x=>x.index===selected);
     const content=region==='Core' ? `<div class="strength-muscle-exercises">${exercisesHTML(items)}</div>` : [...families.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([family,entries])=>`<details class="strength-muscle-group" ${entries.some(x=>x.index===selected)?'open':''}><summary>${esc(family)}<span class="muscle-count">${entries.length}</span></summary><div class="strength-muscle-exercises">${exercisesHTML(entries)}</div></details>`).join('');

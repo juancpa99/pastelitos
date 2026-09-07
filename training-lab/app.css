@@ -1,4 +1,5 @@
 
+
 :root{--bg:#06101a;--panel:#0d1b2a;--panel-strong:#112338;--soft:#081622;--line:#213b52;--line-strong:#31556f;--text:#f8fafc;--muted:#9db0c3;--teal:#35dcc5;--teal-strong:#19bfa9;--cyan:#52c8f5;--lime:#b4ea55;--amber:#f6c453;--red:#fb7d91;--radius:18px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{background:var(--bg)}
 body{margin:0;min-height:100dvh;color:var(--text);background:radial-gradient(circle at 50% -180px,rgba(53,220,197,.12),transparent 420px),linear-gradient(180deg,#06101a,#081421 62%,#06101a);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;padding-bottom:0}
@@ -468,3 +469,10 @@ select,select option{background-color:var(--soft);color:var(--text)}
 #sessionCoachPanel.is-rest .eyebrow,#sessionCoachPanel.is-rest .timer-big,.extra-clock.is-rest .rest-status,.hero.rest-day .eyebrow{color:#fde68a}
 #viewWorkout .hero.rest-day{background:linear-gradient(135deg,#302713,#191e25);border-color:#8a6b25}
 .strength-region{background:var(--soft);border:1px solid var(--line);border-radius:12px;overflow:hidden}.strength-region>summary{padding:14px;font-size:16px;font-weight:750;min-height:48px}.strength-region-content{padding:0 8px 8px;display:grid;gap:8px}.strength-region[open]{border-color:rgba(var(--section-rgb),.4)}.strength-inline-chart{padding:12px 4px 4px;min-width:0}.strength-exercise-item{min-width:0}.strength-inline-chart .period-tabs{margin-top:4px}.strength-explorer .strength-muscle-menu{margin-bottom:0}.strength-region-content .strength-muscle-group{background:var(--panel)}
+/* Avoid horizontal reflow on dialog open; keep fields clear of sticky clocks. */
+html{scrollbar-gutter:stable}
+.extra-clock{font-variant-numeric:tabular-nums}
+.sheet .attempt-block{scroll-margin-top:170px}
+.notif-row>input[type="time"]{font-size:16px;min-height:44px}
+summary:focus-visible{outline:3px solid #fbbf24;outline-offset:-3px}
+@media(max-height:500px){.extra-clock,.session-coach{position:static!important}}

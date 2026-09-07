@@ -6,6 +6,9 @@
   let extraModalOpen=false;
   let restorePending=true;
   let captureTimer=null;
+  let restoreGeneration=0;
+  ['pointerdown','touchstart','wheel','keydown','change','click'].forEach(type=>
+    document.addEventListener(type,()=>{restoreGeneration++;},{capture:true,passive:true}));
 
   function readSnapshot(){
     try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');}
@@ -159,13 +162,10 @@
   }
 
   function restoreRepeatedly(snapshot){
-    const restore=()=>restorePosition(snapshot);
+    const generation=restoreGeneration;
     requestAnimationFrame(()=>{
-      restore();
-      requestAnimationFrame(restore);
+      if(generation===restoreGeneration&&activeView==='Workout'&&workoutDate()===snapshot.date&&snapshotIsActive(snapshot))restorePosition(snapshot);
     });
-    setTimeout(restore,80);
-    setTimeout(restore,220);
   }
 
   if(typeof window.editExtraSession==='function'){
@@ -192,6 +192,7 @@
   if(typeof window.showView==='function'){
     const previousShowView=window.showView;
     window.showView=function marevoShowViewWithWorkoutResume(view,...args){
+      const generation=++restoreGeneration;
       if(typeof activeView!=='undefined'&&activeView==='Workout'&&view!=='Workout'){
         captureWorkoutPosition();
         restorePending=true;
@@ -218,7 +219,7 @@
         if(snapshot.scope!=='planned'&&snapshot.modalOpen&&typeof window.editExtraSession==='function'){
           setTimeout(()=>{
             const extra=extraSessionFor(snapshot.scope);
-            if(extra?.startedAt&&!extra.completed){
+            if(generation===restoreGeneration&&activeView==='Workout'&&workoutDate()===snapshot.date&&extra?.startedAt&&!extra.completed){
               window.editExtraSession(snapshot.scope);
               restoreRepeatedly(snapshot);
             }

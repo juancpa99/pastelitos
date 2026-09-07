@@ -1,120 +1,85 @@
 (function(){
   'use strict';
 
-  function controlFingerprint(control,exercise){
-    if(!control||!exercise)return null;
-    const onclick=control.getAttribute('onclick')||'';
-    const text=(control.textContent||'').trim().replace(/\s+/g,' ');
-    const candidates=[...exercise.querySelectorAll('button')].filter(button=>
-      (button.getAttribute('onclick')||'')===onclick&&
-      (button.textContent||'').trim().replace(/\s+/g,' ')===text
-    );
-    return {onclick,text,occurrence:Math.max(0,candidates.indexOf(control))};
+  // One correction before paint, only within the same screen/dialog. Never
+  // replay old pixel positions after the user has already moved elsewhere.
+  function fingerprint(control,root){
+    const action=control.getAttribute('onclick');
+    const peers=[...root.querySelectorAll('button')].filter(b=>action
+      ?b.getAttribute('onclick')===action:b.textContent.trim()===control.textContent.trim());
+    return {action,text:control.textContent.trim(),index:peers.indexOf(control)};
   }
-
-  function findMatchingControl(exercise,fingerprint){
-    if(!exercise||!fingerprint)return null;
-    const candidates=[...exercise.querySelectorAll('button')].filter(button=>
-      (button.getAttribute('onclick')||'')===fingerprint.onclick&&
-      (button.textContent||'').trim().replace(/\s+/g,' ')===fingerprint.text
-    );
-    return candidates[fingerprint.occurrence]||candidates[0]||null;
+  function matching(root,key){
+    return [...root.querySelectorAll('button')].filter(b=>key.action
+      ?b.getAttribute('onclick')===key.action:b.textContent.trim()===key.text)[key.index];
   }
-
-  function captureWorkoutPosition(control){
-    const workout=document.getElementById('viewWorkout');
-    const modalSheet=control.closest('#modalRoot .sheet');
-    const inWorkout=!!control.closest('#viewWorkout');
-    if(!inWorkout&&!modalSheet)return null;
-    if(inWorkout&&typeof activeView!=='undefined'&&activeView!=='Workout')return null;
-
-    const root=modalSheet||workout;
-    const exercise=control.closest('.exercise');
-    const exercises=exercise?[...root.querySelectorAll('.exercise')]:[];
-    const exerciseIndex=exercise?exercises.indexOf(exercise):-1;
-    const controlTop=control.getBoundingClientRect().top;
-    const exerciseTop=exercise?exercise.getBoundingClientRect().top:null;
-
-    return {
-      modal:!!modalSheet,
-      pageX:window.scrollX,
-      pageY:window.scrollY,
-      sheetY:modalSheet?modalSheet.scrollTop:null,
-      exerciseIndex,
-      controlTop,
-      exerciseTop,
-      fingerprint:controlFingerprint(control,exercise)
-    };
+  function dialogKey(sheet){
+    if(!sheet)return null;
+    return sheet.dataset.extraScope || sheet.querySelector('.hero-title,h2,h3')?.textContent || '';
   }
-
-  function restoreWorkoutPosition(snapshot){
-    if(!snapshot)return;
-    const workout=document.getElementById('viewWorkout');
-    const sheet=snapshot.modal?document.querySelector('#modalRoot .sheet'):null;
-    const root=sheet||workout;
-    if(!root)return;
-
-    const exercises=[...root.querySelectorAll('.exercise')];
-    const exercise=snapshot.exerciseIndex>=0?exercises[snapshot.exerciseIndex]:null;
-    const control=findMatchingControl(exercise,snapshot.fingerprint);
-
-    if(snapshot.modal){
-      if(!sheet)return;
-      if(control){
-        const delta=control.getBoundingClientRect().top-snapshot.controlTop;
-        sheet.scrollTop+=delta;
-      }else if(exercise&&snapshot.exerciseTop!==null){
-        const delta=exercise.getBoundingClientRect().top-snapshot.exerciseTop;
-        sheet.scrollTop+=delta;
-      }else if(snapshot.sheetY!==null){
-        sheet.scrollTop=snapshot.sheetY;
-      }
-      return;
-    }
-
-    if(typeof activeView!=='undefined'&&activeView!=='Workout')return;
-    if(control){
-      window.scrollBy(0,control.getBoundingClientRect().top-snapshot.controlTop);
-    }else if(exercise&&snapshot.exerciseTop!==null){
-      window.scrollBy(0,exercise.getBoundingClientRect().top-snapshot.exerciseTop);
-    }else{
-      window.scrollTo(snapshot.pageX,snapshot.pageY);
-    }
-  }
-
-  // Any button used while recording a workout must keep the viewport stable,
-  // even when its handler rebuilds the workout DOM. Navigation/date controls are outside these roots.
+  let opener=null;
+  const extraPositions=new Map();
   document.addEventListener('click',event=>{
     const control=event.target.closest('button');
     if(!control)return;
-    const snapshot=captureWorkoutPosition(control);
-    if(!snapshot)return;
-    requestAnimationFrame(()=>{
-      restoreWorkoutPosition(snapshot);
-      requestAnimationFrame(()=>restoreWorkoutPosition(snapshot));
+    const sheet=control.closest('#modalRoot .sheet');
+    const view=activeView,date=currentDate();
+    const root=sheet||control.closest('#view'+view);
+    if(!sheet)opener=control;
+    if(!root)return;
+    const key=fingerprint(control,root),dialog=dialogKey(sheet);
+    const top=control.getBoundingClientRect().top;
+    const y=sheet?sheet.scrollTop:window.scrollY;
+    if(sheet?.dataset.extraScope)extraPositions.set(dialog,{key,top,y,date});
+    queueMicrotask(()=>{
+      if(activeView!==view||currentDate()!==date)return;
+      const nextSheet=document.querySelector('#modalRoot .sheet');
+      if(sheet ? !nextSheet||dialogKey(nextSheet)!==dialog : !!nextSheet)return;
+      const nextRoot=nextSheet||document.getElementById('view'+view);
+      const next=matching(nextRoot,key);
+      // Unchanged nodes need no intervention (e.g. timer pause, native menus).
+      if(next===control&&Math.abs(next.getBoundingClientRect().top-top)<1)return;
+      const target=next ? (nextSheet?nextSheet.scrollTop:window.scrollY)+next.getBoundingClientRect().top-top : y;
+      if(nextSheet)nextSheet.scrollTop=target;
+      else window.scrollTo({top:target,left:window.scrollX,behavior:'instant'});
+      if(next)next.focus({preventScroll:true});
     });
-    setTimeout(()=>restoreWorkoutPosition(snapshot),40);
   },true);
 
-  // Keep the explicit wrapper as a fallback for browsers that scroll during the synchronous add-set render.
-  if(typeof window.addSetAttempt==='function'){
-    const previousAddSetAttempt=window.addSetAttempt;
-    window.addSetAttempt=function marevoAddSetAttemptWithoutJump(...args){
-      const pageX=window.scrollX;
-      const pageY=window.scrollY;
-      const sheet=document.querySelector('#modalRoot .sheet');
-      const sheetY=sheet?sheet.scrollTop:null;
-      const result=previousAddSetAttempt.apply(this,args);
-      requestAnimationFrame(()=>{
-        window.scrollTo(pageX,pageY);
-        if(sheetY!==null){
-          const nextSheet=document.querySelector('#modalRoot .sheet');
-          if(nextSheet)nextSheet.scrollTop=sheetY;
-        }
-      });
-      return result;
-    };
-  }
+  // Keep keyboard focus inside dialogs without summoning the iPhone keyboard.
+  let previousSheet=null;
+  let previousDialog=null;
+  const modalRoot=document.getElementById('modalRoot');
+  new MutationObserver(()=>{
+    const sheet=modalRoot.querySelector('.sheet');
+    if(sheet===previousSheet)return;
+    const wasOpen=!!previousSheet;
+    const oldDialog=previousDialog;
+    previousSheet=sheet;
+    previousDialog=dialogKey(sheet);
+    if(sheet){
+      sheet.setAttribute('tabindex','-1');
+      const saved=sheet.dataset.extraScope&&extraPositions.get(previousDialog);
+      if(saved&&saved.date===currentDate()&&oldDialog!==previousDialog){
+        const target=matching(sheet,saved.key);
+        sheet.scrollTop=target?sheet.scrollTop+target.getBoundingClientRect().top-saved.top:saved.y;
+      }
+      if(!sheet.contains(document.activeElement))sheet.focus({preventScroll:true});
+    }else if(wasOpen&&opener?.isConnected){
+      opener.focus({preventScroll:true});
+    }
+  }).observe(modalRoot,{childList:true,subtree:true});
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Tab')return;
+    const sheet=modalRoot.querySelector('.sheet');
+    if(!sheet)return;
+    const focusable=[...sheet.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary,[tabindex="0"]')]
+      .filter(el=>el.getClientRects().length);
+    const first=focusable[0],last=focusable.at(-1),active=document.activeElement;
+    if(!first){event.preventDefault();sheet.focus({preventScroll:true});return;}
+    if(event.shiftKey&&(active===first||!focusable.includes(active))){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&(active===last||!focusable.includes(active))){event.preventDefault();first.focus();}
+  });
 
   // Remove the last visible legacy name from the notification permission test.
   if(typeof window.showAppNotification==='function'){
