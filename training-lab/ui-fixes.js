@@ -1,6 +1,18 @@
 (function(){
   'use strict';
 
+  // Accept decimal values typed with either the Spanish comma or a dot.
+  // iOS/Safari can show a comma on the decimal keyboard, while Number('77,5') is NaN.
+  if(typeof window.val==='function'){
+    window.num=function marevoNumberInput(id){
+      const raw=String(window.val(id)??'').trim();
+      if(raw==='')return null;
+      const normalized=raw.replace(/\s+/g,'').replace(',','.');
+      const number=Number(normalized);
+      return Number.isFinite(number)?number:NaN;
+    };
+  }
+
   // One correction before paint, only within the same screen/dialog. Never
   // replay old pixel positions after the user has already moved elsewhere.
   function fingerprint(control,root){
