@@ -4,8 +4,15 @@ const DEFAULT_ORIGIN='https://juancpa99.github.io';
 const MAX_HORIZON_MS=7*24*60*60*1000-60*1000;
 const ALLOWED_TYPES=new Set(['rest','workout','checkin','body','monthly','breakfast','lunch','snack','dinner','post-workout','general']);
 
+function envValue(name,fallback=''){
+  const raw=String(process.env[name]??fallback).trim();
+  if(!raw)return '';
+  const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const match=raw.match(new RegExp(`(?:^|\\n)\\s*(?:export\\s+)?${escaped}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s\\r\\n]+))`,'m'));
+  return String(match?(match[1]??match[2]??match[3]??''):raw).trim().replace(/^['"]|['"]$/g,'');
+}
 function cors(req,res){
-  const allowedOrigin=process.env.MAREVO_ALLOWED_ORIGIN||DEFAULT_ORIGIN;
+  const allowedOrigin=envValue('MAREVO_ALLOWED_ORIGIN',DEFAULT_ORIGIN)||DEFAULT_ORIGIN;
   res.setHeader('Access-Control-Allow-Origin',allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods','POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
@@ -32,7 +39,10 @@ function cleanMessageIds(values){
   if(!Array.isArray(values))return [];
   return [...new Set(values.map(v=>cleanText(v,160)).filter(v=>v.startsWith('msg_'))) ].slice(0,64);
 }
-function qstashClient(token){return new Client({token});}
+function qstashClient(token){
+  const baseUrl=(envValue('QSTASH_URL','https://qstash.upstash.io')||'https://qstash.upstash.io').replace(/\/$/,'');
+  return new Client({token,baseUrl,enableTelemetry:false});
+}
 async function cancelMessages(client,ids){
   if(!ids.length)return;
   await Promise.allSettled(ids.map(id=>client.messages.cancel(id)));
@@ -54,10 +64,11 @@ export default async function handler(req,res){
   cors(req,res);
   if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method!=='POST')return res.status(405).json({error:'method_not_allowed'});
-  const allowedOrigin=process.env.MAREVO_ALLOWED_ORIGIN||DEFAULT_ORIGIN;
+  const allowedOrigin=envValue('MAREVO_ALLOWED_ORIGIN',DEFAULT_ORIGIN)||DEFAULT_ORIGIN;
   if(req.headers.origin!==allowedOrigin)return res.status(403).json({error:'origin_not_allowed'});
 
-  const token=process.env.QSTASH_TOKEN,deliveryKey=process.env.MAREVO_DELIVERY_KEY;
+  const token=envValue('QSTASH_TOKEN');
+  const deliveryKey=envValue('MAREVO_DELIVERY_KEY');
   if(!token||!deliveryKey)return res.status(503).json({error:'push_not_configured'});
 
   const body=parseBody(req);
