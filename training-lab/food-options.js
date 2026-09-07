@@ -3,6 +3,19 @@
 
   if(typeof FOOD_DB==='undefined'||typeof MEAL_FOOD_KEYS==='undefined')return;
 
+  // Rice is always entered as dry/uncooked weight in every meal.
+  // Generic values are per 100 g dry white rice; brand labels can vary slightly.
+  FOOD_DB.rice={
+    cat:'Carbohidrato',
+    name:'Arroz (en seco)',
+    unit:'g',
+    ref:'peso en seco, antes de cocinar',
+    kcal:360,
+    p:7,
+    c:79,
+    f:0.6
+  };
+
   FOOD_DB.ham_york_90={
     cat:'Proteína',
     name:'Jamón cocido extra (≥90% jamón)',
@@ -26,6 +39,7 @@
   };
 
   if(typeof FOOD_INPUT_META!=='undefined'){
+    FOOD_INPUT_META.rice={inputUnit:'g',presets:[50,75,100,125],reference:'peso en seco, antes de cocinar'};
     FOOD_INPUT_META.ham_york_90={inputUnit:'g',presets:[30,50,80,100],reference:'peso directo'};
     FOOD_INPUT_META.chicken_thigh={inputUnit:'g',presets:[100,150,200,250],reference:'peso cocinado, sin piel'};
   }
