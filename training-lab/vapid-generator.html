@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>MAREVO · Generador VAPID temporal</title>
+<title>MAREVO · Generador temporal</title>
 <style>
 :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#08111e;color:#eef6ff}body{margin:0;padding:24px}.wrap{max-width:720px;margin:0 auto}.card{background:#101c2d;border:1px solid #26364d;border-radius:18px;padding:18px;margin-top:16px}.muted{color:#9db0c8;line-height:1.45}button{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:#38bdf8;color:#04111d;margin-top:10px}.copy{background:#1f3147;color:#eef6ff;margin-left:8px}textarea{width:100%;box-sizing:border-box;min-height:92px;margin-top:8px;padding:12px;border-radius:12px;border:1px solid #31445f;background:#07101c;color:#eef6ff;font:13px ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}.hidden{display:none}.ok{color:#7dd3fc;font-weight:700}</style>
 </head>
 <body>
 <div class="wrap">
-<h1>MAREVO · VAPID</h1>
-<p class="muted">Generador temporal. Las claves se crean dentro de este navegador con Web Crypto y no se envían a ningún servidor.</p>
+<h1>MAREVO · Generador temporal</h1>
+<p class="muted">Todo se genera dentro de este navegador con Web Crypto y no se envía a ningún servidor.</p>
 <div class="card">
-<strong>1. Genera las claves</strong><br>
+<strong>Claves VAPID</strong><br>
 <button id="generate">Generar claves VAPID</button>
 <p id="status" class="muted"></p>
 </div>
@@ -24,10 +24,17 @@
 </div>
 <div class="card">
 <strong>VAPID_PRIVATE_KEY</strong>
-<p class="muted">Guárdala como <b>Secret</b> en Vercel. No la pegues en chats ni en GitHub.</p>
+<p class="muted">Guárdala como <b>Secret</b> en Vercel.</p>
 <textarea id="privateKey" readonly></textarea>
 <button class="copy" data-target="privateKey">Copiar privada</button>
 </div>
+</div>
+<div class="card">
+<strong>MAREVO_DELIVERY_KEY</strong>
+<p class="muted">Clave aleatoria para proteger el endpoint interno de entrega. Guárdala como <b>Secret</b> en Vercel.</p>
+<button id="generateDelivery">Generar delivery key</button>
+<textarea id="deliveryKey" readonly></textarea>
+<button class="copy" data-target="deliveryKey">Copiar delivery key</button>
 </div>
 </div>
 <script>
@@ -49,11 +56,13 @@ async function generate(){
   status.innerHTML='<span class="ok">Claves generadas correctamente.</span>';
  }catch(error){status.textContent='No se pudieron generar las claves en este navegador.'}
 }
+function generateDelivery(){const bytes=new Uint8Array(48);crypto.getRandomValues(bytes);document.getElementById('deliveryKey').value=bytesToB64u(bytes)}
 document.getElementById('generate').addEventListener('click',generate);
+document.getElementById('generateDelivery').addEventListener('click',generateDelivery);
 document.addEventListener('click',async event=>{
  const button=event.target.closest('[data-target]');if(!button)return;
  const el=document.getElementById(button.dataset.target);
- try{await navigator.clipboard.writeText(el.value);button.textContent='Copiado ✓';setTimeout(()=>button.textContent=button.dataset.target==='publicKey'?'Copiar pública':'Copiar privada',1200)}catch(error){el.select();document.execCommand('copy')}
+ try{await navigator.clipboard.writeText(el.value);button.textContent='Copiado ✓';setTimeout(()=>{if(button.dataset.target==='publicKey')button.textContent='Copiar pública';else if(button.dataset.target==='privateKey')button.textContent='Copiar privada';else button.textContent='Copiar delivery key'},1200)}catch(error){el.select();document.execCommand('copy')}
 });
 </script>
 </body>
