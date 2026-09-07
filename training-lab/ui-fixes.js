@@ -19,6 +19,7 @@
   }
   let opener=null;
   const extraPositions=new Map();
+  const pendingClicks=new WeakMap();
   document.addEventListener('click',event=>{
     const control=event.target.closest('button');
     if(!control)return;
@@ -31,7 +32,7 @@
     const top=control.getBoundingClientRect().top;
     const y=sheet?sheet.scrollTop:window.scrollY;
     if(sheet?.dataset.extraScope)extraPositions.set(dialog,{key,top,y,date});
-    queueMicrotask(()=>{
+    pendingClicks.set(event,()=>{
       if(activeView!==view||currentDate()!==date)return;
       const nextSheet=document.querySelector('#modalRoot .sheet');
       if(sheet ? !nextSheet||dialogKey(nextSheet)!==dialog : !!nextSheet)return;
@@ -45,6 +46,12 @@
       if(next)next.focus({preventScroll:true});
     });
   },true);
+  // Native clicks run microtask checkpoints between event listeners. Schedule
+  // from the bubble phase, after the button's inline action has rebuilt its DOM.
+  document.addEventListener('click',event=>{
+    const restore=pendingClicks.get(event);
+    if(restore)queueMicrotask(restore);
+  });
 
   // Keep keyboard focus inside dialogs without summoning the iPhone keyboard.
   let previousSheet=null;
