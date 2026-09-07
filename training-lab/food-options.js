@@ -142,6 +142,22 @@
     f:7
   };
 
+  // Kaiku complete vanilla drink. Label values are per 100 ml; one bottle is 500 ml.
+  FOOD_DB.kaiku_complete_vanilla={
+    cat:'Suplemento',
+    name:'Kaiku comida completa · vainilla',
+    unit:'ml',
+    ref:'1 botella = 500 ml; valores de la etiqueta',
+    kcal:100,
+    p:7,
+    c:6.8,
+    f:4.6,
+    saturatedFat:1.8,
+    sugars:4.6,
+    fiber:1.7,
+    salt:0.13
+  };
+
   if(typeof FOOD_INPUT_META!=='undefined'){
     FOOD_INPUT_META.rice={inputUnit:'g',presets:[50,75,100,125],reference:'peso en seco, antes de cocinar'};
     FOOD_INPUT_META.pasta={inputUnit:'g',presets:[100,150,200,250],reference:'peso cocido'};
@@ -155,6 +171,7 @@
     FOOD_INPUT_META.veg={inputUnit:'g',presets:[100,150,200,300],reference:'peso crudo, parte comestible, antes de cocinar'};
     FOOD_INPUT_META.ham_york_90={inputUnit:'g',presets:[30,50,80,100],reference:'peso directo'};
     FOOD_INPUT_META.chicken_thigh={inputUnit:'g',presets:[100,150,200,250],reference:'peso crudo, sin piel, antes de cocinar'};
+    FOOD_INPUT_META.kaiku_complete_vanilla={inputUnit:'ml',presets:[500],reference:'1 botella = 500 ml · 500 kcal · 35 g proteína · 34 g HC · 23 g grasa'};
   }
 
   function addMealFood(meal,key,afterKey){
@@ -165,8 +182,21 @@
     else list.push(key);
   }
 
+  function addQuickMealReplacement(meal,key){
+    if(typeof FOOD_QUICK_COMBOS==='undefined')return;
+    const combos=FOOD_QUICK_COMBOS[meal]||(FOOD_QUICK_COMBOS[meal]=[]);
+    if(combos.some(combo=>combo.items?.some(item=>item?.[0]===key)))return;
+    combos.unshift({name:'Sustitutivo Kaiku · 500 ml',items:[[key,500]]});
+  }
+
   addMealFood('Desayuno','ham_york_90','egg');
   addMealFood('Merienda','ham_york_90','turkey');
   addMealFood('Almuerzo','chicken_thigh','chicken');
   addMealFood('Cena','chicken_thigh','chicken');
+
+  // The complete drink can replace any meal and is available as a one-tap 500 ml option.
+  ['Desayuno','Almuerzo','Merienda','Cena','Post-entreno'].forEach(meal=>{
+    addMealFood(meal,'kaiku_complete_vanilla');
+    addQuickMealReplacement(meal,'kaiku_complete_vanilla');
+  });
 })();
