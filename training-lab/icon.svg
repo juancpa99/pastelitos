@@ -1,15 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">MAREVO</title>
-  <desc id="desc">Icono MAREVO: M, mancuerna y ola</desc>
-  <rect width="512" height="512" rx="112" fill="#06101a"/>
-  <circle cx="256" cy="256" r="202" fill="#0b1928" stroke="#17344b" stroke-width="4"/>
+  <desc id="desc">M de fuerza atravesada por una ola, con discos de mancuerna a ambos lados</desc>
+  <defs>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#24e6c9"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="plates" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#24e6c9"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#06101a"/>
+  <circle cx="256" cy="256" r="218" fill="#081827"/>
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M72 184v144" stroke="#35dcc5" stroke-width="32"/>
-    <path d="M108 160v192" stroke="#35dcc5" stroke-width="42"/>
-    <path d="M440 184v144" stroke="#7dd3fc" stroke-width="32"/>
-    <path d="M404 160v192" stroke="#7dd3fc" stroke-width="42"/>
-    <path d="M132 338V174L256 296L380 174V338" stroke="#f8fafc" stroke-width="42"/>
-    <path d="M126 272c48-46 88-46 130 0s82 46 130 0" stroke="#35dcc5" stroke-width="28"/>
-    <path d="M256 272c42 46 82 46 130 0" stroke="#7dd3fc" stroke-width="28"/>
+    <path d="M54 214v84M91 184v144M458 214v84M421 184v144" stroke="url(#plates)" stroke-width="28"/>
+    <path d="M118 256H394" stroke="#163248" stroke-width="18"/>
+    <path d="M132 354V166L256 286L380 166V354" stroke="#f7fbff" stroke-width="52"/>
+    <path d="M118 278C170 218 216 220 258 270C302 322 350 327 404 258" stroke="url(#wave)" stroke-width="38"/>
   </g>
 </svg>
