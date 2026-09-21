@@ -93,7 +93,7 @@ function oct26ReducedPlan(base){
  };
  const plan=structuredClone(base),map=reductions[base.key]||{};
  plan.exercises=plan.exercises.map(e=>e.type==="strength"&&map[e.key]?{...e,sets:map[e.key]}:e);
- plan.subtitle=\`\${plan.subtitle} · semana de evaluación: volumen −20–25%\`;
+ plan.subtitle=`${plan.subtitle} · semana de evaluación: volumen −20–25%`;
  return plan;
 }
 function oct26PlanForDate(date){
@@ -146,13 +146,13 @@ exerciseAdvice=function(e){
 
 function oct26RulesHTML(date=currentDate()){
  if(!oct26InRange(date))return"";
- return \`<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de hipertrofia · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">\${esc(oct26WeekTitle(date))}</div><div class="callout" style="margin-top:8px">\${esc(oct26WeekFocus(date))}</div><details style="margin-top:10px"><summary>Cómo progresar</summary><div class="subtitle" style="margin-top:8px"><strong>Reps primero:</strong> mientras no completes el techo del rango, conserva la carga y supera el total de reps con el RIR indicado.<br><br><strong>Subir peso:</strong> al completar el techo del rango con técnica y RIR correctos, usa el menor salto razonable y vuelve a la parte baja de reps.<br><br><strong>Bajar peso:</strong> si caes por debajo del mínimo o rompes ROM/técnica para completar la serie, reduce un pequeño paso.<br><br><strong>Series:</strong> semanas 1–5 mantienen el volumen alto. Semana 6 reduce aproximadamente 20–25% para evaluar rendimiento sin tanta fatiga.<br><br><strong>Intensidad:</strong> compuestos duros pero controlados; aislamientos y máquinas pueden terminar mucho más cerca del límite técnico.</div></details></div>\`;
+ return `<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de hipertrofia · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">${esc(oct26WeekTitle(date))}</div><div class="callout" style="margin-top:8px">${esc(oct26WeekFocus(date))}</div><details style="margin-top:10px"><summary>Cómo progresar</summary><div class="subtitle" style="margin-top:8px"><strong>Reps primero:</strong> mientras no completes el techo del rango, conserva la carga y supera el total de reps con el RIR indicado.<br><br><strong>Subir peso:</strong> al completar el techo del rango con técnica y RIR correctos, usa el menor salto razonable y vuelve a la parte baja de reps.<br><br><strong>Bajar peso:</strong> si caes por debajo del mínimo o rompes ROM/técnica para completar la serie, reduce un pequeño paso.<br><br><strong>Series:</strong> semanas 1–5 mantienen el volumen alto. Semana 6 reduce aproximadamente 20–25% para evaluar rendimiento sin tanta fatiga.<br><br><strong>Intensidad:</strong> compuestos duros pero controlados; aislamientos y máquinas pueden terminar mucho más cerca del límite técnico.</div></details></div>`;
 }
 
 function oct26SwimBlockHTML(date=currentDate()){
  if(!oct26SwimDay(date))return"";
  const done=!!state.swim.find(s=>s.date===date&&s.completed);
- return \`<div class="section oct26-swim-section">Natación · 22–23 h</div><div class="oct26-swim-block">\${swimHTML(date)}</div>\${done?'<div class="callout good" style="margin-top:8px">Natación registrada.</div>':""}\`;
+ return `<div class="section oct26-swim-section">Natación · 22–23 h</div><div class="oct26-swim-block">${swimHTML(date)}</div>${done?'<div class="callout good" style="margin-top:8px">Natación registrada.</div>':""}`;
 }
 function oct26RemoveOldCycleCard(root){
  [...root.querySelectorAll(".card")].forEach(card=>{
@@ -165,12 +165,12 @@ function oct26WeekLabel(date){
  if(!oct26InRange(date))return planFor(date).title;
  const p=oct26PlanForDate(date);
  if(!p)return"";
- if(oct26SwimDay(date)&&p.type==="gym")return \`\${p.title} + natación\`;
+ if(oct26SwimDay(date)&&p.type==="gym")return `${p.title} + natación`;
  return p.title;
 }
 function oct26RelabelWeek(root,date){
  root.querySelectorAll(".compact-week-card .day").forEach(button=>{
-  const match=(button.getAttribute("onclick")||"").match(/selectWeekday\\((\\d)\\)/);
+  const match=(button.getAttribute("onclick")||"").match(/selectWeekday\((\d)\)/);
   if(!match)return;
   const target=dateForWeekday(date,+match[1]),label=button.querySelector(".w");
   if(label)label.textContent=oct26WeekLabel(target);
@@ -180,12 +180,12 @@ function oct26RelabelWeek(root,date){
 homeDayPresentation=function(date){
  const p=planFor(date),gymDone=p.type==="gym"?!!findSession(date,p.key)?.completed:p.type==="rest",swimPlanned=oct26SwimDay(date),swimDone=!swimPlanned||!!state.swim.find(s=>s.date===date&&s.completed),gymSession=p.type==="gym"?findSession(date,p.key):null;
  const gymActive=!!(gymSession?.startedAt&&!gymSession.completed),hasActivity=p.type!=="rest"||swimPlanned,allDone=hasActivity&&gymDone&&swimDone;
- return {p,comp:null,compSession:null,primaryDone:gymDone,compDone:true,hasActivity,allDone,anyActive:gymActive,title:swimPlanned?\`\${p.title} + natación\`:p.title,subtitle:swimPlanned?\`\${p.subtitle} · gym antes durante el día\`:p.subtitle||"",kind:swimPlanned?"Gimnasio + natación":p.type==="gym"?"Gimnasio":"Recuperación",swimPlanned,swimDone};
+ return {p,comp:null,compSession:null,primaryDone:gymDone,compDone:true,hasActivity,allDone,anyActive:gymActive,title:swimPlanned?`${p.title} + natación`:p.title,subtitle:swimPlanned?`${p.subtitle} · gym antes durante el día`:p.subtitle||"",kind:swimPlanned?"Gimnasio + natación":p.type==="gym"?"Gimnasio":"Recuperación",swimPlanned,swimDone};
 };
 homeTaskHTML=function(date,presentation){
  const {p,primaryDone,swimPlanned,swimDone}=presentation;
  let html="";
- if(p.type==="gym")html+=task("G",p.title,primaryDone?\`\${p.title} registrado\`:\`\${p.title} pendiente\`,primaryDone,"showView('Workout')");
+ if(p.type==="gym")html+=task("G",p.title,primaryDone?`${p.title} registrado`:`${p.title} pendiente`,primaryDone,"showView('Workout')");
  if(swimPlanned)html+=task("N","Natación",swimDone?"Natación registrada":"22–23 h · pendiente",swimDone,"showView('Workout')");
  if(isSunday(date)){
   html+=task("M","Peso y cintura",measurementDone(date)?"Mediciones registradas":"Mediciones semanales pendientes",measurementDone(date),"openMeasurements()");
@@ -195,9 +195,9 @@ homeTaskHTML=function(date,presentation){
   }
  }
  const foods=foodsFor(date);
- HOME_CORE_MEALS.forEach((meal,index)=>{const done=foods.some(item=>item.meal===meal),icon=["D","A","C"][index],action=done?"showView('Food')":\`openFoodModal('\${meal}')\`;html+=task(icon,meal,done?\`\${meal} registrado\`:\`Añadir \${meal.toLowerCase()}\`,done,action)});
+ HOME_CORE_MEALS.forEach((meal,index)=>{const done=foods.some(item=>item.meal===meal),icon=["D","A","C"][index],action=done?"showView('Food')":`openFoodModal('${meal}')`;html+=task(icon,meal,done?`${meal} registrado`:`Añadir ${meal.toLowerCase()}`,done,action)});
  if(afterCheckHour(date))html+=task("✓","Check-in final",dailyDone(date)?"Día cerrado":"Pendiente al final del día",dailyDone(date),"openDailyCheck()");
- else html+=\`<div class="task"><div class="ico">✓</div><div><strong>Check-in final</strong><small>Aparecerá a partir de las \${state.settings.checkHour}:00.</small></div></div>\`;
+ else html+=`<div class="task"><div class="ico">✓</div><div><strong>Check-in final</strong><small>Aparecerá a partir de las ${state.settings.checkHour}:00.</small></div></div>`;
  return html;
 };
 homeWeekLabel=function(date){return oct26WeekLabel(date)};
@@ -236,25 +236,25 @@ weeklyPlannedMuscleSets=function(){
  return out;
 };
 
-function oct26AssessmentRecord(kind){return [...(state.body||[])].filter(x=>x.phaseAssessment===\`oct26_\${kind}\`).sort((a,b)=>b.date.localeCompare(a.date))[0]||null}
+function oct26AssessmentRecord(kind){return [...(state.body||[])].filter(x=>x.phaseAssessment===`oct26_${kind}`).sort((a,b)=>b.date.localeCompare(a.date))[0]||null}
 function oct26AssessmentWindow(kind,date=currentDate()){
  return kind==="baseline"?(date>=OCT26_PHASE.start&&date<="2026-09-27"):(date>="2026-10-26"&&date<=OCT26_PHASE.end);
 }
 function openOct26Assessment(kind){
  const old=oct26AssessmentRecord(kind)||state.body.find(x=>x.date===currentDate())||[...(state.body||[])].filter(x=>x.date<=currentDate()).sort((a,b)=>b.date.localeCompare(a.date))[0]||{};
  const title=kind==="baseline"?"Referencia del nuevo bloque":"Medición final del bloque";
- document.getElementById("modalRoot").innerHTML=\`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Bloque 21 sep–30 oct</div><div class="hero-title">\${title}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="callout">Mide en condiciones comparables: por la mañana, tras ir al baño y antes de desayunar. Usa los mismos puntos anatómicos.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Peso (kg)</label><input id="o26Weight" inputmode="decimal" value="\${old.weight??""}"></div><div class="field"><label>Cintura (cm)</label><input id="o26Waist" inputmode="decimal" value="\${old.waist??""}"></div><div class="field"><label>Pecho (cm)</label><input id="o26Chest" inputmode="decimal" value="\${old.chest??""}"></div><div class="field"><label>Brazo flexionado (cm)</label><input id="o26Arm" inputmode="decimal" value="\${old.arm??""}"></div><div class="field"><label>Cadera / glúteo (cm)</label><input id="o26Hips" inputmode="decimal" value="\${old.hips??""}"></div><div class="field"><label>Muslo derecho (cm)</label><input id="o26Thigh" inputmode="decimal" value="\${old.thigh??""}"></div><div class="field"><label>Gemelo derecho (cm)</label><input id="o26Calf" inputmode="decimal" value="\${old.calf??""}"></div><div class="field wide"><label>Notas</label><textarea id="o26Notes">\${esc(old.phaseAssessmentNotes??"")}</textarea></div></div><div class="actions"><button class="btn" onclick="saveOct26Assessment('\${kind}')">Guardar medición</button></div></div></div>\`;
+ document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Bloque 21 sep–30 oct</div><div class="hero-title">${title}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="callout">Mide en condiciones comparables: por la mañana, tras ir al baño y antes de desayunar. Usa los mismos puntos anatómicos.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Peso (kg)</label><input id="o26Weight" inputmode="decimal" value="${old.weight??""}"></div><div class="field"><label>Cintura (cm)</label><input id="o26Waist" inputmode="decimal" value="${old.waist??""}"></div><div class="field"><label>Pecho (cm)</label><input id="o26Chest" inputmode="decimal" value="${old.chest??""}"></div><div class="field"><label>Brazo flexionado (cm)</label><input id="o26Arm" inputmode="decimal" value="${old.arm??""}"></div><div class="field"><label>Cadera / glúteo (cm)</label><input id="o26Hips" inputmode="decimal" value="${old.hips??""}"></div><div class="field"><label>Muslo derecho (cm)</label><input id="o26Thigh" inputmode="decimal" value="${old.thigh??""}"></div><div class="field"><label>Gemelo derecho (cm)</label><input id="o26Calf" inputmode="decimal" value="${old.calf??""}"></div><div class="field wide"><label>Notas</label><textarea id="o26Notes">${esc(old.phaseAssessmentNotes??"")}</textarea></div></div><div class="actions"><button class="btn" onclick="saveOct26Assessment('${kind}')">Guardar medición</button></div></div></div>`;
 }
 function saveOct26Assessment(kind){
  const values={weight:num("o26Weight"),waist:num("o26Waist"),chest:num("o26Chest"),arm:num("o26Arm"),hips:num("o26Hips"),thigh:num("o26Thigh"),calf:num("o26Calf")};
  if(Object.values(values).some(v=>!Number.isFinite(v)||v<=0)){toast("Completa todas las medidas con valores válidos");return}
  const prev=oct26AssessmentRecord(kind);if(prev&&prev.date!==currentDate())state.body=state.body.filter(x=>x!==prev);
- upsert(state.body,{date:currentDate(),...values,phaseAssessment:\`oct26_\${kind}\`,phaseAssessmentNotes:val("o26Notes").trim()});saveState(true);closeModal();renderAll();toast("Medición guardada");
+ upsert(state.body,{date:currentDate(),...values,phaseAssessment:`oct26_${kind}`,phaseAssessmentNotes:val("o26Notes").trim()});saveState(true);closeModal();renderAll();toast("Medición guardada");
 }
 function oct26AssessmentCard(date=currentDate()){
  const kind=oct26AssessmentWindow("final",date)?"final":oct26AssessmentWindow("baseline",date)?"baseline":null;if(!kind)return"";
  const r=oct26AssessmentRecord(kind),label=kind==="baseline"?"Referencia del bloque":"Medición final del bloque";
- return \`<div class="card oct26-assessment-card"><div class="row between settings-status-row"><div><div class="eyebrow">Evaluación física · 21 sep–30 oct</div><strong>\${label}</strong><small>\${r?\`Guardada el \${esc(r.date)}.\`:"Peso, cintura y perímetros completos para comparar el ciclo."}</small></div><span class="pill \${r?"good":"warn"}">\${r?"Guardada":"Pendiente"}</span></div><div class="actions" style="margin-top:10px"><button class="btn \${r?"secondary":""}" onclick="openOct26Assessment('\${kind}')">\${r?"Revisar medición":"Registrar ahora"}</button></div></div>\`;
+ return `<div class="card oct26-assessment-card"><div class="row between settings-status-row"><div><div class="eyebrow">Evaluación física · 21 sep–30 oct</div><strong>${label}</strong><small>${r?`Guardada el ${esc(r.date)}.`:"Peso, cintura y perímetros completos para comparar el ciclo."}</small></div><span class="pill ${r?"good":"warn"}">${r?"Guardada":"Pendiente"}</span></div><div class="actions" style="margin-top:10px"><button class="btn ${r?"secondary":""}" onclick="openOct26Assessment('${kind}')">${r?"Revisar medición":"Registrar ahora"}</button></div></div>`;
 }
 const oct26PreviousAssessmentCard=typeof sep26AssessmentCard==="function"?sep26AssessmentCard:null;
 if(oct26PreviousAssessmentCard){sep26AssessmentCard=function(date=currentDate()){if(oct26InRange(date))return oct26AssessmentCard(date);return oct26PreviousAssessmentCard(date)}}
@@ -273,7 +273,7 @@ function oct26Performance(end){
  return [...groups.values()].map(g=>{g.exposures.sort((a,b)=>a.date.localeCompare(b.date));const first=g.exposures[0],last=g.exposures.at(-1);return{...g,sessions:g.exposures.length,first,last,change:{bestEnteredLoadKg:first.bestEnteredLoadKg!=null&&last.bestEnteredLoadKg!=null?+(last.bestEnteredLoadKg-first.bestEnteredLoadKg).toFixed(2):null,repsAtBestLoad:first.repsAtBestLoad!=null&&last.repsAtBestLoad!=null?last.repsAtBestLoad-first.repsAtBestLoad:null,totalReps:first.totalReps!=null&&last.totalReps!=null?last.totalReps-first.totalReps:null,avgRIR:first.avgRIR!=null&&last.avgRIR!=null?+(last.avgRIR-first.avgRIR).toFixed(2):null}}}).sort((a,b)=>a.exercise.localeCompare(b.exercise));
 }
 function oct26PlannedItems(end){
- const out=[];for(let date=OCT26_PHASE.start;date<=end;date=addDaysISO(date,1)){const p=oct26PlanForDate(date);if(p?.type==="gym")out.push({date,type:"gym",key:p.key,title:p.title});if(oct26SwimDay(date))out.push({date,type:"swim",key:\`swim_\${date}\`,title:"Natación"})}return out;
+ const out=[];for(let date=OCT26_PHASE.start;date<=end;date=addDaysISO(date,1)){const p=oct26PlanForDate(date);if(p?.type==="gym")out.push({date,type:"gym",key:p.key,title:p.title});if(oct26SwimDay(date))out.push({date,type:"swim",key:`swim_${date}`,title:"Natación"})}return out;
 }
 function oct26Adherence(end){
  const items=oct26PlannedItems(end).map(item=>{const record=item.type==="gym"?(state.sessions||[]).find(s=>s.date===item.date&&s.key===item.key&&s.completed):(state.swim||[]).find(s=>s.date===item.date&&s.completed);return{...item,completed:!!record,duration:record?.duration??null,rpe:record?.rpe??null,shoulderPain:record?.shoulderPain??record?.pain??null}});
@@ -285,10 +285,10 @@ function buildOct26Report(){
  const end=oct26ReportEnd(),baseline=oct26AssessmentRecord("baseline")||[...(state.body||[])].filter(x=>x.date<=OCT26_PHASE.start).sort((a,b)=>b.date.localeCompare(a.date))[0]||null,final=oct26AssessmentRecord("final")||null,latest=final||[...(state.body||[])].filter(x=>x.date<=end).sort((a,b)=>b.date.localeCompare(a.date))[0]||null,daily=oct26Rows(state.daily),swims=oct26Rows(state.swim),foods=oct26Rows(state.foods),sessions=oct26CompletedSessions(end),nutritionDays=[...new Set(foods.map(x=>x.date))].sort().map(date=>({date,...dayNutrition(date)})),adherence=oct26Adherence(end);
  return{app:"MAREVO · Training Lab",reportVersion:1,reportType:"pplul-2026-09-21-to-2026-10-30",generatedAt:new Date().toISOString(),purpose:"Upload this JSON to ChatGPT to review the 5-day hypertrophy block and design the next cycle.",phase:{...OCT26_PHASE,availableThrough:end,currentWeek:oct26Week(end),currentStage:oct26WeekTitle(end)},program:{days:structuredClone(OCT26_BASE_PLANS),progression:Object.fromEntries([1,2,3,4,5,6].map(w=>[w,oct26WeekFocus(["","2026-09-21","2026-09-28","2026-10-05","2026-10-12","2026-10-19","2026-10-26"][w])])),week6VolumeReduction:"~20–25% fewer prescribed strength sets"},body:{baselineAssessment:baseline,finalAssessment:final,latestAvailable:latest,deltaBaselineToFinal:final?oct26Delta(baseline,final):null,deltaBaselineToLatest:oct26Delta(baseline,latest),records:oct26Rows(state.body)},adherence,recovery:{records:daily,averages:{energy:oct26Mean(daily.map(x=>x.energy)),fatigue:oct26Mean(daily.map(x=>x.fatigue)),pain:oct26Mean(daily.map(x=>x.pain)),sleepHours:oct26Mean(daily.map(x=>x.sleep)),hunger:oct26Mean(daily.map(x=>x.hunger))}},swimming:{records:swims,totalMeters:swims.reduce((n,x)=>n+(+x.meters||0),0),avgRPE:oct26Mean(swims.map(x=>x.rpe)),avgShoulderPain:oct26Mean(swims.map(x=>x.pain))},nutrition:{goals:state.settings.nutritionGoals||{},loggedDays:nutritionDays,averages:{kcal:oct26Mean(nutritionDays.map(x=>x.kcal)),proteinG:oct26Mean(nutritionDays.map(x=>x.p)),carbsG:oct26Mean(nutritionDays.map(x=>x.c)),fatG:oct26Mean(nutritionDays.map(x=>x.f))},rawEntries:foods},performance:{exerciseProgress:oct26Performance(end),completedSessions:sessions},dataCompleteness:{baselineAssessment:!!baseline,finalAssessment:!!final,dailyCheckins:daily.length,gymAdherence:adherence.summary.gym,swimAdherence:adherence.summary.swim},photos:{metadata:state.photoMonths||[],note:"Las fotos siguen almacenadas localmente y se comparten aparte."}};
 }
-function downloadOct26Report(){download(\`MAREVO_informe_PPLUL_\${OCT26_PHASE.start}_a_\${OCT26_PHASE.end}.json\`,JSON.stringify(buildOct26Report(),null,2),"application/json");toast("Informe del bloque descargado")}
+function downloadOct26Report(){download(`MAREVO_informe_PPLUL_${OCT26_PHASE.start}_a_${OCT26_PHASE.end}.json`,JSON.stringify(buildOct26Report(),null,2),"application/json");toast("Informe del bloque descargado")}
 function oct26ReportHTML(){
- const r=buildOct26Report(),d=r.body.deltaBaselineToFinal||r.body.deltaBaselineToLatest||{},summary=[d.weight!=null?\`peso \${d.weight>=0?"+":""}\${d.weight} kg\`:null,d.waist!=null?\`cintura \${d.waist>=0?"+":""}\${d.waist} cm\`:null].filter(Boolean).join(" · ");
- return \`<div class="section oct26-report-section">Informe del bloque 21 sep–30 oct</div><div class="card oct26-report-card"><div class="row between settings-status-row"><div><strong>\${todayISO()>=OCT26_PHASE.end?"Listo para evaluar":"Informe en construcción"}</strong><small>Datos hasta \${esc(r.phase.availableThrough)}\${summary?\` · \${esc(summary)}\`:""}</small></div><span class="pill \${todayISO()>=OCT26_PHASE.end?"good":""}">6 semanas</span></div><div class="subtitle" style="margin-top:10px">Incluye adherencia a los 5 días de gimnasio y natación, medidas corporales, recuperación, nutrición y evolución ejercicio por ejercicio con cargas, repeticiones y RIR.</div><div class="actions" style="margin-top:10px"><button class="btn" onclick="downloadOct26Report()">Descargar informe para analizar</button></div></div>\`;
+ const r=buildOct26Report(),d=r.body.deltaBaselineToFinal||r.body.deltaBaselineToLatest||{},summary=[d.weight!=null?`peso ${d.weight>=0?"+":""}${d.weight} kg`:null,d.waist!=null?`cintura ${d.waist>=0?"+":""}${d.waist} cm`:null].filter(Boolean).join(" · ");
+ return `<div class="section oct26-report-section">Informe del bloque 21 sep–30 oct</div><div class="card oct26-report-card"><div class="row between settings-status-row"><div><strong>${todayISO()>=OCT26_PHASE.end?"Listo para evaluar":"Informe en construcción"}</strong><small>Datos hasta ${esc(r.phase.availableThrough)}${summary?` · ${esc(summary)}`:""}</small></div><span class="pill ${todayISO()>=OCT26_PHASE.end?"good":""}">6 semanas</span></div><div class="subtitle" style="margin-top:10px">Incluye adherencia a los 5 días de gimnasio y natación, medidas corporales, recuperación, nutrición y evolución ejercicio por ejercicio con cargas, repeticiones y RIR.</div><div class="actions" style="margin-top:10px"><button class="btn" onclick="downloadOct26Report()">Descargar informe para analizar</button></div></div>`;
 }
 const oct26PreviousRenderProgress=renderProgress;
 renderProgress=function(){
