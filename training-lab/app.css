@@ -964,3 +964,36 @@ body[data-view="Home"] .today-btn{
  .shopping-sheet .quickchips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .shopping-sheet .quickchips .chip{width:100%}
 }
+
+
+/* v6.53 - contain native iOS shopping inputs */
+.shopping-control-input{
+  display:block;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+  border:1px solid #29435f;
+  border-radius:11px;
+  background:#081525;
+  color:var(--text);
+}
+.shopping-control-input>input{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  inline-size:100%!important;
+  max-inline-size:100%!important;
+  min-inline-size:0!important;
+  min-height:48px;
+  margin:0!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  box-shadow:none!important;
+  color-scheme:dark;
+}
+.shopping-control-input>input[type="number"]{text-align:left}
+.shopping-controls>label{overflow:hidden}
