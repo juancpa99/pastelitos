@@ -82,6 +82,24 @@ try{
  assert.equal(run(`state.foods.at(-2).amount`),100,'rice in a dish is stored as dry grams');
  assert.equal(run(`state.foods.at(-1).dishName`),'Pollo con arroz y verduras');
  assert.match(doc.getElementById('viewFood').textContent,/Plato rápido/);
+ // Adaptive nutrition plan uses current weight, keeps post-workout optional and supports shopping.
+ run(`state.body.push({date:'2026-09-25',weight:80});state.metabolism={sex:'male',birthDate:'2000-01-01',heightCm:175,activityFactor:1.55};document.getElementById('selectedDate').value='2026-09-25';renderAll();showView('Food')`);
+ assert.ok(doc.querySelector('.nutrition-plan-card'),'nutrition plan is visible in Food');
+ assert.equal(run(`nutritionPlanTarget('2026-09-25').protein`),176,'protein target follows 2.2 g/kg');
+ assert.equal(doc.querySelectorAll('.nutrition-plan-meal').length,5,'daily plan includes five slots');
+ assert.match(doc.querySelector('.nutrition-plan-post').textContent,/Post-entreno/);
+ run(`openNutritionPlanMealOptions('2026-09-25','Almuerzo')`);
+ assert.ok(doc.querySelectorAll('[id^="planAmount_"]').length>=3,'planned meal amounts are editable');
+ doc.querySelector('[id^="planAmount_"]').value='210';
+ run(`saveNutritionPlanMealAmounts('2026-09-25','Almuerzo')`);
+ assert.match(doc.getElementById('viewFood').textContent,/210 g/,'edited planned amount is retained');
+ const plannedFoodBefore=run(`state.foods.length`);
+ run(`addNutritionPlanMeal('2026-09-25','Almuerzo')`);
+ assert.ok(run(`state.foods.length`)>plannedFoodBefore,'planned meal can be added to the diary');
+ run(`toggleNutritionPlanPost('2026-09-25')`);
+ assert.match(doc.querySelector('.nutrition-plan-post').textContent,/No tomar hoy/);
+ run(`openNutritionShoppingList()`);
+ assert.match(doc.getElementById('shoppingResults').textContent,/Pollo|Pavo|Merluza/,'shopping list aggregates planned foods');
  // Calendar windows handle short months, leap years and year boundaries.
  assert.equal(run(`progressBuckets('2024-03-15','month')[2].end`),'2024-02-29');
  assert.equal(run(`progressBuckets('2026-01-02','month')[2].start`),'2025-12-01');
