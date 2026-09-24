@@ -19,19 +19,21 @@ try{
  }
  date('2026-09-22');run(`showView('Home')`);
  assert.equal(run(`dayActivities(currentDate()).length`),2,'Tuesday has two gym sessions');
- assert.match(doc.querySelector('#viewHome .day-lead').textContent,/Registrar entrenamiento/);
- assert.ok(!doc.querySelector('#viewHome .day-lead').textContent.includes(run(`dayActivities(currentDate())[0].title`)),'Home hides the recommended workout name');
+ assert.match(doc.querySelector('#viewHome .home-training-cta').textContent,/Registrar entrenamiento/);
+ assert.ok(!doc.querySelector('#viewHome .home-training-cta').textContent.includes(run(`dayActivities(currentDate())[0].title`)),'Home hides the recommended workout name from the primary action');
+ assert.equal(doc.querySelectorAll('#viewHome .home-destination').length,2,'Home guides to Food and Progress with compact summaries');
  const activityTitles=run(`dayActivities(currentDate()).map(a=>a.title)`);
- const homeTaskTitles=[...doc.querySelectorAll('#viewHome .day-tasks .task-action strong')].map(el=>el.textContent.trim());
- assert.ok(homeTaskTitles.every(title=>!activityTitles.includes(title)),'training sessions are not duplicated as Home tasks');
+ const homeTaskTitles=[...doc.querySelectorAll('#viewHome .home-pending-item strong')].map(el=>el.textContent.trim());
+ assert.ok(homeTaskTitles.every(title=>!activityTitles.includes(title)),'training sessions are not duplicated as pending Home tasks');
  assert.equal(doc.querySelectorAll('#viewHome [onclick^="openFoodModal"]').length,0,'meals are not repeated as tasks');
+ assert.ok(!doc.getElementById('viewHome').textContent.includes('Referencia del bloque'),'phase assessment no longer dominates Home');
  run(`const oldCheckHour=afterCheckHour;afterCheckHour=()=>false;renderHome()`);
  assert.ok(!doc.getElementById('viewHome').textContent.includes('Check-in final'));
  run(`afterCheckHour=()=>true;renderHome()`);
  assert.ok(doc.getElementById('viewHome').textContent.includes('Check-in final'));
  run(`afterCheckHour=oldCheckHour`);
  date('2026-09-23');assert.equal(run(`dayActivities(currentDate())[0].title`),'Natación');
- run(`showView('Home')`);assert.match(doc.querySelector('#viewHome .day-lead').textContent,/Registrar entrenamiento/);assert.ok(!doc.querySelector('#viewHome .day-lead').textContent.includes('Natación'),'Home uses one generic training entry');
+ run(`showView('Home')`);assert.match(doc.querySelector('#viewHome .home-training-cta').textContent,/Registrar entrenamiento/);assert.ok(!doc.querySelector('#viewHome .home-training-cta').textContent.includes('Natación'),'Home primary action stays generic');
  run(`showView('Workout')`);assert.equal(doc.querySelectorAll('#viewWorkout .training-entry').length,1);assert.equal(doc.querySelectorAll('#viewWorkout .training-mode-choice').length,2);assert.ok(!doc.getElementById('swM'),'swim form hidden until requested');run(`openSwimRegistration()`);assert.ok(doc.getElementById('swM'));run(`closeModal()`);
  date('2026-09-27');run(`showView('Home')`);assert.match(doc.getElementById('viewHome').textContent,/Peso y cintura/);
  date('2026-09-24');run(`showView('Workout')`);
@@ -62,7 +64,7 @@ try{
  assert.equal(run(`progressBuckets('2026-01-02','week').at(-1).start`),'2025-12-29');
  assert.equal(run(`progressBuckets('2026-01-02','week').at(-1).end`),'2026-01-02');
  assert.equal(run(`progressBuckets('2026-01-02','day').length`),1);
- run(`showView('Progress')`);assert.equal(doc.querySelectorAll('.chart-slide').length,4);
+ run(`const oldTodayAssessment=todayISO;todayISO=()=> '2026-09-25';showView('Progress')`);assert.equal(doc.querySelectorAll('.chart-slide').length,4);assert.match(doc.querySelector('.progress-phase-assessment').textContent,/Referencia del bloque/);run(`todayISO=oldTodayAssessment`);
  assert.ok(!doc.getElementById('viewProgress').textContent.includes('v2'));
  assert.ok(doc.querySelector('.date-nav').classList.contains('hidden'));
  run(`showView('Settings')`);assert.ok(doc.querySelector('.date-nav').classList.contains('hidden'));
