@@ -486,13 +486,16 @@
     const n=Number.isInteger(row.total)?row.total:Number(row.total.toFixed(1));
     return `${n} ${row.unit}`
   }
+  function shoppingDateLabel(date){
+    return dateObj(date).toLocaleDateString('es-ES',{day:'numeric',month:'short'}).replace('.','')
+  }
   function shoppingResultsHTML(start,days){
     const rows=shoppingRows(start,days);
     const actualDays=Math.max(0,Math.min(days,Math.floor((dateObj(PLAN_END)-dateObj(start))/86400000)+1));
     const end=actualDays>0?addDaysISO(start,actualDays-1):start;
     if(!rows.length)return '<div class="nutrition-plan-empty">No hay días del plan en ese intervalo.</div>';
     let lastCat='';
-    return `<div class="shopping-range">${esc(start)} → ${esc(end)}</div><div class="shopping-list">${rows.map(row=>{
+    return `<div class="shopping-range">${esc(shoppingDateLabel(start))} → ${esc(shoppingDateLabel(end))}</div><div class="shopping-list">${rows.map(row=>{
       const heading=row.cat!==lastCat?(lastCat=row.cat,`<div class="shopping-category">${esc(row.cat)}</div>`):'';
       const dishText=[...row.dishes].slice(0,2).join(' · ');
       return `${heading}<div class="shopping-row"><div><strong>${esc(row.name)}</strong><small>${row.uses} usos${dishText?` · ${esc(dishText)}`:''}</small></div><b>${esc(shoppingAmount(row))}</b></div>`
@@ -500,7 +503,7 @@
   }
   window.openNutritionShoppingList=function(){
     const start=inPlan(currentDate())?currentDate():PLAN_START;
-    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet shopping-sheet"><div class="row between"><div><div class="eyebrow">Meal prep</div><div class="hero-title">Compra para varios días</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="shopping-controls"><label>Desde<input id="shopStart" type="date" min="${PLAN_START}" max="${PLAN_END}" value="${start}"></label><label>Días<input id="shopDays" inputmode="numeric" type="number" min="1" max="36" value="7"></label></div><div class="quickchips"><button type="button" class="chip" onclick="document.getElementById('shopDays').value=3;refreshNutritionShoppingList()">3 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=5;refreshNutritionShoppingList()">5 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=7;refreshNutritionShoppingList()">7 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=14;refreshNutritionShoppingList()">14 días</button></div><div class="actions"><button type="button" class="btn" onclick="refreshNutritionShoppingList()">Calcular compra</button></div><div id="shoppingResults">${shoppingResultsHTML(start,7)}</div></div></div>`
+    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet shopping-sheet"><div class="row between shopping-head"><div><div class="eyebrow">Compra</div><div class="hero-title">Compra para varios días</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="shopping-controls"><label>Desde<input id="shopStart" type="date" min="${PLAN_START}" max="${PLAN_END}" value="${start}"></label><label>Días<input id="shopDays" inputmode="numeric" type="number" min="1" max="36" value="7"></label></div><div class="quickchips"><button type="button" class="chip" onclick="document.getElementById('shopDays').value=3;refreshNutritionShoppingList()">3 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=5;refreshNutritionShoppingList()">5 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=7;refreshNutritionShoppingList()">7 días</button><button type="button" class="chip" onclick="document.getElementById('shopDays').value=14;refreshNutritionShoppingList()">14 días</button></div><div class="actions"><button type="button" class="btn" onclick="refreshNutritionShoppingList()">Calcular compra</button></div><div id="shoppingResults">${shoppingResultsHTML(start,7)}</div></div></div>`
   };
   window.refreshNutritionShoppingList=function(){
     const start=document.getElementById('shopStart')?.value||PLAN_START;
