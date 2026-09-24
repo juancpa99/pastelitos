@@ -1360,7 +1360,11 @@ function renderFood(){
   activeMeals.forEach(mt=>{
    const group=items.filter(i=>i.meal===mt),total=group.reduce((a,i)=>{const n=calcFood(i);a.kcal+=n.kcal;a.p+=n.p;return a},{kcal:0,p:0});
    html+=`<div class="meal"><div class="mealhead"><div><strong>${mt}</strong><small>${esc(MEAL_HINTS[mt]||"")}</small><div class="meal-summary"><span class="meal-total">${Math.round(total.kcal)} kcal · ${Math.round(total.p)} g proteína</span></div></div><div class="row" style="gap:7px"><span class="pill">${group.length}</span><button type="button" class="btn ghost small" onclick="openFoodModal('${mt}')">+ Añadir</button></div></div>`;
-   group.forEach(i=>{const db=foodRecord(i.foodKey);if(db){const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions"><button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div>`}});
+   const shownDishGroups=new Set();
+   group.forEach(i=>{const db=foodRecord(i.foodKey);if(db){
+    if(i.dishGroupId&&i.dishName&&!shownDishGroups.has(i.dishGroupId)){shownDishGroups.add(i.dishGroupId);html+=`<div class="food-dish-saved"><span>Plato rápido</span><strong>${esc(i.dishName)}</strong><small>Ingredientes editables por separado</small></div>`}
+    const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions"><button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div>`
+   }});
    html+=`</div>`
   });
   html+=`<div class="actions food-add-another"><button type="button" class="btn secondary" onclick="openMealChooser()">Añadir otra comida</button></div>`
@@ -1397,9 +1401,11 @@ function openMealChooser(){
 function openFoodModal(defaultMeal="Desayuno"){
  const meal=MEAL_TYPES.includes(defaultMeal)?defaultMeal:"Desayuno";
  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
- <div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Añadir alimento</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
+ <div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Añadir comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
  <input type="hidden" id="fdMeal" value="${esc(meal)}">
  <div id="fdMealHint" class="meal-hint">${esc(MEAL_HINTS[meal]||"")}</div>
+ <div id="fdDishes"></div>
+ <div class="food-individual-divider"><span>O añade un alimento</span></div>
  <div class="formgrid food-modal-grid">
   <div class="field wide"><label for="fdSearch">Buscar alimento</label><input id="fdSearch" type="search" placeholder="Escribe arroz, pollo, yogur…" autocomplete="off" oninput="renderFoodPicker()"></div>
   <div class="field wide"><span class="food-picker-label">Alimento seleccionado</span><button type="button" id="fdSelected" class="food-selected" onclick="document.getElementById('fdSearch').focus()">Elige un alimento de la lista</button><input type="hidden" id="fdKey"></div>
@@ -1417,6 +1423,7 @@ function openFoodModal(defaultMeal="Desayuno"){
 function updateFoodMealUI(){
  const meal=val("fdMeal")||"Desayuno";
  document.getElementById("fdMealHint").textContent=MEAL_HINTS[meal]||"";
+ renderFoodDishes(meal);
  renderFoodCombos(meal);
  renderFoodRecent(meal);
  renderFoodPicker();
@@ -1436,9 +1443,66 @@ function setFoodSelection(key){
  input.value=key;if(selected){selected.textContent=f.name;selected.classList.add("chosen")}
  updateFoodAmountUI();renderFoodPicker()
 }
+function foodDishTemplates(meal){
+ return window.MAREVO_DISH_TEMPLATES?.[meal]||[]
+}
+function dishTemplateNutrition(template,values=null){
+ return (template?.items||[]).reduce((sum,[foodKey,defaultAmount],i)=>{
+  const inputAmount=values?+values[i]:+defaultAmount;
+  if(!Number.isFinite(inputAmount)||inputAmount<=0)return sum;
+  const n=calcFood({foodKey,amount:toStoredFoodAmount(foodKey,inputAmount)});
+  sum.kcal+=n.kcal;sum.p+=n.p;sum.c+=n.c;sum.f+=n.f;
+  return sum
+ },{kcal:0,p:0,c:0,f:0})
+}
+function renderFoodDishes(meal){
+ const root=document.getElementById("fdDishes");if(!root)return;
+ const templates=foodDishTemplates(meal);
+ root.innerHTML=templates.length?`<div class="food-dish-head"><div><div class="eyebrow">Platos rápidos</div><div class="subtitle">Elige uno, ajusta las cantidades y guarda todo de una vez.</div></div></div><div class="food-dish-grid">${templates.map((dish,i)=>{
+  const n=dishTemplateNutrition(dish),names=dish.items.map(([key])=>foodRecord(key)?.name).filter(Boolean).join(" · ");
+  return `<button type="button" class="food-dish-choice" onclick="openDishTemplate('${meal}',${i})"><span><strong>${esc(dish.name)}</strong><small>${esc(names)}</small><em>≈ ${Math.round(n.kcal)} kcal · ${Math.round(n.p)} g proteína</em></span><b aria-hidden="true">›</b></button>`
+ }).join("")}</div>`:"";
+ const divider=document.querySelector(".food-individual-divider");if(divider)divider.hidden=!templates.length
+}
+function openDishTemplate(meal,index){
+ const dish=foodDishTemplates(meal)[index];if(!dish)return;
+ document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet dish-sheet">
+  <div class="row between"><div><div class="eyebrow">${esc(meal)} · plato rápido</div><div class="hero-title">${esc(dish.name)}</div><div class="subtitle">Ajusta cada cantidad. Se guardarán los ingredientes por separado.</div></div><button type="button" class="btn ghost small" onclick="openFoodModal('${esc(meal)}')">Volver</button></div>
+  <div class="dish-components">${dish.items.map(([foodKey,inputAmount],i)=>{
+   const db=foodRecord(foodKey),meta=foodInputMeta(foodKey);
+   return `<div class="dish-component-row"><div><strong>${esc(db?.name||foodKey)}</strong><small>${esc(meta.reference)}</small></div><label><input id="dishAmount_${i}" class="dish-component-input" data-food-key="${esc(foodKey)}" inputmode="decimal" value="${inputAmount}" oninput="updateDishTemplatePreview()"><span>${esc(meta.inputUnit)}</span></label></div>`
+  }).join("")}</div>
+  <div id="dishPreview" class="dish-preview"></div>
+  <div class="actions"><button type="button" class="btn" onclick="saveDishTemplate('${esc(meal)}',${index})">Añadir plato</button><button type="button" class="btn secondary" onclick="openFoodModal('${esc(meal)}')">Cancelar</button></div>
+ </div></div>`;
+ updateDishTemplatePreview()
+}
+function updateDishTemplatePreview(){
+ const inputs=[...document.querySelectorAll(".dish-component-input")],values=inputs.map(input=>+input.value);
+ const meal=document.querySelector(".dish-sheet .eyebrow")?.textContent?.split(" · ")[0]||"";
+ const title=document.querySelector(".dish-sheet .hero-title")?.textContent||"";
+ const dish=foodDishTemplates(meal).find(d=>d.name===title);
+ const root=document.getElementById("dishPreview");if(!root||!dish)return;
+ const n=dishTemplateNutrition(dish,values);
+ root.innerHTML=`<span>Estimación del plato</span><strong>${Math.round(n.kcal)} kcal</strong><small>${Math.round(n.p)} g proteína · ${Math.round(n.c)} g HC · ${Math.round(n.f)} g grasa</small>`
+}
+function saveDishTemplate(meal,index){
+ const dish=foodDishTemplates(meal)[index];if(!dish)return;
+ const inputs=[...document.querySelectorAll(".dish-component-input")];
+ const values=inputs.map(input=>+input.value);
+ if(values.some(v=>!Number.isFinite(v)||v<0)){toast("Revisa las cantidades");return}
+ if(!values.some(v=>v>0)){toast("Añade al menos un ingrediente");return}
+ const groupId=`dish_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+ dish.items.forEach(([foodKey],i)=>{
+  const inputAmount=values[i];if(!(inputAmount>0))return;
+  const meta=foodInputMeta(foodKey),amount=toStoredFoodAmount(foodKey,inputAmount);
+  state.foods.push({id:`${groupId}_${i}`,created:Date.now()+i,date:currentDate(),meal,foodKey,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:dish.name})
+ });
+ saveState();closeModal();renderAll();showView("Food");toast(`${dish.name} añadido`)
+}
 function renderFoodCombos(meal){
  const combos=FOOD_QUICK_COMBOS[meal]||[],root=document.getElementById("fdCombos");if(!root)return;
- root.innerHTML=combos.length?`<div class="sep"></div><div class="eyebrow">Combinaciones rápidas</div><div class="quickchips">${combos.map((c,i)=>`<button type="button" class="chip" onclick="addFoodCombo('${meal}',${i})">${esc(c.name)}</button>`).join("")}</div>`:""
+ root.innerHTML=combos.length?`<div class="sep"></div><div class="eyebrow">Añadir directamente</div><div class="quickchips">${combos.map((c,i)=>`<button type="button" class="chip" onclick="addFoodCombo('${meal}',${i})">${esc(c.name)}</button>`).join("")}</div>`:""
 }
 function renderFoodRecent(meal){
  const recent=recentFoodForMeal(meal),root=document.getElementById("fdRecent");if(!root)return;
