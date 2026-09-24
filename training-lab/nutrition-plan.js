@@ -97,12 +97,20 @@
     if(cutoff<PLAN_START)return {ratio:null,planned:0,completed:0,extra:0};
     const start=addDaysISO(cutoff,-13);
     let planned=[];
-    if(typeof oct26PlannedItems==='function'){
+    if(typeof oct26PlannedItems==='function'&&cutoff<='2026-10-30'){
       planned=oct26PlannedItems(cutoff).filter(item=>item.date>=start&&item.date<=cutoff);
+    }
+    if(!planned.length&&typeof dayActivities==='function'){
+      for(let d=start;d<=cutoff;d=addDaysISO(d,1)){
+        dayActivities(d).filter(a=>a.kind==='Fuerza'||a.kind==='Natación').forEach((a,index)=>{
+          planned.push({date:d,type:a.kind==='Natación'?'swim':'gym',done:!!a.done,key:`${d}_${index}`})
+        })
+      }
     }
     if(!planned.length)return {ratio:null,planned:0,completed:0,extra:0};
     let score=0;
     planned.forEach(item=>{
+      if(item.done===true){score+=1;return}
       if(item.type==='gym'){
         const record=(state.sessions||[]).find(s=>s.date===item.date&&s.completed);
         if(record)score+=record.incomplete?0.75:1;
@@ -147,7 +155,7 @@
     return {complete:!!(kcal&&protein),kcal,protein,weight,tdee:estimate?.complete?estimate.tdee:null,mode:ps.mode,modeLabel:cfg.label,baseOffset:ps.baseOffset,effectiveOffset,activityAdjustment:activity.kcal,weightAdjustment:trend.kcal,adherence:activity.ratio,weightTrend:trend.weekly};
   }
   function syncGoals(date){
-    const t=targetFor(date);if(!t.complete||!inPlan(date))return t;
+    const t=targetFor(date);if(!t.complete)return t;
     const goals=state.settings.nutritionGoals||(state.settings.nutritionGoals={kcal:null,p:null,c:null,f:null});
     if(Number(goals.kcal)!==t.kcal||Number(goals.p)!==t.protein){
       goals.kcal=t.kcal;goals.p=t.protein;saveState(true);
