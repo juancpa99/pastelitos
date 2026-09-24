@@ -115,4 +115,6 @@
 
   window.foodMetabolismCardHTML=foodMetabolismCardHTML;
   window.metabolismSettingsHTML=metabolismSettingsHTML;
+  window.marevoMetabolismEstimate=metabolismEstimate;
+  window.marevoLatestBodyWeight=latestBodyWeight;
 })();
