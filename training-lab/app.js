@@ -1363,7 +1363,7 @@ function renderFood(){
 
  const activeMeals=MEAL_TYPES.filter(mt=>items.some(i=>i.meal===mt));
  if(!activeMeals.length){
-  html+=`<div class="empty food-empty-state"><strong>Aún no has añadido ninguna comida.</strong><br>Pulsa “Añadir comida” y elige desayuno, almuerzo, merienda, cena o post-entreno.</div>`
+  html+=`<div class="empty food-empty-state"><strong>Aún no has añadido ninguna comida.</strong><br>Pulsa “Añadir comida”.</div>`
  }else{
   activeMeals.forEach(mt=>{
    const group=items.filter(i=>i.meal===mt),total=group.reduce((a,i)=>{const n=calcFood(i);a.kcal+=n.kcal;a.p+=n.p;return a},{kcal:0,p:0});
@@ -1399,7 +1399,7 @@ function recentFoodForMeal(meal){
 
 function openMealChooser(){
  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
-  <div class="row between"><div><div class="eyebrow">Nueva comida</div><div class="hero-title">¿Qué quieres registrar?</div><div class="subtitle">Elige el momento del día y después aparecerán solo alimentos que tengan sentido en ese contexto.</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
+  <div class="row between"><div><div class="eyebrow">Nueva comida</div><div class="hero-title">Añadir comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
   <div class="meal-choice-list">
    ${MEAL_TYPES.map(mt=>`<button type="button" class="meal-choice" onclick="openFoodModal('${mt}')"><strong>${mt}</strong><small>${esc(MEAL_HINTS[mt]||"")}</small><span>›</span></button>`).join("")}
   </div>
