@@ -525,8 +525,8 @@ function renderHome(){
  const x=currentDate(),activities=dayActivities(x),trainingPending=activities.filter(a=>!a.done),active=trainingPending.some(a=>a.active),allDone=activities.length>0&&!trainingPending.length,inPast=x<todayISO();
  const weekly=homeWeekSnapshot(x),nut=dayNutrition(x),goals=state.settings.nutritionGoals||{},pendingItems=homePendingItems(x);
  const trainingStatus=active?'Sesión en curso':trainingPending.length===1?'1 sesión pendiente':trainingPending.length>1?`${trainingPending.length} sesiones pendientes`:allDone?'Entrenamiento registrado':'Sin sesión pendiente';
- const heroTitle=active?'Sigue donde lo dejaste.':trainingPending.length?(inPast?'Completa el registro del día.':'Tu día empieza aquí.'):allDone?'Entrenamiento listo.':'Hoy toca recuperar.';
- const heroText=active?'Tienes una sesión abierta. Continúa sin perder el registro.':trainingPending.length?'Entrena cuando te venga bien y deja el resto de MAREVO preparado desde aquí.':allDone?'Ya has dejado el entrenamiento de este día registrado.':'No hay entrenamiento obligatorio para este día. Puedes revisar comida y progreso.';
+ const heroTitle=active?'Sesión en marcha.':trainingPending.length?(inPast?'Completa el registro.':'Hoy cuenta.'):allDone?'Trabajo hecho.':'Recuperar también cuenta.';
+ const heroText=active?'Continúa la sesión y conserva el registro.':trainingPending.length?(inPast?'Deja registrado lo que hiciste para mantener el seguimiento al día.':'Entrena, registra y deja una referencia útil para seguir progresando.'):allDone?'El entrenamiento del día ya forma parte de tu progreso.':'No hay una sesión obligatoria. Revisa recuperación, comida y progreso.';
  const buttonLabel=active?'Continuar entrenamiento':trainingPending.length?'Registrar entrenamiento':allDone?'Revisar entrenamiento':'Ir a Entreno';
  const kcal=Math.round(nut.kcal||0),protein=Math.round(nut.p||0),kcalGoal=Math.round(+goals.kcal||0),proteinGoal=Math.round(+goals.p||0),kcalPct=kcalGoal?Math.min(100,Math.max(0,kcal/kcalGoal*100)):0;
  const root=document.getElementById('viewHome');rememberDisclosures(root);
