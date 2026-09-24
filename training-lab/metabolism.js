@@ -93,23 +93,6 @@
     return `<div class="card" id="metabolismSettingsCard"><div class="row between"><div><div class="eyebrow">Metabolismo y gasto energético</div><strong>Estimación de mantenimiento</strong></div><span class="pill">Mifflin–St Jeor</span></div><div class="subtitle" style="margin-top:8px">MAREVO calcula tu metabolismo basal y después estima tu gasto energético diario con un factor de actividad. El peso se toma de la última medición corporal${weight?` (${Number(weight.toFixed(1)).toLocaleString('es-ES')} kg)`:''}.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Sexo para la fórmula</label><select id="metSex"><option value="" ${!sex?'selected':''}>Seleccionar</option><option value="male" ${sex==='male'?'selected':''}>Hombre</option><option value="female" ${sex==='female'?'selected':''}>Mujer</option></select></div><div class="field"><label>Fecha de nacimiento</label><input id="metBirth" type="date" value="${esc(p.birthDate||'')}"></div><div class="field"><label>Altura (cm)</label><input id="metHeight" inputmode="decimal" value="${p.heightCm??''}" placeholder="Ej. 175"></div><div class="field wide"><label>Nivel de actividad</label><select id="metActivity">${options}</select></div></div><div class="callout" style="margin-top:10px"><strong>Actividad sugerida: Muy activo (1,725).</strong> Tu planificación actual combina tres sesiones de natación y tres sesiones de fuerza por semana, además de complementos y movilidad. Es un buen punto de partida, pero el gasto real se debe calibrar con la evolución del peso durante varias semanas.</div>${weight?'':`<div class="callout" style="margin-top:10px">Todavía falta el peso. Registra una medición corporal y MAREVO la usará automáticamente.</div>`}<div class="actions"><button type="button" class="btn" onclick="saveMetabolismSettings()">Guardar metabolismo</button></div></div>`;
   }
 
-  function injectFoodCard(){
-    const root=document.getElementById('viewFood');
-    if(!root||root.querySelector('#metabolismFoodCard'))return;
-    const topCards=[...root.children].filter(el=>el.classList?.contains('card'));
-    const anchor=topCards[1]||topCards[0];
-    if(anchor)anchor.insertAdjacentHTML('afterend',foodMetabolismCardHTML(currentDate()));
-    else root.insertAdjacentHTML('afterbegin',foodMetabolismCardHTML(currentDate()));
-  }
-
-  function injectSettingsCard(){
-    const root=document.getElementById('viewSettings'),section=root?.querySelector('#nutritionSettings');
-    if(!root||!section||root.querySelector('#metabolismSettingsCard'))return;
-    const anchor=section.nextElementSibling;
-    if(anchor)anchor.insertAdjacentHTML('afterend',metabolismSettingsHTML());
-    else section.insertAdjacentHTML('afterend',metabolismSettingsHTML());
-  }
-
   window.saveMetabolismSettings=function(){
     const sex=document.getElementById('metSex')?.value||'';
     const birthDate=document.getElementById('metBirth')?.value||'';
@@ -127,18 +110,9 @@
 
   window.goToMetabolismSettings=function(){
     showView('Settings');
-    setTimeout(()=>document.getElementById('metabolismSettingsCard')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+    openViewSection('metabolismSettingsCard');
   };
 
-  const oldRenderFood=renderFood;
-  renderFood=function(){
-    oldRenderFood();
-    injectFoodCard();
-  };
-
-  const oldRenderSettings=renderSettings;
-  renderSettings=function(){
-    oldRenderSettings();
-    injectSettingsCard();
-  };
+  window.foodMetabolismCardHTML=foodMetabolismCardHTML;
+  window.metabolismSettingsHTML=metabolismSettingsHTML;
 })();

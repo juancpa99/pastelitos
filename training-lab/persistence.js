@@ -253,12 +253,7 @@
       </div>`;
   }
 
-  const previousRenderSettings = renderSettings;
-  renderSettings = function marevoRenderSettingsWithSafety() {
-    previousRenderSettings();
-    const root = document.getElementById("viewSettings");
-    if (root && !root.querySelector(".marevo-data-safety")) root.insertAdjacentHTML("beforeend", dataSafetyCard());
-  };
+  window.marevoDataSafetyHTML = dataSafetyCard;
 
   const style = document.createElement("style");
   style.textContent = `.marevo-data-safety h3{margin:5px 0 9px}.marevo-data-safety p{font-size:13px;line-height:1.5;color:var(--muted)}.marevo-data-safety .callout strong{font-size:13px}.marevo-data-note{margin-bottom:0}.marevo-data-safety .actions .btn{flex:1 1 180px}`;

@@ -251,10 +251,11 @@ function scrollViewToTop(){
 
 function showView(v){
  const changingView=activeView!==v;
+ document.querySelectorAll(".nav button[data-view]").forEach(b=>{if(b.dataset.view===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
  activeView=v;["Home","Workout","Food","Progress","Settings"].forEach(x=>{document.getElementById("view"+x)?.classList.toggle("hidden",x!==v);document.querySelector(`[data-view="${x}"]`)?.classList.toggle("active",x===v)});
  const meta={Home:["Hoy","Lo importante del día."],Workout:["Entreno","Registra la sesión sin perder el ritmo."],Food:["Comidas","Añade alimentos y revisa el total del día."],Progress:["Progreso","Entrenamiento, nutrición y medidas."],Settings:["Ajustes","Plan, objetivos, notificaciones y datos."]}[v];
  document.getElementById("pageTitle").textContent=meta[0];document.getElementById("pageSubtitle").textContent=meta[1];
- if(v==="Workout")renderWorkout();if(v==="Food")renderFood();if(v==="Progress")renderProgress();if(v==="Settings")renderSettings();
+ if(v==="Home")renderHome();if(v==="Workout")renderWorkout();if(v==="Food")renderFood();if(v==="Progress")renderProgress();if(v==="Settings")renderSettings();
  if(changingView)scrollViewToTop();
 }
 function setTrainingMode(mode){
@@ -291,13 +292,12 @@ function installAccessibilityEnhancer(){
  const observer=new MutationObserver(()=>enhanceFormAccessibility());observer.observe(document.body,{childList:true,subtree:true})
 }
 function renderBadges(){
- const x=currentDate(),p=planFor(x);let h=0,w=0;
- if(!sessionDone(x,p)&&p.type!=="rest"){h++;w++}
+ const x=currentDate(),w=dayActivities(x).filter(a=>!a.done).length;let h=w;
  if(isSunday(x)&&!measurementDone(x))h++;
  if(isSunday(x)&&!monthlyReviewDone(x))h++;
  if(afterCheckHour(x)&&!dailyDone(x))h++;
  document.getElementById("badgeHome").innerHTML=h?`<span class="badge">${h}</span>`:"";
- document.getElementById("badgeWorkout").innerHTML=w?`<span class="badge">1</span>`:""
+ document.getElementById("badgeWorkout").innerHTML=w?`<span class="badge">${w}</span>`:""
 }
 function task(icon,title,desc,done,action){return `<button type="button" class="task task-action ${done?"done":""}" onclick="${action}"><div class="ico">${icon}</div><div><strong>${esc(title)}</strong><small>${esc(desc)}</small></div><span class="chev">›</span></button>`}
 
@@ -493,24 +493,23 @@ function nutritionDashboardHTML(nut){
  return `<div class="nutrition-dashboard">${nutritionMetricHTML("Energía","kcal",nut.kcal,"kcal")}${nutritionMetricHTML("Proteína","p",nut.p)}${nutritionMetricHTML("Carbohidratos","c",nut.c)}${nutritionMetricHTML("Grasas","f",nut.f)}</div>`
 }
 function renderHome(){
- const x=currentDate(),p=planFor(x),done=sessionDone(x,p),mins=weeklyTrainingMinutes(x),rpe=weeklyAvgRPE(x),kcal=weeklyTrainingKcal(x),extras=extraForDate(x).filter(s=>s.completed).length,nut=dayNutrition(x),foodCount=foodsFor(x).length;
- const gymSession=p.type==="gym"?findSession(x,p.key):null,sessionActive=!!(gymSession?.startedAt&&!gymSession.completed)||(state.cardioRuntime?.date===x&&!state.cardioRuntime.completed),primaryLabel=done?"Ver sesión":sessionActive?"Continuar sesión":"Abrir sesión";
- let html=`<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">${esc(p.title)}</div><div class="subtitle">${esc(p.subtitle||"")}</div><div class="hero-status"><span class="pill teal">${state.settings.mode==="summer"?"Solo gym":"Gym + natación"}</span>${p.type!=="rest"&&done?'<span class="pill good">Completado</span>':sessionActive?'<span class="pill warn">En curso</span>':p.type==="rest"?'<span class="pill">Día de descanso</span>':""}</div><div class="actions hero-actions">${p.type!=="rest"?`<button class="btn" onclick="showView('Workout')">${primaryLabel}</button>`:""}<button class="btn secondary" onclick="showView('Food')">${foodCount?"Ver comidas":"Añadir comida"}</button><button class="btn ghost" onclick="goToPlanSettings()">Plan</button></div></div>`;
- html+=`<div class="section">Pendiente</div>`;
- if(p.type!=="rest")html+=task("E","Entrenamiento",done?`${p.title} registrado`:`${p.title} pendiente`,done,"showView('Workout')");
- if(isSunday(x))html+=task("M","Peso y cintura",measurementDone(x)?"Mediciones registradas":"Mediciones semanales pendientes",measurementDone(x),"openMeasurements()");
- if(isSunday(x)&&!monthlyReviewDone(x))html+=task("R","Revisión corporal mensual",monthlyMeasurementDone(x)&&!monthlyPhotosDone(x)?"Faltan las fotos del mes":!monthlyMeasurementDone(x)&&monthlyPhotosDone(x)?"Faltan los perímetros del mes":"Perímetros y fotos mensuales pendientes",false,"openMonthlyReview()");
- if(afterCheckHour(x))html+=task("✓","Check-in final",dailyDone(x)?"Día cerrado":"Pendiente al final del día",dailyDone(x),"openDailyCheck()");
- else html+=`<div class="task"><div class="ico">✓</div><div><strong>Check-in final</strong><small>Aparecerá a partir de las ${state.settings.checkHour}:00.</small></div></div>`;
- html+=`<div class="section">Alimentación de hoy</div><div class="card"><div class="row between"><div><div class="eyebrow">${foodCount?`${foodCount} ${foodCount===1?"alimento":"alimentos"}`:"Sin registros"}</div><strong>${foodCount?"Total registrado":"Empieza por la primera comida"}</strong></div><button type="button" class="btn secondary small" onclick="showView('Food')">${foodCount?"Abrir":"Añadir"}</button></div>${nutritionDashboardHTML(nut)}${!Object.values(state.settings.nutritionGoals||{}).some(v=>+v>0)?'<div class="nutrition-note">Puedes definir objetivos diarios en Ajustes.</div>':""}</div>`;
- html+=`<div class="section">Resumen semanal</div><div class="grid2">
-  <div class="metric"><div class="k">Peso</div><div class="v">${latest(state.body,"weight")} <small>kg</small></div></div>
-  <div class="metric"><div class="k">Entrenamiento</div><div class="v">${(mins/60).toFixed(1)} <small>h</small></div></div>
-  <div class="metric"><div class="k">Esfuerzo medio</div><div class="v">${rpe==null?"—":rpe.toFixed(1)} <small>RPE</small></div></div>
-  <div class="metric"><div class="k">Kcal activas (manual)</div><div class="v">${kcal?Math.round(kcal):"—"}</div></div>
- </div>`;
- if(extras)html+=`<div class="callout" style="margin-top:10px">${extras} sesión extra registrada hoy.</div>`;
- document.getElementById("viewHome").innerHTML=html
+ const x=currentDate(),activities=dayActivities(x),next=activities.find(a=>a.active)||activities.find(a=>!a.done),allDone=activities.length&&!next;
+ const heading=next?.title||(allDone?'Entrenamiento completado':'Día de descanso');
+ const subtitle=next?.subtitle||(allDone?'Tus sesiones de hoy están registradas.':'Recupera y consulta tu semana cuando lo necesites.');
+ const root=document.getElementById('viewHome');rememberDisclosures(root);
+ let html=`<div class="day-lead"><span class="context-label">${next?(next.active?'En curso':x<todayISO()?'Sin registrar':'Tu siguiente sesión'):allDone?'Hecho por hoy':'Recuperación'}</span><h2>${esc(heading)}</h2><p>${esc(subtitle)}</p><div class="actions">${next?`<button class="btn" onclick="${next.action}">${next.active?'Continuar entrenamiento':'Abrir sesión'}</button>`:`<button class="btn secondary" onclick="showView('Workout')">${allDone?'Revisar sesiones':'Ver mi semana'}</button>`}</div></div>`;
+ let tasks=activities.filter(a=>a!==next).map(a=>task(a.done?'✓':a.kind==='Natación'?'N':'G',a.title,a.done?'Registrado':a.subtitle,a.done,a.action)).join('');
+ if(isSunday(x)){
+  tasks+=task('M','Peso y cintura',measurementDone(x)?'Mediciones registradas':'Medición semanal',measurementDone(x),'openMeasurements()');
+  if(!monthlyReviewDone(x))tasks+=task('M','Revisión corporal mensual','Perímetros y fotos',false,'openMonthlyReview()');
+ }
+ if(afterCheckHour(x))tasks+=task('✓','Check-in final',dailyDone(x)?'Día cerrado':'Registrar cómo te has encontrado',dailyDone(x),'openDailyCheck()');
+ if(tasks)html+=`<h2 class="section">También hoy</h2><div class="day-tasks">${tasks}</div>`;
+ if(typeof sep26AssessmentCard==='function')html+=sep26AssessmentCard(x);
+ html+=`<section class="home-nutrition"><div class="row between"><h2 class="section">Alimentación</h2><button class="btn ghost small" onclick="showView('Food')">Ver diario</button></div>${nutritionSummaryHTML(x)}<button class="btn secondary" onclick="openMealChooser()">Añadir comida</button></section>`;
+ html+=`<button class="week-link" onclick="showView('Progress')"><span>Esta semana<small>${weekActivitySummary(x)}</small></span><span aria-hidden="true">›</span></button>`;
+ root.innerHTML=html;
+ const todayButton=document.querySelector('.today-btn');if(todayButton){todayButton.hidden=x===todayISO();todayButton.textContent='Volver a hoy';}
 }
 
 
@@ -764,7 +763,7 @@ function renderLivePanel(el,html){
       (old.nodeType===1&&old.getAttribute('onclick')!==node.getAttribute('onclick'))){old.replaceWith(node.cloneNode(true));return}
    if(node.nodeType===3){if(old.nodeValue!==node.nodeValue)old.nodeValue=node.nodeValue;return}
    if(node.nodeType!==1)return;
-   for(const attr of [...old.attributes])if(!node.hasAttribute(attr.name))old.removeAttribute(attr.name);
+   for(const attr of [...old.attributes])if(!node.hasAttribute(attr.name)&&!(old.matches('details')&&attr.name==='open'))old.removeAttribute(attr.name);
    for(const attr of [...node.attributes]){
     if(attr.name==='value'&&old.matches('input,textarea'))continue;
     if(old.getAttribute(attr.name)!==attr.value)old.setAttribute(attr.name,attr.value);
@@ -780,7 +779,7 @@ function updateRestTimerPanel(){
  const gymSession=findSession(currentDate(),planFor(currentDate()).key),elapsed=sessionElapsedSeconds(gymSession);
  const t=state.restTimer&&(!state.restTimer.date||state.restTimer.date===currentDate())?state.restTimer:null;
  if(!t){
-  if(!gymSession?.startedAt){renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">Cronómetro de sesión</div><strong>Listo para empezar</strong><div class="timer-caption">Al iniciar, el tiempo continúa aunque cambies de pantalla.</div></div><button type="button" class="btn small" onclick="toggleGymSession()">Iniciar</button></div>`);return}
+  if(!gymSession?.startedAt){renderLivePanel(el,"");return}
   renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">${gymSession.pausedAt?"Sesión en pausa":"Sesión activa"}</div><div class="timer-big">${formatClock(elapsed)}</div><div class="timer-caption">${gymSession.pausedAt?"El tiempo está detenido.":"Incluye trabajo y descansos."}</div></div><div class="coach-session-actions"><button type="button" class="btn small" onclick="toggleGymSession()">${gymSession.pausedAt?"Reanudar":"Pausar"}</button><button type="button" class="btn secondary small" onclick="openFinishGym()">Finalizar</button></div></div>`);
   return
  }
@@ -790,11 +789,9 @@ function updateRestTimerPanel(){
   if(state.settings.notifications?.rest&&!t.notificationSent){t.notificationSent=true;showAppNotification("Descanso terminado",`${t.exercise||"Siguiente serie"} lista.`,"training-lab-rest")}
   saveState(true);try{if(navigator.vibrate)navigator.vibrate([120,80,120])}catch(e){}
  }
- if(t.done){
-  renderLivePanel(el,`<div class="coach-main ready"><div><div class="eyebrow">Descanso terminado · sesión ${formatClock(elapsed)}</div><strong>Siguiente serie lista</strong><small>${esc(t.exercise)} · ${esc(t.feedback?.text||"")}</small></div><button type="button" class="btn small" onclick="skipRestTimer()">Cerrar</button></div>`);
- }else{
-  renderLivePanel(el,`<div class="coach-main"><div><div class="eyebrow">Descanso · ${esc(t.exercise)}${t.paused?" · PAUSADO":""}</div><div class="timer-big">${formatClock(remaining)}</div><div class="timer-caption">Sesión ${formatClock(elapsed)}${gymSession?.pausedAt?" · en pausa":""}</div><small>${esc(t.feedback?.title||"")} · ${esc(t.feedback?.text||"")}</small></div><div class="timer-actions"><button type="button" class="btn ghost small" ${t.pausedBySession?"disabled":""} onclick="toggleRestPause()">${t.pausedBySession?"Pausado con sesión":t.paused?"Reanudar descanso":"Pausar descanso"}</button><button type="button" class="btn ghost small" onclick="addRestTime(30)">+30 s</button><button type="button" class="btn ghost small" onclick="skipRestTimer()">Omitir</button><button type="button" class="btn secondary small" onclick="toggleGymPause()">${gymSession?.pausedAt?"Reanudar sesión":"Pausar sesión"}</button></div></div>`)
- }
+ const status=t.done?'Descanso terminado':t.paused?'Descanso en pausa':'Descanso';
+ renderLivePanel(el,`<div class="coach-main rest-workbench ${t.done?'ready':''}"><div class="rest-workbench-head"><div><span class="context-label">${status}</span><strong>${esc(t.exercise||'Siguiente serie')}</strong><span class="timer-caption">Sesión ${formatClock(elapsed)}${gymSession?.pausedAt?' · en pausa':''}</span></div><div class="timer-big">${t.done?'Listo':formatClock(remaining)}</div></div><div class="actions">${!t.done?'<button class="btn secondary small" onclick="addRestTime(30)">+30 s</button>':''}<button class="btn ghost small" onclick="skipRestTimer()">${t.done?'Cerrar':'Omitir'}</button><button class="btn ghost small" onclick="toggleGymPause()">${gymSession?.pausedAt?'Reanudar':'Pausar sesión'}</button><button class="btn small" onclick="openFinishGym()">Finalizar</button></div>${!t.done?`<details class="timer-details"><summary>Opciones de descanso</summary><button class="btn ghost small" ${t.pausedBySession?'disabled':''} onclick="toggleRestPause()">${t.paused?'Reanudar descanso':'Pausar solo descanso'}</button><p>${esc(t.feedback?.text||'')}</p></details>`:''}</div>`);
+
 }
 function startRuntimeTicker(){
  if(runtimeTicker)return;
@@ -899,18 +896,25 @@ function saveCompletedCardio(){
 }
 
 function renderWorkout(){
- const x=currentDate(),p=planFor(x),labels=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],plans=getPlans()[state.settings.mode];
- let week=`<div class="card compact-week-card"><div class="row between"><div><div class="eyebrow">Tu semana</div><div class="subtitle">${state.customPlans?"Plan personalizado":"Plan base"}</div></div><button class="btn ghost small" onclick="goToPlanSettings()">Cambiar plan</button></div><div class="week">`;
- [1,2,3,4,5,6,0].forEach(d=>{const q=plans[String(d)]||DEFAULT_PLANS[state.settings.mode][String(d)];week+=`<button type="button" class="day ${weekday(x)===d?"active":""}" onclick="selectWeekday(${d})"><div class="d">${labels[d]}</div><div class="w">${esc(q.title)}</div></button>`});week+=`</div></div>`;
- let html="";
- if(p.type==="gym")html+=gymHTML(p,x);
- if(p.type==="swim")html+=swimHTML(x);
- if(p.type==="cardio")html+=cardioHTML(x);
- if(p.type==="rest")html+=`<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">Descanso</div><div class="subtitle">Recupera, muévete suave si te apetece y vuelve con energía.</div></div>`;
- html+=extraSessionsHTML(x);
- html+=`<div class="workout-secondary">${week}${weeklyGuideHTML(x)}</div>`;
- document.getElementById("viewWorkout").innerHTML=html
+ const x=currentDate(),p=planFor(x),root=document.getElementById('viewWorkout');rememberDisclosures(root);
+ const labels=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+ const week=`<div class="compact-week-card"><div class="row between"><strong>Tu semana</strong><button class="btn ghost small" onclick="goToPlanSettings()">Editar plan</button></div><div class="week">${[1,2,3,4,5,6,0].map(d=>`<button class="day ${weekday(x)===d?'active':''}" onclick="selectWeekday(${d})"><span class="d">${labels[d]}</span><span class="w">${esc(typeof homeWeekLabel==='function'?homeWeekLabel(dateForWeekday(x,d)):planFor(dateForWeekday(x,d)).title)}</span></button>`).join('')}</div></div>`;
+ const planned=p.type==='gym'?findSession(x,p.key):null;
+ const active=!!(planned?.startedAt&&!planned.completed)||(state.cardioRuntime?.date===x&&!state.cardioRuntime.completed);
+ let primary='';
+ if(p.type==='gym')primary=gymHTML(p,x);
+ if(p.type==='swim')primary=swimHTML(x);
+ if(p.type==='cardio')primary=cardioHTML(x);
+ const swim=typeof oct26SwimDay==='function'&&oct26SwimDay(x);
+ if(p.type==='rest'&&!swim)primary='<div class="day-lead"><span class="context-label">Recuperación</span><h2>Descanso</h2><p>Tu calendario y las sesiones pendientes están debajo.</p></div>';
+ const complement=typeof seasonComplementHTML==='function'?seasonComplementHTML(x):'';
+ let restOfDay='';
+ if(typeof oct26SecondaryTuesdayHTML==='function')restOfDay+=oct26SecondaryTuesdayHTML(x);
+ if(swim)restOfDay+=`<div id="swimToday">${oct26SwimBlockHTML(x)}</div>`;
+ root.classList.toggle('workout-focus',active);
+ root.innerHTML=(active?'':complement)+primary+(active?disclosureHTML('workout-day','Otras sesiones de hoy',complement+restOfDay):restOfDay)+workoutPlanningHTML(x,week)+disclosureHTML('workout-extras','Sesiones extra',extraSessionsHTML(x),false,'Añadir o revisar una sesión adicional');
 }
+
 
 function weeklyGuidanceStatus(x){
  const checks=state.daily.filter(d=>inWeek(d.date,x)),fat=checks.filter(d=>d.fatigue!=null),pain=checks.filter(d=>d.pain!=null),energy=checks.filter(d=>d.energy!=null);
@@ -1047,8 +1051,8 @@ function ensureDraftSession(x,p){
 function gymHTML(p,x){
  const s=ensureDraftSession(x,p);
  const primaryAction=s.completed?'<span class="pill good">Sesión guardada</span>':`<button class="btn small" onclick="toggleGymSession()">${!s.startedAt?"Iniciar sesión":s.pausedAt?"Reanudar sesión":"Pausar sesión"}</button>${s.startedAt?'<button class="btn secondary small" onclick="openFinishGym()">Finalizar</button>':""}`;
- let html=`<div class="card hero"><div class="row between"><div><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">${esc(p.title)}</div><div class="subtitle">${esc(p.subtitle||"")}</div></div><div id="autosaveStatus" class="autosave">Guardado</div></div><div class="hero-status">${s.startedAt&&!s.completed?`<span class="pill ${s.pausedAt?"warn":"teal"}">${s.pausedAt?"En pausa":"En curso"}</span>`:""}</div><div class="actions">${primaryAction}</div></div>${s.completed?'<div class="callout good">Sesión terminada. Puedes revisar todas las series debajo.</div>':'<div id="sessionCoachPanel" class="session-coach"></div>'}`;
- s.exercises.forEach((e,i)=>html+=exerciseCardHTML(e,i,"planned"));
+ let html=`<div class="card hero session-heading"><div class="row between"><div><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">${esc(p.title)}</div><div class="subtitle">${esc(p.subtitle||"")}</div></div><div id="autosaveStatus" class="autosave">Guardado</div></div><div class="hero-status">${s.startedAt&&!s.completed?`<span class="pill ${s.pausedAt?"warn":"teal"}">${s.pausedAt?"En pausa":"En curso"}</span>`:""}</div><div class="session-progress"><span>${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:effectiveCount(e)),0)} / ${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:+e.sets||0),0)} series</span><progress aria-label="Series registradas" max="${Math.max(1,s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:+e.sets||0),0))}" value="${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:effectiveCount(e)),0)}"></progress></div><div class="actions">${s.startedAt&&!s.completed?"":primaryAction}</div></div>${s.completed?'<div class="callout good">Sesión terminada. Puedes revisar todas las series debajo.</div>':'<div id="sessionCoachPanel" class="session-coach"></div>'}`;
+ s.exercises.forEach((e,i)=>html+=activeSessionExerciseHTML(e,i,"planned",s));
  if(!s.completed)html+=`<div class="session-options"><div class="session-options-label">Opciones de sesión</div><button class="btn secondary" onclick="openExercisePicker('add','planned')">Añadir ejercicio extra</button>${s.startedAt?'<button class="btn" onclick="openFinishGym()">Finalizar y guardar</button>':""}<button class="btn danger" onclick="discardPlannedWorkout()">Descartar entrenamiento</button></div>`;
  setTimeout(()=>{document.querySelectorAll('[data-gym="planned"]').forEach(el=>el.addEventListener("input",schedulePlannedAutosave));if(!s.completed)updateRestTimerPanel();if((s.startedAt&&!s.completed)||state.restTimer)startRuntimeTicker()},0);
  return html
@@ -1253,8 +1257,9 @@ function openExtraSession(){
 function createExtraSession(){const id="extra_"+Date.now().toString(36);state.extraSessions.push({id,date:currentDate(),title:val("exTitle")||"Sesión extra",completed:false,startedAt:Date.now(),duration:null,rpe:null,activeKcal:null,exercises:[]});saveState();closeModal();editExtraSession(id)}
 function editExtraSession(id){
  const s=state.extraSessions.find(x=>x.id===id);if(!s)return;
+ rememberDisclosures(document.getElementById("modalRoot"));
  let html=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Entreno extra</div><div class="hero-title">${esc(s.title)}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div>`;
- s.exercises.forEach((e,i)=>html+=exerciseCardHTML(e,i,id));
+ s.exercises.forEach((e,i)=>html+=activeSessionExerciseHTML(e,i,id,s));
  html+=`<div class="actions"><button class="btn secondary" onclick="openExercisePicker('add','${id}')">Añadir ejercicio</button><button class="btn" onclick="openFinishExtra('${id}')">Finalizar y guardar</button><button class="btn danger" onclick="discardExtraSession('${id}')">Descartar entreno</button></div></div></div>`;
  document.getElementById("modalRoot").innerHTML=html;
  setTimeout(()=>document.querySelectorAll(`[data-gym="${id}"]`).forEach(el=>el.addEventListener("input",()=>saveExtraInputs(id))),0)
@@ -1300,8 +1305,8 @@ function saveCardioMobility(){
 }
 function renderFood(){
  const x=currentDate(),items=foodsFor(x),nut=dayNutrition(x);
- let html=`<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">Comidas</div><div class="subtitle">Añade cada comida cuando la hagas. Solo aparecerán en la pantalla las que hayas registrado.</div><div class="actions"><button class="btn" onclick="openMealChooser()">Añadir comida</button><button class="btn secondary" onclick="copyYesterdayFood()">Copiar ayer</button></div></div>`;
- html+=`<div class="card"><div class="row between"><div><div class="eyebrow">Estimación del día</div><strong>${items.length?`${items.length} ${items.length===1?"alimento registrado":"alimentos registrados"}`:"Sin registros todavía"}</strong></div><button type="button" class="btn ghost small" onclick="goToNutritionSettings()">Objetivos</button></div>${nutritionDashboardHTML(nut)}<div class="nutrition-note">Valores estimados a partir de las cantidades registradas; pueden variar según marca y preparación.</div></div>`;
+ rememberDisclosures(document.getElementById('viewFood'));
+ let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="actions"><button class="btn" onclick="openMealChooser()">Añadir comida</button><details class="inline-menu"><summary>Más opciones</summary><div class="actions"><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
 
  const activeMeals=MEAL_TYPES.filter(mt=>items.some(i=>i.meal===mt));
  if(!activeMeals.length){
@@ -1315,6 +1320,7 @@ function renderFood(){
   });
   html+=`<div class="actions food-add-another"><button type="button" class="btn secondary" onclick="openMealChooser()">Añadir otra comida</button></div>`
  }
+ html+=disclosureHTML("food-detail","Objetivos y balance energético",nutritionDashboardHTML(nut)+(typeof foodMetabolismCardHTML==="function"?foodMetabolismCardHTML(x):""),false,"Estimaciones y detalle de macronutrientes");
  document.getElementById("viewFood").innerHTML=html
 }
 function formatAmount(a,u){return `${Number(a)%1===0?Number(a):Number(a).toFixed(1)} ${u}`}
@@ -1831,36 +1837,13 @@ function strengthProgressHTML(ref,period){
 }
 
 function renderProgress(){
- const ref=currentDate(),period=state.settings.progressPeriod||"week",sessions=sessionsForProgress(ref,period);
- const mins=periodMinutes(sessions),rpe=avgRPEFor(sessions),kcal=periodKcal(sessions),sets=strengthSeriesCount(sessions),stim=muscleStimulus(sessions);
- const w=state.body.filter(x=>x.weight).sort((a,b)=>a.date.localeCompare(b.date)).slice(-16),wa=state.body.filter(x=>x.waist).sort((a,b)=>a.date.localeCompare(b.date)).slice(-16);
- let html=`<div class="period-tabs" role="group" aria-label="Periodo de análisis">${["day","week","month"].map(p=>`<button type="button" class="${period===p?"active":""}" onclick="setProgressPeriod('${p}')">${progressPeriodLabel(p)}</button>`).join("")}</div>`;
-
- html+=`<div class="section">Carga de entrenamiento · ${progressPeriodLabel(period).toLowerCase()}</div><div class="grid2">
-  <div class="metric"><div class="k">Tiempo</div><div class="v">${(mins/60).toFixed(1)} <small>h</small></div></div>
-  <div class="metric"><div class="k">Sesiones</div><div class="v">${sessions.length}</div></div>
-  <div class="metric"><div class="k">Series efectivas</div><div class="v">${sets}</div></div>
-  <div class="metric"><div class="k">RPE medio</div><div class="v">${rpe==null?"—":rpe.toFixed(1)}</div></div>
- </div>`;
- if(kcal)html+=`<div class="callout" style="margin-top:10px">Kcal activas registradas manualmente: <strong>${Math.round(kcal)}</strong>.</div>`;
-
- html+=`<div class="section">Alimentación · ${progressPeriodLabel(period).toLowerCase()}</div>${nutritionProgressHTML(ref,period)}`;
-
- html+=`<div class="section">Progresión de fuerza</div>${strengthProgressHTML(ref,period)}`;
-
- html+=`<div class="section">Estímulo por grupo muscular</div><div class="card radar-card">
-  <div class="subtitle">Índice relativo a partir de series realizadas y RIR. Sirve para comparar distribución del trabajo, no para medir crecimiento muscular.</div>
-  <div class="radar-wrap">${radarSVG(stim)}</div>
-  <details><summary>Ver valores</summary><div style="margin-top:8px">${muscleValueList(stim)||'<div class="empty">Sin datos.</div>'}</div></details>
- </div>`;
-
- html+=`<div class="section">Entrenamientos guardados</div><div class="card">
-  <div class="subtitle">Aquí aparecen las sesiones realmente terminadas. Pulsa “Ver” para abrir el registro.</div>
-  <div class="history-list">${historyHTML(ref,period)}</div>
- </div>`;
-
+ const ref=currentDate(),period=state.settings.progressPeriod||'week',sessions=sessionsForProgress(ref,period).filter(s=>s.date<=ref);
+ const root=document.getElementById('viewProgress');rememberDisclosures(root);
+ let html=`<div class="period-tabs" role="group" aria-label="Periodo de análisis">${['day','week','month'].map(p=>`<button aria-pressed="${period===p}" class="${period===p?'active':''}" onclick="setProgressPeriod('${p}')">${progressPeriodLabel(p)}</button>`).join('')}</div>`;
+ html+=progressOverviewHTML(ref,period,sessions);
+ html+=disclosureHTML('progress-strength','Fuerza',strengthProgressHTML(ref,period),false,'Por zona muscular, ejercicio y equipo');
  const bodyPeriod=state.settings.bodyPeriod||"6m";
- html+=`<div class="section">Composición corporal</div>
+ let bodyHTML=`<div class="section">Composición corporal</div>
  <div class="body-period-tabs">${["3m","6m","12m","all"].map(p=>`<button type="button" class="${bodyPeriod===p?"active":""}" onclick="setBodyPeriod('${p}')">${bodyPeriodLabel(p)}</button>`).join("")}</div>
  <div class="actions" style="margin-bottom:10px"><button type="button" class="btn secondary" onclick="openMeasurements()">Peso y cintura</button><button type="button" class="btn secondary" onclick="openMonthlyReview()">Perímetros mensuales</button><button type="button" class="btn secondary" onclick="openPhotoCheck()">Fotos mensuales</button></div>
  <div class="body-metric-grid">
@@ -1876,8 +1859,19 @@ function renderProgress(){
   ${(()=>{const ps=photoSummary(),expanded=!!state.settings.photosExpanded;return `<div class="row between progress-collapse-head"><div><strong>${ps.months?`${ps.months} ${ps.months===1?"mes":"meses"} · ${ps.photos} ${ps.photos===1?"foto":"fotos"}`:"Sin fotos guardadas"}</strong><small>${expanded?"Galería desplegada":"Galería contraída para mantener Progreso compacto."}</small></div>${ps.photos?`<button type="button" class="btn secondary small" onclick="toggleProgressPhotos()">${expanded?"Ocultar fotos":"Mostrar fotos"}</button>`:""}</div>${expanded?'<div id="photoGallery"><div class="empty">Cargando fotos…</div></div>':""}`})()}
  </div>`;
 
- document.getElementById("viewProgress").innerHTML=html;
- if(state.settings.photosExpanded)setTimeout(renderPhotoGallery,0)
+
+ html+=disclosureHTML('progress-body','Composición corporal',bodyHTML,false,'Peso, cintura, perímetros y fotos');
+ html+=disclosureHTML('progress-swim','Natación',swimmingProgressHTML(ref,period),false,'Sesiones, metros y esfuerzo');
+ html+=disclosureHTML('progress-volume','Volumen muscular',muscleVolumeHTML(sessions),false,'Series realizadas por grupo');
+ html+=disclosureHTML('progress-nutrition','Nutrición',nutritionProgressHTML(ref,period),false,'Registro y objetivos del periodo');
+ const rpe=avgRPEFor(sessions),kcal=periodKcal(sessions);
+ html+=disclosureHTML('progress-history','Carga e historial',`<p>${(periodMinutes(sessions)/60).toFixed(1)} h · ${strengthSeriesCount(sessions)} series · RPE ${rpe==null?'—':rpe.toFixed(1)}</p>${kcal?`<p class="subtitle">${Math.round(kcal)} kcal activas registradas manualmente</p>`:''}<div class="history-list">${historyHTML(ref,period)}</div>`,false,'Revisar entrenamientos guardados');
+ let reports='';
+ if(typeof sep26ReportHTML==='function')reports+=sep26ReportHTML();
+ if(typeof oct26ReportHTML==='function'&&todayISO()>='2026-09-21')reports+=oct26ReportHTML();
+ html+=disclosureHTML('progress-reports','Informes y exportación',reports,false,'Descargar los informes de tus bloques');
+ root.innerHTML=html;
+ if(state.settings.photosExpanded)setTimeout(renderPhotoGallery,0);
 }
 function saveSettings(){
  state.settings.mode=val("setMode")||state.settings.mode;state.settings.checkHour=+val("setHour")||20;
@@ -1901,16 +1895,24 @@ function installationSettingsHTML(){
  return `<div class="section">Instalación</div><div class="card"><div class="row between settings-status-row"><div><strong>${installed?"Training Lab está instalada":"Añadir Training Lab al móvil"}</strong><small>${installed?"Se está ejecutando como una app independiente.":"Acceso rápido, pantalla completa y mejor soporte de notificaciones según el dispositivo."}</small></div><span class="pill ${installed?"good":""}">${installed?"Instalada":"Opcional"}</span></div>${installed?"":'<div class="install-mini-steps"><span>Compartir</span><b>›</b><span>Añadir a pantalla de inicio</span><b>›</b><span>Añadir</span></div><div class="settings-help">En iPhone usa Safari. En Android u ordenador, busca “Instalar aplicación” o “Añadir a pantalla de inicio” en el menú del navegador.</div>'}</div>`
 }
 function renderSettings(){
+ rememberDisclosures(document.getElementById("viewSettings"));
  const g=state.settings.nutritionGoals||{};
- let html=`<div class="section">Preferencias</div><div class="card"><div class="settings-grid"><div class="field"><label>Modo de entrenamiento</label><select id="setMode"><option value="summer" ${state.settings.mode==="summer"?"selected":""}>Solo gym</option><option value="season" ${state.settings.mode==="season"?"selected":""}>Gym + natación</option></select></div><div class="field"><label>Hora del check-in final</label><select id="setHour">${[19,20,21,22,23].map(h=>`<option value="${h}" ${state.settings.checkHour===h?"selected":""}>${h}:00</option>`).join("")}</select></div><label class="notif-row wide"><input id="setKeepAwake" type="checkbox" ${state.settings.keepAwake?"checked":""}><span><strong>Mantener la pantalla activa durante la sesión</strong><small>Si el dispositivo lo permite. Se libera al pausar o finalizar.</small></span></label></div><div class="actions"><button type="button" class="btn" onclick="saveSettings()">Guardar preferencias</button></div></div>`;
- html+=`<div class="section" id="nutritionSettings">Objetivos nutricionales</div><div class="card"><div class="subtitle">Son referencias personales, no una prescripción. Déjalos vacíos si solo quieres registrar sin comparar.</div><div class="settings-grid" style="margin-top:11px"><div class="field"><label>Energía (kcal/día)</label><input id="goalKcal" inputmode="numeric" value="${g.kcal??""}" placeholder="Ej. 2400"></div><div class="field"><label>Proteína (g/día)</label><input id="goalP" inputmode="numeric" value="${g.p??""}" placeholder="Ej. 160"></div><div class="field"><label>Carbohidratos (g/día)</label><input id="goalC" inputmode="numeric" value="${g.c??""}" placeholder="Opcional"></div><div class="field"><label>Grasas (g/día)</label><input id="goalF" inputmode="numeric" value="${g.f??""}" placeholder="Opcional"></div></div><div class="actions"><button type="button" class="btn" onclick="saveSettings()">Guardar objetivos</button></div>${customFoodsSettingsHTML()}</div>`;
- html+=notificationSettingsHTML();
- html+=planSettingsHTML();
- html+=installationSettingsHTML();
- html+=`<div class="section">Datos y copias</div><div class="card"><div class="subtitle">El JSON contiene registros, plan, alimentos propios y ajustes. Las fotos se guardan aparte en el dispositivo y no viajan en esta copia.</div><div class="plan-action-grid"><button type="button" class="btn" onclick="exportJSON()">Exportar copia JSON</button><label class="btn secondary">Restaurar copia JSON<input type="file" accept=".json,application/json" onchange="importBackupJSON(event)"></label><button type="button" class="btn secondary" onclick="exportCSV()">Exportar registros CSV</button></div></div>`;
- document.getElementById("viewSettings").innerHTML=html
+ let preferences=`<div class="section">Preferencias</div><div class="card"><div class="settings-grid"><div class="field"><label>Modo de entrenamiento</label><select id="setMode"><option value="summer" ${state.settings.mode==="summer"?"selected":""}>Solo gym</option><option value="season" ${state.settings.mode==="season"?"selected":""}>Gym + natación</option></select></div><div class="field"><label>Hora del check-in final</label><select id="setHour">${[19,20,21,22,23].map(h=>`<option value="${h}" ${state.settings.checkHour===h?"selected":""}>${h}:00</option>`).join("")}</select></div><label class="notif-row wide"><input id="setKeepAwake" type="checkbox" ${state.settings.keepAwake?"checked":""}><span><strong>Mantener la pantalla activa durante la sesión</strong><small>Si el dispositivo lo permite. Se libera al pausar o finalizar.</small></span></label></div><div class="actions"><button type="button" class="btn" onclick="saveSettings()">Guardar preferencias</button></div></div>`;
+ let nutrition=`<div class="section" id="nutritionSettings">Objetivos nutricionales</div><div class="card"><div class="subtitle">Son referencias personales, no una prescripción. Déjalos vacíos si solo quieres registrar sin comparar.</div><div class="settings-grid" style="margin-top:11px"><div class="field"><label>Energía (kcal/día)</label><input id="goalKcal" inputmode="numeric" value="${g.kcal??""}" placeholder="Ej. 2400"></div><div class="field"><label>Proteína (g/día)</label><input id="goalP" inputmode="numeric" value="${g.p??""}" placeholder="Ej. 160"></div><div class="field"><label>Carbohidratos (g/día)</label><input id="goalC" inputmode="numeric" value="${g.c??""}" placeholder="Opcional"></div><div class="field"><label>Grasas (g/día)</label><input id="goalF" inputmode="numeric" value="${g.f??""}" placeholder="Opcional"></div></div><div class="actions"><button type="button" class="btn" onclick="saveSettings()">Guardar objetivos</button></div>${customFoodsSettingsHTML()}</div>`;
+ let notifications=notificationSettingsHTML();
+ preferences+=planSettingsHTML();
+ const installation=installationSettingsHTML();
+ let backups=`<div class="section">Datos y copias</div><div class="card"><div class="subtitle">El JSON contiene registros, plan, alimentos propios y ajustes. Las fotos se guardan aparte en el dispositivo y no viajan en esta copia.</div><div class="plan-action-grid"><button type="button" class="btn" onclick="exportJSON()">Exportar copia JSON</button><label class="btn secondary">Restaurar copia JSON<input type="file" accept=".json,application/json" onchange="importBackupJSON(event)"></label><button type="button" class="btn secondary" onclick="exportCSV()">Exportar registros CSV</button></div></div>`;
+ nutrition+=typeof metabolismSettingsHTML==='function'?metabolismSettingsHTML():'';
+ backups+=typeof marevoDataSafetyHTML==='function'?marevoDataSafetyHTML():'';
+ document.getElementById("viewSettings").innerHTML=
+ disclosureHTML('settings-training','Entrenamiento',preferences,false,'Plan, pantalla activa y check-in')+
+ disclosureHTML('settings-nutrition','Nutrición',nutrition,false,'Objetivos, alimentos propios y metabolismo')+
+ disclosureHTML('settings-notifications','Notificaciones',notifications,false,'Horarios, permisos y estado de los avisos')+
+ disclosureHTML('settings-data','Datos y copias',backups,false,'Guardar fuera de la app o restaurar registros')+
+ disclosureHTML('settings-installation','Instalación',installation,false,appIsStandalone()?'MAREVO está instalada':'Añadir a la pantalla de inicio')
 }
-function goToNutritionSettings(){showView("Settings");setTimeout(()=>document.getElementById("nutritionSettings")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
+function goToNutritionSettings(){showView("Settings");openViewSection("nutritionSettings")}
 function spark(vals){if(vals.length<2)return`<div class="empty">Necesitas al menos 2 mediciones.</div>`;const w=600,h=140,p=18,min=Math.min(...vals),max=Math.max(...vals),span=Math.max(.1,max-min),pts=vals.map((v,i)=>({x:p+i*(w-2*p)/(vals.length-1),y:h-p-(v-min)/span*(h-2*p)}));return`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts.map(q=>`${q.x},${q.y}`).join(" ")}" fill="none" stroke="#2dd4bf" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${pts.map(q=>`<circle cx="${q.x}" cy="${q.y}" r="4" fill="#38bdf8"/>`).join("")}</svg>`}
 
 
@@ -1919,7 +1921,7 @@ let planLibraryFamily="Todos";
 
 function goToPlanSettings(){
  showView("Settings");
- setTimeout(()=>document.getElementById("planSection")?.scrollIntoView({behavior:"smooth",block:"start"}),80)
+ openViewSection("planSection")
 }
 function ensureEditablePlans(){
  if(!state.customPlans)state.customPlans=JSON.parse(JSON.stringify(getPlans()));

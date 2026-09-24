@@ -200,7 +200,7 @@ function copySet(scope, i, j, source) {
       h &&
       allAttempts(h).filter(
         (a) => a.completedAt && a.attemptType === arr[j].attemptType,
-      )[j];
+      )[arr.slice(0,j+1).filter(a=>a.attemptType===arr[j].attemptType).length-1];
   }
   if (!ref) {
     toast("No hay una referencia comparable");
@@ -264,10 +264,14 @@ exerciseCardHTML = function (e, i, scope) {
     arr = allAttempts(e),
     done = effectiveCount(e),
     goal = +e.sets || 3;
-  let html = `<article class="exercise"><div class="exhead"><h3>${esc(e.name)}</h3><p>${goal} series${p.unilateral ? " por lado" : ""} · ${e.min || 8}–${e.max || 12} reps · RIR ${esc(e.rir || "1–2")}</p><div class="actions"><button class="btn ghost" onclick="openExercisePicker('replace','${scope}',${i})">Cambiar ejercicio</button><button class="btn secondary" onclick="equipmentSettings('${scope}',${i})">Equipo y peso</button></div><p class="load-convention">${esc(loadLabel(e))}</p><strong>${done}/${goal} series registradas</strong><p>${esc(lastPerformanceSummary(e))}</p><div class="recommend">${esc(exerciseAdvice(e))}</div></div>`;
+  const tools=`<div class="actions"><button class="btn ghost" onclick="openExercisePicker('replace','${scope}',${i})">Cambiar ejercicio</button><button class="btn ghost" onclick="equipmentSettings('${scope}',${i})">Equipo y peso</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},-1)">−1 serie hoy</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},1)">+1 serie hoy</button></div><p>${esc(e.note||'')}</p>`;
+  let html = `<article class="exercise"><div class="exhead"><h3>${esc(e.name)}</h3><p class="exercise-prescription">${goal} series${p.unilateral ? " por lado" : ""} · ${e.min || 8}–${e.max || 12} reps · RIR ${esc(e.rir || "1–2")} · ${esc(e.rest||'')}</p><p class="load-convention">${esc(loadLabel(e))}</p><div class="row between"><strong>${done}/${goal} registradas</strong></div>${disclosureHTML('exercise-tools:'+scope+':'+i,'Técnica, equipo y opciones',tools)}<div class="recommend">${esc(exerciseAdvice(e))}</div></div>`;
   arr.forEach((a, j) => {
     const uni = p.unilateral;
-    html += `<div class="attempt-block"><h4>${a.attemptType === "warmup" ? "Aproximación" : "Serie"} ${j + 1}${a.completedAt ? " · Guardada" : ""}</h4>`;
+    const comparable=matchingHistory(e)[0];
+    const ordinal=arr.slice(0,j+1).filter(z=>z.attemptType===a.attemptType).length-1;
+    const previous=comparable&&allAttempts(comparable).filter(z=>z.completedAt&&z.attemptType===a.attemptType)[ordinal];
+    html += `<div class="attempt-block"><h4>${a.attemptType === "warmup" ? "Aproximación" : "Serie"} ${j + 1}${a.completedAt ? " · Guardada" : ""}</h4><div class="previous-set">Anterior: ${previous?`${esc(previous.kg)} kg × ${esc(previous.reps)} · RIR ${esc(previous.rir??"—")}${uni?` / D: ${esc(previous.rightKg??"—")} kg × ${esc(previous.rightReps??"—")}`:""}`:"Sin referencia comparable"}</div>`;
     for (const side of uni ? ["left", "right"] : ["left"]) {
       const right = side === "right",
         stamp = right ? a.rightCompletedAt : a.leftCompletedAt || a.completedAt;
@@ -291,11 +295,11 @@ exerciseCardHTML = function (e, i, scope) {
     else html += `<p>${esc(classifyAttempt(e, a).text)}</p>`;
     if (["plates", "sideplates"].includes(p.mode))
       html += `<p>Carga nominal: ${nominalLoad(e, a.kg) ?? "—"} kg${p.base === "" ? " + base desconocida" : ""}</p>`;
-    html += `<button class="btn danger small" onclick="discardSetAttempt('${scope}',${i},${j})">Descartar serie</button></div>`;
+    html += disclosureHTML(`set-tools:${scope}:${i}:${j}`,"Opciones de serie",`<button class="btn danger small" onclick="discardSetAttempt('${scope}',${i},${j})">Descartar serie</button>`)+`</div>`;
   });
   return (
     html +
-    `<div class="actions"><button class="btn ghost" onclick="addSetAttempt('${scope}',${i},'warmup')">+ Aproximación</button><button class="btn" ${done >= goal ? "disabled" : ""} onclick="addSetAttempt('${scope}',${i},'effective')">+ Serie</button></div><p class="exnote">${esc(e.note || "")} ${p.unilateral ? "Completa ambos lados para cerrar la serie. El descanso comienza después del segundo lado." : ""}</p></article>`
+    `<div class="actions attempt-add"><button class="btn ghost" onclick="addSetAttempt('${scope}',${i},'warmup')">+ Aproximación</button><button class="btn secondary" ${done >= goal ? "disabled" : ""} onclick="addSetAttempt('${scope}',${i},'effective')">+ Serie</button></div><p class="exnote">${esc(e.note || "")} ${p.unilateral ? "Completa ambos lados para cerrar la serie. El descanso comienza después del segundo lado." : ""}</p></article>`
   );
 };
 function validSet(a, right = false, warmup = false) {
@@ -450,16 +454,6 @@ showView = function (v) {
   if (activeView === "Workout") saveScopeInputs("planned");
   document.body.dataset.view = v;
   legacyShowView(v);
-};
-const legacyRenderWorkout = renderWorkout;
-renderWorkout = function () {
-  legacyRenderWorkout();
-  document
-    .getElementById("viewWorkout")
-    .insertAdjacentHTML(
-      "afterbegin",
-      `<div class="card"><button class="btn secondary" onclick="openPendingWorkouts()">Hacer un entreno pendiente otro día</button></div>`,
-    );
 };
 function pendingWorkouts() {
   const out = [];
@@ -855,17 +849,6 @@ exerciseAdvice = function (e) {
   }
   return historicalExerciseAdvice(e);
 };
-const currentExerciseCard = exerciseCardHTML;
-exerciseCardHTML = function (e, i, scope) {
-  let html = currentExerciseCard(e, i, scope);
-  const s =
-    scope === "planned"
-      ? findSession(currentDate(), planFor(currentDate()).key)
-      : state.extraSessions.find((s) => s.id === scope);
-  if (e.type !== "mobility" && !s?.completed)
-    html += `<div class="session-volume"><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},-1)">−1 serie hoy</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},1)">+1 serie hoy</button></div>`;
-  return html;
-};
 function adjustSessionSets(scope, i, delta) {
   saveScopeInputs(scope);
   const e = scopeExercise(scope, i),
@@ -909,13 +892,6 @@ updateRestTimerPanel = function () {
     "is-rest",
     !!t && t.scope === extra.closest("[data-extra-scope]")?.dataset.extraScope,
   );
-};
-const themedWorkout = renderWorkout;
-renderWorkout = function () {
-  themedWorkout();
-  document
-    .querySelector("#viewWorkout .hero")
-    ?.classList.toggle("rest-day", planFor(currentDate()).type === "rest");
 };
 const nestedStrengthShowView = showView;
 showView = function(view) {

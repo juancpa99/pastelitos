@@ -161,68 +161,13 @@ function oct26FlexibleWeekLabel(date){
 oct26WeekLabel=oct26FlexibleWeekLabel;
 homeWeekLabel=oct26FlexibleWeekLabel;
 
-homeDayPresentation=function(date){
- const p=planFor(date),indices=oct26SlotIndicesForDate(date),order=oct26WeekOrder(date),scheduled=indices.map(i=>order[i]),swimPlanned=oct26SwimDay(date);
- const gymStatuses=scheduled.map(key=>oct26SessionStatus(date,key)),gymDone=scheduled.length?gymStatuses.every(s=>s.state==="done"):true;
- const swimDone=!swimPlanned||!!state.swim.find(s=>s.date===date&&s.completed),hasActivity=scheduled.length>0||swimPlanned;
- const active=gymStatuses.some(s=>s.state==="active");
- let title=scheduled.map(k=>oct26BaseTemplateByKey(k).title).join(" + ");
- if(!title&&swimPlanned)title="Natación";
- else if(!title)title="Descanso";
- if(swimPlanned&&scheduled.length)title+=" + natación";
- return{p,comp:null,compSession:null,primaryDone:gymDone,compDone:true,hasActivity,allDone:hasActivity&&gymDone&&swimDone,anyActive:active,title,subtitle:weekday(date)===2?"Dos sesiones de gimnasio · elige cuál haces primero":swimPlanned?"Gimnasio cuando te encaje · natación 22–23 h":scheduled.length?"Sesión de gimnasio":"Recuperación o sesión semanal pendiente",kind:scheduled.length&&swimPlanned?"Gimnasio + natación":scheduled.length>1?"Doble gimnasio":scheduled.length?"Gimnasio":swimPlanned?"Natación":"Recuperación",swimPlanned,swimDone,scheduled,gymStatuses};
-};
-homeTaskHTML=function(date,presentation){
- const {scheduled,gymStatuses,swimPlanned,swimDone}=presentation;let html="";
- scheduled.forEach((key,i)=>{
-  const p=oct26BaseTemplateByKey(key),st=gymStatuses[i],action=st.state==="done"?"showView('Workout')":`oct26StartWeeklySession('${key}')`;
-  html+=task("G",p.title,st.state==="done"?`${p.title} completado`:st.state==="active"?`${p.title} en curso`:weekday(date)===2?`Sesión ${i+1} del martes`:"Pendiente",st.state==="done",action);
- });
- if(swimPlanned)html+=task("N","Natación",swimDone?"Natación registrada":"22–23 h · pendiente",swimDone,"showView('Workout')");
- if(isSunday(date)){
-  html+=task("M","Peso y cintura",measurementDone(date)?"Mediciones registradas":"Mediciones semanales pendientes",measurementDone(date),"openMeasurements()");
-  if(!monthlyReviewDone(date)){const desc=monthlyMeasurementDone(date)&&!monthlyPhotosDone(date)?"Faltan las fotos del mes":!monthlyMeasurementDone(date)&&monthlyPhotosDone(date)?"Faltan los perímetros del mes":"Perímetros y fotos mensuales pendientes";html+=task("R","Revisión corporal mensual",desc,false,"openMonthlyReview()")}
- }
- const foods=foodsFor(date);HOME_CORE_MEALS.forEach((meal,index)=>{const done=foods.some(item=>item.meal===meal),icon=["D","A","C"][index],action=done?"showView('Food')":`openFoodModal('${meal}')`;html+=task(icon,meal,done?`${meal} registrado`:`Añadir ${meal.toLowerCase()}`,done,action)});
- if(afterCheckHour(date))html+=task("✓","Check-in final",dailyDone(date)?"Día cerrado":"Pendiente al final del día",dailyDone(date),"openDailyCheck()");
- else html+=`<div class="task"><div class="ico">✓</div><div><strong>Check-in final</strong><small>Aparecerá a partir de las ${state.settings.checkHour}:00.</small></div></div>`;
- return html;
-};
-
+const baseOpenPendingWorkouts=openPendingWorkouts;
 openPendingWorkouts=function(){
- if(!oct26FlexContext(currentDate()))return;
+ if(!oct26FlexContext(currentDate()))return baseOpenPendingWorkouts();
  const pending=OCT26_WEEKLY_KEYS.filter(key=>!oct26WeeklyCompleted(currentDate(),key));
  const buttons=pending.map(key=>{const p=oct26BaseTemplateByKey(key),st=oct26SessionStatus(currentDate(),key);return `<button class="btn secondary pending-choice" onclick="oct26StartWeeklySession('${key}')">${st.state==="active"?"Continuar":"Hacer hoy"} · ${esc(p.title)}</button>`}).join("")||"<p>Has completado las cinco sesiones de esta semana.</p>";
  document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Sesiones semanales</div><div class="hero-title">Pendientes de esta semana</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><p>Puedes hacer cualquiera hoy, aunque originalmente estuviera asignada a otro día. Cuenta para la semana y no se duplica.</p>${buttons}</div></div>`;
 };
-
-const oct26FlexPreviousRenderWorkout=renderWorkout;
-renderWorkout=function(){
- oct26FlexPreviousRenderWorkout();
- if(!oct26FlexContext(currentDate()))return;
- const root=document.getElementById("viewWorkout");if(!root)return;
- // Wednesday is swim-only: remove the generic rest hero left by the base renderer.
- if(weekday(currentDate())===3){
-  [...root.querySelectorAll(".card.hero")].forEach(card=>{if(card.querySelector(".hero-title")?.textContent.trim()==="Descanso")card.remove()});
- }
- const cycleCard=root.querySelector(".oct26-cycle-card");
- const pool=oct26WeeklyPoolHTML(currentDate());
- if(cycleCard)cycleCard.insertAdjacentHTML("afterend",pool);else root.insertAdjacentHTML("afterbegin",pool);
- const secondary=oct26SecondaryTuesdayHTML(currentDate());
- if(secondary){
-  const swimSection=root.querySelector(".oct26-swim-section"),extraSection=[...root.querySelectorAll(".section")].find(el=>el.textContent.trim()==="Sesiones extra");
-  if(swimSection)swimSection.insertAdjacentHTML("beforebegin",secondary);
-  else if(extraSection)extraSection.insertAdjacentHTML("beforebegin",secondary);
-  else root.insertAdjacentHTML("beforeend",secondary);
- }
- oct26RelabelWeek(root,currentDate());
- const pendingButton=[...root.querySelectorAll("button")].find(b=>(b.getAttribute("onclick")||"").includes("openPendingWorkouts"));
- if(pendingButton)pendingButton.textContent="Hacer una sesión semanal pendiente";
- if(typeof movePendingWorkoutCard==="function")movePendingWorkoutCard();
-};
-
-const oct26FlexPreviousRenderHome=renderHome;
-renderHome=function(){oct26FlexPreviousRenderHome();if(oct26FlexContext(currentDate()))enhanceHomeDayOverview()};
 
 oct26CompletedSessions=function(end){
  return [...(state.sessions||[]),...(state.extraSessions||[])].filter(s=>{

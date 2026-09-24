@@ -177,51 +177,6 @@ function oct26RelabelWeek(root,date){
  });
 }
 
-homeDayPresentation=function(date){
- const p=planFor(date),gymDone=p.type==="gym"?!!findSession(date,p.key)?.completed:p.type==="rest",swimPlanned=oct26SwimDay(date),swimDone=!swimPlanned||!!state.swim.find(s=>s.date===date&&s.completed),gymSession=p.type==="gym"?findSession(date,p.key):null;
- const gymActive=!!(gymSession?.startedAt&&!gymSession.completed),hasActivity=p.type!=="rest"||swimPlanned,allDone=hasActivity&&gymDone&&swimDone;
- return {p,comp:null,compSession:null,primaryDone:gymDone,compDone:true,hasActivity,allDone,anyActive:gymActive,title:swimPlanned?`${p.title} + natación`:p.title,subtitle:swimPlanned?`${p.subtitle} · gym antes durante el día`:p.subtitle||"",kind:swimPlanned?"Gimnasio + natación":p.type==="gym"?"Gimnasio":"Recuperación",swimPlanned,swimDone};
-};
-homeTaskHTML=function(date,presentation){
- const {p,primaryDone,swimPlanned,swimDone}=presentation;
- let html="";
- if(p.type==="gym")html+=task("G",p.title,primaryDone?`${p.title} registrado`:`${p.title} pendiente`,primaryDone,"showView('Workout')");
- if(swimPlanned)html+=task("N","Natación",swimDone?"Natación registrada":"22–23 h · pendiente",swimDone,"showView('Workout')");
- if(isSunday(date)){
-  html+=task("M","Peso y cintura",measurementDone(date)?"Mediciones registradas":"Mediciones semanales pendientes",measurementDone(date),"openMeasurements()");
-  if(!monthlyReviewDone(date)){
-   const desc=monthlyMeasurementDone(date)&&!monthlyPhotosDone(date)?"Faltan las fotos del mes":!monthlyMeasurementDone(date)&&monthlyPhotosDone(date)?"Faltan los perímetros del mes":"Perímetros y fotos mensuales pendientes";
-   html+=task("R","Revisión corporal mensual",desc,false,"openMonthlyReview()");
-  }
- }
- const foods=foodsFor(date);
- HOME_CORE_MEALS.forEach((meal,index)=>{const done=foods.some(item=>item.meal===meal),icon=["D","A","C"][index],action=done?"showView('Food')":`openFoodModal('${meal}')`;html+=task(icon,meal,done?`${meal} registrado`:`Añadir ${meal.toLowerCase()}`,done,action)});
- if(afterCheckHour(date))html+=task("✓","Check-in final",dailyDone(date)?"Día cerrado":"Pendiente al final del día",dailyDone(date),"openDailyCheck()");
- else html+=`<div class="task"><div class="ico">✓</div><div><strong>Check-in final</strong><small>Aparecerá a partir de las ${state.settings.checkHour}:00.</small></div></div>`;
- return html;
-};
-homeWeekLabel=function(date){return oct26WeekLabel(date)};
-
-const oct26PreviousRenderWorkout=renderWorkout;
-renderWorkout=function(){
- oct26PreviousRenderWorkout();
- const date=currentDate();
- if(!oct26InRange(date)&&date!=="2026-10-31"&&date!=="2026-11-01")return;
- const root=document.getElementById("viewWorkout");
- if(!root)return;
- oct26RemoveOldCycleCard(root);
- if(oct26InRange(date)){
-  root.insertAdjacentHTML("afterbegin",oct26RulesHTML(date));
-  if(oct26SwimDay(date)){
-   const extraSection=[...root.querySelectorAll(".section")].find(el=>el.textContent.trim()==="Sesiones extra");
-   if(extraSection)extraSection.insertAdjacentHTML("beforebegin",oct26SwimBlockHTML(date));
-   else root.insertAdjacentHTML("beforeend",oct26SwimBlockHTML(date));
-  }
- }
- oct26RelabelWeek(root,date);
- if(typeof movePendingWorkoutCard==="function")movePendingWorkoutCard();
-};
-
 const oct26PreviousWeeklyPlannedMuscleSets=weeklyPlannedMuscleSets;
 weeklyPlannedMuscleSets=function(){
  if(!oct26InRange(currentDate()))return oct26PreviousWeeklyPlannedMuscleSets();
@@ -290,13 +245,4 @@ function oct26ReportHTML(){
  const r=buildOct26Report(),d=r.body.deltaBaselineToFinal||r.body.deltaBaselineToLatest||{},summary=[d.weight!=null?`peso ${d.weight>=0?"+":""}${d.weight} kg`:null,d.waist!=null?`cintura ${d.waist>=0?"+":""}${d.waist} cm`:null].filter(Boolean).join(" · ");
  return `<div class="section oct26-report-section">Informe del bloque 21 sep–30 oct</div><div class="card oct26-report-card"><div class="row between settings-status-row"><div><strong>${todayISO()>=OCT26_PHASE.end?"Listo para evaluar":"Informe en construcción"}</strong><small>Datos hasta ${esc(r.phase.availableThrough)}${summary?` · ${esc(summary)}`:""}</small></div><span class="pill ${todayISO()>=OCT26_PHASE.end?"good":""}">6 semanas</span></div><div class="subtitle" style="margin-top:10px">Incluye adherencia a los 5 días de gimnasio y natación, medidas corporales, recuperación, nutrición y evolución ejercicio por ejercicio con cargas, repeticiones y RIR.</div><div class="actions" style="margin-top:10px"><button class="btn" onclick="downloadOct26Report()">Descargar informe para analizar</button></div></div>`;
 }
-const oct26PreviousRenderProgress=renderProgress;
-renderProgress=function(){
- oct26PreviousRenderProgress();
- if(todayISO()<OCT26_PHASE.start)return;
- const root=document.getElementById("viewProgress");if(!root)return;
- [...root.querySelectorAll(".section")].forEach(section=>{if(section.textContent.trim()==="Informe del ciclo"){const card=section.nextElementSibling;section.remove();if(card?.classList.contains("card"))card.remove()}});
- root.insertAdjacentHTML("afterbegin",oct26ReportHTML());
-};
-
 renderAll();

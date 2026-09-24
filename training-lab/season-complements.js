@@ -137,14 +137,6 @@ editExtraSession=function(id){
   seasonBaseEditExtraSession(id);
 };
 
-const seasonBaseRenderWorkout = renderWorkout;
-renderWorkout = function(){
-  seasonBaseRenderWorkout();
-  const root=document.getElementById("viewWorkout");
-  const html=seasonComplementHTML(currentDate());
-  if(root && html) root.insertAdjacentHTML("afterbegin",html);
-};
-
 const seasonBaseWeeklyPlannedMuscleSets = weeklyPlannedMuscleSets;
 weeklyPlannedMuscleSets = function(){
   const out=seasonBaseWeeklyPlannedMuscleSets();

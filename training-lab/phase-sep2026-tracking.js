@@ -87,12 +87,5 @@ function sep26AssessmentCard(date=currentDate()){
   return `<div class="card"><div class="row between settings-status-row"><div><div class="eyebrow">Evaluación física del ciclo</div><strong>${label}</strong><small>${record?`Guardada el ${esc(record.date)} · puedes revisarla si necesitas corregir algo.`:"Peso, cintura y perímetros completos para comparar el bloque."}</small></div><span class="pill ${record?"good":"warn"}">${record?"Guardada":"Pendiente"}</span></div><div class="actions" style="margin-top:10px"><button class="btn ${record?"secondary":""}" onclick="openSep26Assessment('${kind}')">${record?"Revisar medición":"Registrar ahora"}</button></div></div>`;
 }
 
-const sep26TrackingOldRenderHome=renderHome;
-renderHome=function(){
-  sep26TrackingOldRenderHome();
-  const root=document.getElementById("viewHome"),html=sep26AssessmentCard(currentDate());
-  if(root&&html)root.insertAdjacentHTML("afterbegin",html);
-};
-
 // Re-render once so the phase assessment card is visible immediately after loading this module.
 renderAll();
