@@ -3,10 +3,10 @@
 
   if(typeof FOOD_DB==='undefined'||typeof MEAL_FOOD_KEYS==='undefined')return;
 
-  // MAREVO uses one explicit weighing convention per food so repeated logs remain comparable.
-  // Rice is always logged dry, before cooking. Meat, poultry, fresh fish and fresh vegetables
-  // are logged raw. Foods normally portioned after cooking (pasta, potato, legumes, quinoa,
-  // couscous) are logged cooked. Packaged foods use edible weight / label units.
+  // MAREVO weighing rule: foods that are cooked at home are ALWAYS logged before cooking.
+  // Grains, pasta and legumes use dry weight; potatoes, meat, fish and vegetables use raw weight.
+  // Ready-to-eat packaged foods use the edible / drained weight shown on their label.
+  // Nutrition values must match the same state in which the food is weighed.
   // Generic nutrition values are practical approximations per 100 g/ml unless perUnit=true.
 
   function setFood(key,data,meta,meals){
@@ -31,10 +31,10 @@
   // Core foods with the weighing references used by Camilo.
   setFood('rice',{cat:'Carbohidrato',name:'Arroz (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:360,p:7,c:79,f:.6},
     {inputUnit:'g',presets:[50,75,100,125],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
-  setFood('pasta',{cat:'Carbohidrato',name:'Pasta cocida',unit:'g',ref:'peso cocido',kcal:158,p:5.8,c:30.9,f:.9},
-    {inputUnit:'g',presets:[100,150,200,250],reference:'peso cocido'},['Almuerzo','Cena']);
-  setFood('potato',{cat:'Carbohidrato',name:'Patata cocida',unit:'g',ref:'peso cocido',kcal:87,p:1.9,c:20.1,f:.1},
-    {inputUnit:'g',presets:[200,300,400,500],reference:'peso cocido'},['Almuerzo','Cena']);
+  setFood('pasta',{cat:'Carbohidrato',name:'Pasta (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:371,p:13,c:74.7,f:1.5},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('potato',{cat:'Carbohidrato',name:'Patata cruda',unit:'g',ref:'peso crudo, antes de cocinar',kcal:77,p:2,c:17.5,f:.1},
+    {inputUnit:'g',presets:[200,300,400,500],reference:'peso crudo, antes de cocinar'},['Almuerzo','Cena']);
   setFood('chicken',{cat:'Proteína',name:'Pechuga de pollo',unit:'g',ref:'peso crudo, antes de cocinar',kcal:120,p:22.5,c:0,f:2.6},
     {inputUnit:'g',presets:[100,150,200,250],reference:'peso crudo, antes de cocinar'},['Almuerzo','Cena']);
   setFood('turkey',{cat:'Proteína',name:'Pavo',unit:'g',ref:'peso crudo, antes de cocinar',kcal:114,p:23.7,c:0,f:1.2},
@@ -50,17 +50,19 @@
   setFood('veg',{cat:'Verdura',name:'Verduras variadas',unit:'g',ref:'peso crudo, parte comestible, antes de cocinar',kcal:35,p:2,c:5,f:.3},
     {inputUnit:'g',presets:[100,150,200,300],reference:'peso crudo, antes de cocinar'},['Almuerzo','Cena']);
 
-  // Carbohydrates and legumes.
-  setFood('sweet_potato',{cat:'Carbohidrato',name:'Boniato / batata cocida',unit:'g',ref:'peso cocido',kcal:90,p:2,c:20.7,f:.2},
-    {inputUnit:'g',presets:[200,300,400],reference:'peso cocido'},['Almuerzo','Cena']);
-  setFood('quinoa',{cat:'Carbohidrato',name:'Quinoa cocida',unit:'g',ref:'peso cocido',kcal:120,p:4.4,c:21.3,f:1.9},
-    {inputUnit:'g',presets:[150,200,250],reference:'peso cocido'},['Almuerzo','Cena']);
-  setFood('couscous',{cat:'Carbohidrato',name:'Cuscús cocido',unit:'g',ref:'peso cocido',kcal:112,p:3.8,c:23.2,f:.2},
-    {inputUnit:'g',presets:[150,200,250],reference:'peso cocido'},['Almuerzo','Cena']);
-  setFood('chickpeas',{cat:'Carbohidrato',name:'Garbanzos cocidos',unit:'g',ref:'peso cocido y escurrido',kcal:164,p:8.9,c:27.4,f:2.6},
-    {inputUnit:'g',presets:[150,200,250,300],reference:'peso cocido y escurrido'},['Almuerzo','Cena']);
-  setFood('beans',{cat:'Carbohidrato',name:'Alubias / judías cocidas',unit:'g',ref:'peso cocido y escurrido',kcal:127,p:8.7,c:22.8,f:.5},
-    {inputUnit:'g',presets:[150,200,250,300],reference:'peso cocido y escurrido'},['Almuerzo','Cena']);
+  // Carbohydrates and legumes. All are weighed before cooking.
+  setFood('lentils',{cat:'Carbohidrato',name:'Lentejas (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:352,p:24.6,c:63.4,f:1.1},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('sweet_potato',{cat:'Carbohidrato',name:'Boniato / batata crudo',unit:'g',ref:'peso crudo, antes de cocinar',kcal:86,p:1.6,c:20.1,f:.1},
+    {inputUnit:'g',presets:[200,300,400],reference:'peso crudo, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('quinoa',{cat:'Carbohidrato',name:'Quinoa (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:368,p:14.1,c:64.2,f:6.1},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('couscous',{cat:'Carbohidrato',name:'Cuscús (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:376,p:12.8,c:77.4,f:.6},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('chickpeas',{cat:'Carbohidrato',name:'Garbanzos (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:378,p:20.5,c:63,f:6},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
+  setFood('beans',{cat:'Carbohidrato',name:'Alubias / judías (en seco)',unit:'g',ref:'peso en seco, antes de cocinar',kcal:333,p:23.6,c:60,f:.8},
+    {inputUnit:'g',presets:[60,80,100,120],reference:'peso en seco, antes de cocinar'},['Almuerzo','Cena']);
   setFood('corn',{cat:'Carbohidrato',name:'Maíz dulce',unit:'g',ref:'peso escurrido',kcal:96,p:3.4,c:21,f:1.5},
     {inputUnit:'g',presets:[50,80,100,150],reference:'peso escurrido'},['Almuerzo','Cena']);
   setFood('wrap',{cat:'Carbohidrato',name:'Tortilla de trigo / wrap',unit:'g',ref:'peso directo; revisa la etiqueta si tu marca difiere',kcal:310,p:8.5,c:52,f:8},
@@ -172,14 +174,14 @@
     ],
     Almuerzo:[
       {name:'Pollo con arroz y verduras',items:[['chicken',180],['rice',75],['veg',200]]},
-      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',200],['veg',200]]},
+      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',90],['veg',200]]},
       {name:'Pollo con patatas y verduras',items:[['chicken',180],['potato',350],['veg',200]]},
       {name:'Pavo con arroz y verduras',items:[['turkey',180],['rice',75],['veg',200]]},
       {name:'Ternera con patatas y verduras',items:[['beef',180],['potato',350],['veg',200]]},
       {name:'Salmón con patatas y verduras',items:[['salmon',180],['potato',300],['veg',200]]},
       {name:'Pescado blanco con arroz y verduras',items:[['whitefish',200],['rice',75],['veg',200]]},
-      {name:'Lomo con pasta y verduras',items:[['pork_loin',180],['pasta',200],['veg',200]]},
-      {name:'Garbanzos, huevo y verduras',items:[['chickpeas',250],['egg',2],['veg',150]]}
+      {name:'Lomo con pasta y verduras',items:[['pork_loin',180],['pasta',90],['veg',200]]},
+      {name:'Garbanzos, huevo y verduras',items:[['chickpeas',90],['egg',2],['veg',150]]}
     ],
     Merienda:[
       {name:'Yogur, avena y plátano',items:[['greek_yogurt_0',250],['oats',40],['banana',1]]},
@@ -190,7 +192,7 @@
     ],
     Cena:[
       {name:'Pollo con arroz y verduras',items:[['chicken',180],['rice',75],['veg',200]]},
-      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',200],['veg',200]]},
+      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',90],['veg',200]]},
       {name:'Pollo con patatas y verduras',items:[['chicken',180],['potato',350],['veg',200]]},
       {name:'Pavo con arroz y verduras',items:[['turkey',180],['rice',75],['veg',200]]},
       {name:'Ternera con patatas y verduras',items:[['beef',180],['potato',350],['veg',200]]},
