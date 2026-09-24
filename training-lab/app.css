@@ -997,3 +997,32 @@ body[data-view="Home"] .today-btn{
 }
 .shopping-control-input>input[type="number"]{text-align:left}
 .shopping-controls>label{overflow:hidden}
+
+
+/* v6.54 - meal prep cooking planner */
+.nutrition-plan-head-actions{display:flex;gap:7px;flex:0 0 auto}
+.cooking-sheet{overflow-x:hidden}
+.cooking-range{margin:14px 0 8px;color:#83e6a4;font-size:10px;font-weight:800}
+.cooking-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 14px}
+.cooking-summary>div{padding:10px;border:1px solid #294658;border-radius:11px;background:#091824}
+.cooking-summary span,.cooking-summary strong{display:block}
+.cooking-summary span{color:var(--muted);font-size:9px}
+.cooking-summary strong{margin-top:3px;font-size:17px}
+.cooking-block{margin-top:16px}
+.cooking-section-label{margin-top:11px;padding-bottom:5px;border-bottom:1px solid var(--line);color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.cooking-dish-row{padding:10px 0;border-bottom:1px solid var(--line)}
+.cooking-dish-row strong{font-size:12px;line-height:1.35}
+.cooking-ingredient-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.cooking-ingredient-row>div{min-width:0}
+.cooking-ingredient-row strong,.cooking-ingredient-row small{display:block}
+.cooking-ingredient-row strong{font-size:12px;line-height:1.35}
+.cooking-ingredient-row small{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+.cooking-ingredient-row>b{font-size:12px;white-space:nowrap;text-align:right}
+@media(max-width:430px){
+ .nutrition-plan-head-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}
+ .nutrition-plan-head-actions .btn{width:100%}
+ .cooking-summary strong{font-size:15px}
+}
+@media(max-width:350px){
+ .cooking-summary{grid-template-columns:1fr}
+}
