@@ -1352,6 +1352,7 @@ function renderFood(){
  const x=currentDate(),items=foodsFor(x),nut=dayNutrition(x);
  rememberDisclosures(document.getElementById('viewFood'));
  let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="actions"><button class="btn" onclick="openMealChooser()">Añadir comida</button><details class="inline-menu"><summary>Más opciones</summary><div class="actions"><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
+ if(typeof nutritionPlanHTML==="function")html+=nutritionPlanHTML(x);
 
  const activeMeals=MEAL_TYPES.filter(mt=>items.some(i=>i.meal===mt));
  if(!activeMeals.length){
