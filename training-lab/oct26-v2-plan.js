@@ -46,7 +46,7 @@ const OCT26_V2_PLANS={
     V2STR("incline_db_curl","Curl inclinado con mancuernas",3,2,8,12,V2_RIR.isolation,"90 s","Bíceps · porción larga","Trabajo en longitud larga; sin balanceo. Si molesta delante del hombro, sube el respaldo.",{v2Role:"isolation"}),
     V2STR("hammer_curl","Curl martillo",2,2,10,15,V2_RIR.isolation,"75–90 s","Braquial + braquiorradial","Muñeca neutra; único estímulo específico de braquial.",{v2Role:"isolation"}),
     V2STR("cable_external_rotation","Rotación externa en polea",2,2,12,15,V2_RIR.preventive,"45–60 s","Manguito rotador","Polea a altura del codo, codo pegado al costado con toalla. Superserie con face pull.",{v2Role:"preventive",preventive:true}),
-    V2STR("face_pull","Face pull con cuerda",2,2,12,15,V2_RIR.preventive,"45–60 s","Deltoide posterior + manguito","Polea alta; tira hacia la cara abriendo la cuerda y termina con manos por encima de codos. Superserie con rotación externa.",{v2Role:"preventive",preventive:true}),
+    V2STR("face_pull","Face pull con cuerda",2,2,12,15,V2_RIR.preventive,"45–60 s","Deltoide posterior + manguito","Polea alta; tira hacia la cara abriendo la cuerda y termina con manos por encima de codos. Superserie con rotación externa.",{v2Role:"accessory"}),
     V2STR("prone_y_raise","Elevación en Y en banco inclinado",2,2,10,12,V2_RIR.preventive,"60 s","Trapecio inferior","Banco 30–45°, boca abajo, mancuernas ligeras, brazos en Y y pulgares arriba. Siempre aparte.",{v2Role:"preventive",preventive:true})
   ]},
   oct26_upper:{key:"oct26_upper",title:"Upper · pecho + hombros + brazos",type:"gym",subtitle:"Torso completo a RIR conservador · natación al día siguiente",exercises:[
@@ -60,7 +60,7 @@ const OCT26_V2_PLANS={
     V2STR("triceps_pushdown_upper","Pushdown de tríceps",3,2,8,12,V2_RIR.upper,"75–90 s","Tríceps · cabezas lateral y medial","Codos quietos y extensión completa.",{v2Role:"upper"}),
     V2STR("overhead_triceps_upper","Extensión de tríceps overhead · polea",2,2,10,15,V2_RIR.upper,"75–90 s","Tríceps · cabeza larga","Segunda exposición semanal de cabeza larga. Sustituir si da dolor.",{v2Role:"upper",v2ShoulderSensitive:true}),
     V2STR("cable_external_rotation_upper","Rotación externa en polea",2,2,12,15,V2_RIR.preventive,"45–60 s","Manguito rotador","Misma técnica que en Pull. Superserie con face pull.",{v2Role:"preventive",preventive:true}),
-    V2STR("face_pull_upper","Face pull con cuerda",2,2,12,15,V2_RIR.preventive,"45–60 s","Deltoide posterior + manguito","Misma técnica que en Pull. Superserie con rotación externa.",{v2Role:"preventive",preventive:true}),
+    V2STR("face_pull_upper","Face pull con cuerda",2,2,12,15,V2_RIR.preventive,"45–60 s","Deltoide posterior + manguito","Misma técnica que en Pull. Superserie con rotación externa.",{v2Role:"accessory"}),
     V2STR("push_up_plus_upper","Flexiones con empuje final de escápulas · push-up plus",2,2,10,12,V2_RIR.preventive,"60 s","Serrato anterior","Misma técnica que en Push. Preventivo, nunca al fallo.",{v2Role:"preventive",preventive:true})
   ]},
   oct26_legs_b:{key:"oct26_legs_b",title:"Pierna B · glúteo/isquio + gemelo + core",type:"gym",subtitle:"Cadena posterior y glúteo · natación 22–23 h",exercises:[
