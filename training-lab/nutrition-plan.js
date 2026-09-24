@@ -79,13 +79,21 @@
     if(!state.nutritionPlan.skippedMeals||typeof state.nutritionPlan.skippedMeals!=='object')state.nutritionPlan.skippedMeals={};
     if(!state.nutritionPlan.optionalMeals||typeof state.nutritionPlan.optionalMeals!=='object')state.nutritionPlan.optionalMeals={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
-    Object.keys(state.nutritionPlan.postSkipped).forEach(date=>{
-      if(state.nutritionPlan.postSkipped[date]){
-        if(!state.nutritionPlan.skippedMeals[date])state.nutritionPlan.skippedMeals[date]={};
-        state.nutritionPlan.skippedMeals[date]['Post-entreno']=true
-      }
-    });
+    if(!state.nutritionPlan.mealStatusMigrated){
+      Object.keys(state.nutritionPlan.postSkipped).forEach(date=>{
+        if(state.nutritionPlan.postSkipped[date]){
+          if(!state.nutritionPlan.skippedMeals[date])state.nutritionPlan.skippedMeals[date]={};
+          state.nutritionPlan.skippedMeals[date]['Post-entreno']=true
+        }
+      });
+      state.nutritionPlan.postSkipped={};
+      state.nutritionPlan.mealStatusMigrated=true
+    }
     if(!NUTRITION_MODES[state.nutritionPlan.mode])state.nutritionPlan.mode='cut';
+    if(state.nutritionPlan.mode==='cut'&&!state.nutritionPlan.cutRangeV2){
+      if(Number(state.nutritionPlan.baseOffset)===-150)state.nutritionPlan.baseOffset=-200;
+      state.nutritionPlan.cutRangeV2=true
+    }
     const cfg=NUTRITION_MODES[state.nutritionPlan.mode];
     const stored=Number(state.nutritionPlan.baseOffset);
     state.nutritionPlan.baseOffset=Number.isFinite(stored)?Math.min(cfg.max,Math.max(cfg.min,stored)):cfg.defaultOffset;
@@ -445,7 +453,7 @@
     saveState(true);renderAll();showView('Food')
   };
   window.toggleNutritionPlanPost=function(date){
-    toggleNutritionPlanMealSkipped(date,'Post-entreno')
+    window.toggleNutritionPlanMealSkipped(date,'Post-entreno')
   };
   window.rebalanceNutritionPlanDay=function(date){
     clearFlexibleOverrides(date);
