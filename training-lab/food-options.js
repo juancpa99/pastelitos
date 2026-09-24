@@ -165,12 +165,21 @@
   ['Desayuno','Almuerzo','Merienda','Cena','Post-entreno'].forEach(meal=>addQuickMealReplacement(meal,'kaiku_complete_vanilla'));
 
   // Editable meal templates. Amounts use the same input units shown to the user.
+  ['whole_bread','ham_york_90','greek_yogurt_0','fresh_cheese','strawberries','blueberries','pear','grapes','pineapple','mango','almonds','walnuts','peanut_butter','avocado','tuna_can_natural'].forEach(key=>addMealFood('Media mañana',key));
+
   window.MAREVO_DISH_TEMPLATES={
     Desayuno:[
       {name:'Avena, leche y plátano',items:[['oats',60],['milk',250],['banana',1]]},
       {name:'Yogur, avena y frutos rojos',items:[['greek_yogurt_0',250],['oats',50],['strawberries',150]]},
       {name:'Huevos, pan y fruta',items:[['egg',2],['bread',2],['banana',1]]},
       {name:'Pan, pavo y queso fresco',items:[['whole_bread',2],['ham_york_90',60],['fresh_cheese',75]]}
+    ],
+    'Media mañana':[
+      {name:'Yogur griego con plátano',items:[['greek_yogurt_0',200],['banana',1]]},
+      {name:'Tostas con pavo',items:[['whole_bread',2],['ham_york_90',60]]},
+      {name:'Yogur con frutos rojos',items:[['greek_yogurt_0',200],['strawberries',150]]},
+      {name:'Tortitas de arroz con pavo',items:[['rice_cakes',3],['ham_york_90',60]]},
+      {name:'Batido de proteína con leche',items:[['whey',25],['milk',250]]}
     ],
     Almuerzo:[
       {name:'Pollo con arroz y verduras',items:[['chicken',180],['rice',75],['veg',200]]},
