@@ -382,7 +382,17 @@
   };
   window.addNutritionPlanMeal=function(date,meal){
     if(!inPlan(date))return;
-    const row=mealPlan(date,meal);if(!row||row.skipped)return;
+    const ps=planState();
+    if(meal==='Media mañana'&&!optionalMealActive(date,meal)){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
+      ps.optionalMeals[date][meal]=true;
+      clearFlexibleOverrides(date,meal)
+    }
+    if(isMealSkipped(date,meal)){
+      if(!ps.skippedMeals[date])ps.skippedMeals[date]={};
+      delete ps.skippedMeals[date][meal]
+    }
+    const row=mealPlan(date,meal);if(!row||row.skipped||row.optionalInactive)return;
     const slot=planSlotId(date,meal);
     state.foods=state.foods.filter(item=>item.planSlotId!==slot);
     const groupId=`plan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
@@ -390,12 +400,14 @@
       const meta=foodInputMeta(foodKey),amount=toStoredFoodAmount(foodKey,inputAmount);
       state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal,foodKey,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:row.option.name,planSlotId:slot});
     });
+    clearFlexibleOverrides(date,meal);
     saveState();renderAll();showView('Food');toast(`${row.option.name} añadido`)
   };
   window.openNutritionPlanMealOptions=function(date,meal){
     const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal),current=mealPlan(date,meal);
+    const previewTarget=meal==='Media mañana'&&!optionalMealActive(date,meal)?{kcal:(targetFor(date).kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(targetFor(date).protein||0)*MEDIA_MORNING_SHARE.protein}:null;
     const amounts=current&&!current.skipped?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades</div>${current.items.map(([key,amount],i)=>{const db=foodRecord(key),meta=foodInputMeta(key);return `<label><span><strong>${esc(db?.name||key)}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" inputmode="decimal" value="${amount}"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
-    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Ajustar comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>${amounts}<div class="nutrition-plan-option-title">Cambiar plato</div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
+    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Ajustar comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>${amounts}<div class="nutrition-plan-option-title">Cambiar plato</div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option,previewTarget);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
   };
   window.saveNutritionPlanMealAmounts=function(date,meal){
     const option=selectedOption(date,meal),inputs=[...document.querySelectorAll('[id^="planAmount_"]')];
@@ -412,17 +424,32 @@
   window.chooseNutritionPlanMeal=function(date,meal,optionId){
     const ps=planState();if(!ps.overrides[date])ps.overrides[date]={};
     ps.overrides[date][meal]=optionId;
+    if(meal==='Media mañana'&&!ps.optionalMeals?.[date]?.[meal]){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
+      ps.optionalMeals[date][meal]=true
+    }
     if(ps.amountOverrides?.[date])delete ps.amountOverrides[date][meal];
+    clearFlexibleOverrides(date,meal);
     saveState(true);closeModal();renderAll();showView('Food')
   };
-  window.toggleNutritionPlanPost=function(date){
-    const ps=planState(),next=!ps.postSkipped[date];
-    if(next)ps.postSkipped[date]=true;else delete ps.postSkipped[date];
-    if(next){
-      const slot=planSlotId(date,'Post-entreno');
-      state.foods=state.foods.filter(item=>item.planSlotId!==slot)
+  window.toggleNutritionPlanMealSkipped=function(date,meal){
+    if(slotLogged(date,meal)){toast('Ya está registrada');return}
+    const ps=planState();if(!ps.skippedMeals[date])ps.skippedMeals[date]={};
+    const next=!ps.skippedMeals[date][meal];
+    if(next)ps.skippedMeals[date][meal]=true;else delete ps.skippedMeals[date][meal];
+    if(meal==='Media mañana'&&!optionalMealActive(date,meal)&&!next){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
+      ps.optionalMeals[date][meal]=true
     }
+    clearFlexibleOverrides(date,meal);
     saveState(true);renderAll();showView('Food')
+  };
+  window.toggleNutritionPlanPost=function(date){
+    toggleNutritionPlanMealSkipped(date,'Post-entreno')
+  };
+  window.rebalanceNutritionPlanDay=function(date){
+    clearFlexibleOverrides(date);
+    saveState(true);renderAll();showView('Food');toast('Resto del día reajustado')
   };
 
   function shoppingRows(start,days){
@@ -430,7 +457,7 @@
     for(let offset=0;offset<days;offset++){
       const date=addDaysISO(start,offset);if(!inPlan(date))break;
       dayPlan(date).forEach(row=>{
-        if(row.skipped)return;
+        if(row.skipped||row.optionalInactive)return;
         row.items.forEach(([foodKey,inputAmount])=>{
           const meta=foodInputMeta(foodKey),db=foodRecord(foodKey);
           if(!db)return;
