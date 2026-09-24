@@ -5,9 +5,13 @@
 
   const PLAN_START='2026-09-25';
   const PLAN_END='2026-10-30';
-  const DAILY_DEFICIT=150;
   const PROTEIN_PER_KG=2.2;
   const MEALS=['Desayuno','Almuerzo','Merienda','Cena','Post-entreno'];
+  const NUTRITION_MODES={
+    cut:{label:'Definición',defaultOffset:-150,min:-200,max:-100,step:50},
+    maintain:{label:'Mantener',defaultOffset:0,min:-100,max:100,step:50},
+    bulk:{label:'Volumen',defaultOffset:300,min:200,max:500,step:50}
+  };
 
   const SHARES_WITH_POST={
     'Desayuno':{kcal:.23,protein:.22},
@@ -71,20 +75,79 @@
     if(!state.nutritionPlan.overrides||typeof state.nutritionPlan.overrides!=='object')state.nutritionPlan.overrides={};
     if(!state.nutritionPlan.postSkipped||typeof state.nutritionPlan.postSkipped!=='object')state.nutritionPlan.postSkipped={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
+    if(!NUTRITION_MODES[state.nutritionPlan.mode])state.nutritionPlan.mode='cut';
+    const cfg=NUTRITION_MODES[state.nutritionPlan.mode];
+    const stored=Number(state.nutritionPlan.baseOffset);
+    state.nutritionPlan.baseOffset=Number.isFinite(stored)?Math.min(cfg.max,Math.max(cfg.min,stored)):cfg.defaultOffset;
     return state.nutritionPlan;
   }
   function inPlan(date){return date>=PLAN_START&&date<=PLAN_END}
   function dayIndex(date){return dateObj(date).getDay()}
+  function clamp(value,min,max){return Math.min(max,Math.max(min,value))}
+  function recentWeightTrend(date){
+    const end=date>todayISO()?todayISO():date,start=addDaysISO(end,-21);
+    const rows=[...(state.body||[])].filter(row=>row.date>=start&&row.date<=end&&Number.isFinite(+row.weight)&&+row.weight>0).sort((a,b)=>a.date.localeCompare(b.date));
+    if(rows.length<2)return null;
+    const first=rows[0],last=rows[rows.length-1],days=Math.round((dateObj(last.date)-dateObj(first.date))/86400000);
+    if(days<7)return null;
+    return (+last.weight-+first.weight)*7/days
+  }
+  function recentTrainingAdherence(date){
+    const today=todayISO(),cutoff=date<today?date:addDaysISO(today,-1);
+    if(cutoff<PLAN_START)return {ratio:null,planned:0,completed:0,extra:0};
+    const start=addDaysISO(cutoff,-13);
+    let planned=[];
+    if(typeof oct26PlannedItems==='function'){
+      planned=oct26PlannedItems(cutoff).filter(item=>item.date>=start&&item.date<=cutoff);
+    }
+    if(!planned.length)return {ratio:null,planned:0,completed:0,extra:0};
+    let score=0;
+    planned.forEach(item=>{
+      if(item.type==='gym'){
+        const record=(state.sessions||[]).find(s=>s.date===item.date&&s.completed);
+        if(record)score+=record.incomplete?.valueOf?.()?0.75:1;
+      }else if(item.type==='swim'){
+        if((state.swim||[]).some(s=>s.date===item.date&&s.completed))score+=1;
+      }
+    });
+    const extra=[...(state.extraSessions||[]),...(state.cardio||[])].filter(s=>s.completed&&s.date>=start&&s.date<=cutoff).length;
+    return {ratio:score/planned.length,planned:planned.length,completed:score,extra}
+  }
+  function activityAdjustment(date){
+    const a=recentTrainingAdherence(date);
+    if(a.ratio==null)return {kcal:0,...a};
+    let kcal=a.ratio>=.9?0:a.ratio>=.75?-25:a.ratio>=.6?-50:-100;
+    kcal+=Math.min(50,a.extra*25);
+    return {kcal:clamp(kcal,-100,50),...a}
+  }
+  function weightAdjustment(mode,date){
+    const weekly=recentWeightTrend(date);
+    if(weekly==null)return {kcal:0,weekly:null};
+    let kcal=0;
+    if(mode==='cut'){
+      if(weekly>.1)kcal=-50;
+      else if(weekly<-.35)kcal=50;
+    }else if(mode==='maintain'){
+      if(weekly>.2)kcal=-50;
+      else if(weekly<-.2)kcal=50;
+    }else{
+      if(weekly<0)kcal=50;
+      else if(weekly>.35)kcal=-50;
+    }
+    return {kcal,weekly}
+  }
   function targetFor(date){
     const estimate=typeof window.marevoMetabolismEstimate==='function'?window.marevoMetabolismEstimate(date):null;
     const weight=estimate?.weight||(typeof window.marevoLatestBodyWeight==='function'?window.marevoLatestBodyWeight():null);
-    const existing=state.settings?.nutritionGoals||{};
-    const kcal=estimate?.complete?Math.round((estimate.tdee-DAILY_DEFICIT)/10)*10:(Number(existing.kcal)||null);
+    const existing=state.settings?.nutritionGoals||{},ps=planState(),cfg=NUTRITION_MODES[ps.mode];
+    const activity=activityAdjustment(date),trend=weightAdjustment(ps.mode,date);
+    const effectiveOffset=clamp(ps.baseOffset+activity.kcal+trend.kcal,cfg.min,cfg.max);
+    const kcal=estimate?.complete?Math.round((estimate.tdee+effectiveOffset)/10)*10:(Number(existing.kcal)||null);
     const protein=weight?Math.round(weight*PROTEIN_PER_KG):(Number(existing.p)||null);
-    return {complete:!!(kcal&&protein),kcal,protein,weight,tdee:estimate?.complete?estimate.tdee:null,deficit:DAILY_DEFICIT};
+    return {complete:!!(kcal&&protein),kcal,protein,weight,tdee:estimate?.complete?estimate.tdee:null,mode:ps.mode,modeLabel:cfg.label,baseOffset:ps.baseOffset,effectiveOffset,activityAdjustment:activity.kcal,weightAdjustment:trend.kcal,adherence:activity.ratio,weightTrend:trend.weekly};
   }
   function syncGoals(date){
-    const t=targetFor(date);if(!t.complete)return t;
+    const t=targetFor(date);if(!t.complete||!inPlan(date))return t;
     const goals=state.settings.nutritionGoals||(state.settings.nutritionGoals={kcal:null,p:null,c:null,f:null});
     if(Number(goals.kcal)!==t.kcal||Number(goals.p)!==t.protein){
       goals.kcal=t.kcal;goals.p=t.protein;saveState(true);
