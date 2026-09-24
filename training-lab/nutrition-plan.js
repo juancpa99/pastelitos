@@ -23,6 +23,15 @@
     'Post-entreno':{kcal:.10,protein:.10}
   };
   const MEDIA_MORNING_SHARE={kcal:.08,protein:.08};
+  const COOKING_YIELDS={
+    rice:{factor:3,label:'cocido'},
+    pasta:{factor:2.4,label:'cocida'},
+    quinoa:{factor:3,label:'cocida'},
+    couscous:{factor:2.5,label:'cocido'},
+    lentils:{factor:2.5,label:'cocidas'},
+    chickpeas:{factor:2.4,label:'cocidos'},
+    beans:{factor:2.4,label:'cocidas'}
+  };
 
   const OPTIONS={
     'Desayuno':[
@@ -362,7 +371,7 @@
         ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
         :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
     return `<section class="nutrition-plan-card">
-      <div class="nutrition-plan-head"><div><div class="eyebrow">Plan nutricional · hasta 30 oct</div><h2>Comidas de la semana</h2></div><button type="button" class="btn secondary small" onclick="openNutritionShoppingList()">Calcular compra</button></div>
+      <div class="nutrition-plan-head"><div><div class="eyebrow">Plan nutricional · hasta 30 oct</div><h2>Comidas de la semana</h2></div><div class="nutrition-plan-head-actions"><button type="button" class="btn secondary small" onclick="openNutritionCookingPlan()">Cocinar</button><button type="button" class="btn secondary small" onclick="openNutritionShoppingList()">Compra</button></div></div>
       ${targetHTML}${weekHTML}${body}
     </section>`
   }
@@ -458,6 +467,88 @@
   window.rebalanceNutritionPlanDay=function(date){
     clearFlexibleOverrides(date);
     saveState(true);renderAll();showView('Food');toast('Resto del día reajustado')
+  };
+
+  function cookingMeals(start,days){
+    const out=[];
+    const safeDays=Math.max(1,Math.min(7,Math.round(Number(days)||7)));
+    for(let offset=0;offset<safeDays;offset++){
+      const date=addDaysISO(start,offset);if(!inPlan(date))break;
+      ['Almuerzo','Cena'].forEach(meal=>{
+        const row=mealPlan(date,meal);
+        if(!row||row.skipped||row.optionalInactive||slotLogged(date,meal))return;
+        out.push({date,meal,...row})
+      })
+    }
+    return out
+  }
+  function cookingDishRows(start,days){
+    const map=new Map();
+    cookingMeals(start,days).forEach(row=>{
+      const key=`${row.meal}|${row.option.id}`;
+      if(!map.has(key))map.set(key,{meal:row.meal,name:row.option.name,count:0,dates:[]});
+      const entry=map.get(key);entry.count+=1;entry.dates.push(row.date)
+    });
+    return [...map.values()].sort((a,b)=>a.meal.localeCompare(b.meal,'es')||b.count-a.count||a.name.localeCompare(b.name,'es'))
+  }
+  function cookingIngredientRows(start,days){
+    const map=new Map();
+    cookingMeals(start,days).forEach(row=>{
+      row.items.forEach(([foodKey,inputAmount])=>{
+        const db=foodRecord(foodKey),meta=foodInputMeta(foodKey);if(!db||!meta)return;
+        const key=`${foodKey}|${meta.inputUnit}`;
+        if(!map.has(key))map.set(key,{foodKey,name:db.name,cat:db.cat,unit:meta.inputUnit,total:0,uses:0,dishes:new Set()});
+        const entry=map.get(key);entry.total+=inputAmount;entry.uses+=1;entry.dishes.add(row.option.name)
+      })
+    });
+    return [...map.values()].sort((a,b)=>{
+      const order={'Proteína':0,'Carbohidrato':1,'Verdura':2,'Extra':3,'Lácteo':4,'Fruta':5,'Suplemento':6};
+      return (order[a.cat]??9)-(order[b.cat]??9)||a.name.localeCompare(b.name,'es')
+    })
+  }
+  function prepAmount(value,unit){
+    if(unit==='g'&&value>=1000)return `${Number((value/1000).toFixed(2))} kg`;
+    if(unit==='ml'&&value>=1000)return `${Number((value/1000).toFixed(2))} L`;
+    const n=Number.isInteger(value)?value:Number(value.toFixed(1));
+    return `${n} ${unit}`
+  }
+  function cookingIngredientMeta(row){
+    const perUse=row.uses?row.total/row.uses:row.total;
+    const yieldInfo=COOKING_YIELDS[row.foodKey];
+    if(yieldInfo&&row.unit==='g'){
+      const cooked=row.total*yieldInfo.factor,cookedPerUse=cooked/Math.max(1,row.uses);
+      return `${row.uses} raciones · ≈ ${prepAmount(cooked,'g')} ${yieldInfo.label} · ≈ ${prepAmount(cookedPerUse,'g')}/ración`
+    }
+    return `${row.uses} raciones · ≈ ${prepAmount(perUse,row.unit)}/ración`
+  }
+  function cookingResultsHTML(start,days){
+    const safeDays=Math.max(1,Math.min(7,Math.round(Number(days)||7)));
+    const meals=cookingMeals(start,safeDays),dishes=cookingDishRows(start,safeDays),ingredients=cookingIngredientRows(start,safeDays);
+    if(!meals.length)return '<div class="nutrition-plan-empty">No hay almuerzos o cenas pendientes en ese intervalo.</div>';
+    const actualDays=Math.max(1,Math.min(safeDays,Math.floor((dateObj(PLAN_END)-dateObj(start))/86400000)+1));
+    const end=addDaysISO(start,actualDays-1);
+    const lunchCount=meals.filter(row=>row.meal==='Almuerzo').length,dinnerCount=meals.filter(row=>row.meal==='Cena').length;
+    let currentMeal='';
+    const dishHTML=dishes.map(row=>{
+      const heading=row.meal!==currentMeal?(currentMeal=row.meal,`<div class="cooking-section-label">${esc(row.meal)}</div>`):'';
+      return `${heading}<div class="cooking-dish-row"><strong>${row.count} × ${esc(row.name)}</strong></div>`
+    }).join('');
+    let currentCat='';
+    const ingredientHTML=ingredients.map(row=>{
+      const heading=row.cat!==currentCat?(currentCat=row.cat,`<div class="cooking-section-label">${esc(row.cat)}</div>`):'';
+      return `${heading}<div class="cooking-ingredient-row"><div><strong>${esc(row.name)}</strong><small>${esc(cookingIngredientMeta(row))}</small></div><b>${esc(prepAmount(row.total,row.unit))}</b></div>`
+    }).join('');
+    return `<div class="cooking-range">${esc(shoppingDateLabel(start))} → ${esc(shoppingDateLabel(end))}</div><div class="cooking-summary"><div><span>Almuerzos</span><strong>${lunchCount}</strong></div><div><span>Cenas</span><strong>${dinnerCount}</strong></div><div><span>Platos</span><strong>${meals.length}</strong></div></div><div class="cooking-block"><div class="eyebrow">Platos</div>${dishHTML}</div><div class="cooking-block"><div class="eyebrow">Preparar</div>${ingredientHTML}</div>`
+  }
+  window.openNutritionCookingPlan=function(){
+    const start=inPlan(currentDate())?currentDate():PLAN_START;
+    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet shopping-sheet cooking-sheet"><div class="row between shopping-head"><div><div class="eyebrow">Meal prep</div><div class="hero-title">Cocinar para varios días</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="shopping-controls cooking-controls"><label><span>Desde</span><span class="shopping-control-input"><input id="cookStart" type="date" min="${PLAN_START}" max="${PLAN_END}" value="${start}"></span></label><label><span>Días</span><span class="shopping-control-input"><input id="cookDays" inputmode="numeric" type="number" min="1" max="7" value="7"></span></label></div><div class="quickchips"><button type="button" class="chip" onclick="document.getElementById('cookDays').value=3;refreshNutritionCookingPlan()">3 días</button><button type="button" class="chip" onclick="document.getElementById('cookDays').value=5;refreshNutritionCookingPlan()">5 días</button><button type="button" class="chip" onclick="document.getElementById('cookDays').value=7;refreshNutritionCookingPlan()">7 días</button></div><div class="actions"><button type="button" class="btn" onclick="refreshNutritionCookingPlan()">Calcular preparación</button></div><div id="cookingResults">${cookingResultsHTML(start,7)}</div></div></div>`
+  };
+  window.refreshNutritionCookingPlan=function(){
+    const start=document.getElementById('cookStart')?.value||PLAN_START;
+    const days=Math.max(1,Math.min(7,Math.round(Number(document.getElementById('cookDays')?.value)||7)));
+    const input=document.getElementById('cookDays');if(input)input.value=days;
+    const root=document.getElementById('cookingResults');if(root)root.innerHTML=cookingResultsHTML(start,days)
   };
 
   function shoppingRows(start,days){
