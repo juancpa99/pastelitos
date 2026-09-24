@@ -27,7 +27,7 @@ function exerciseFamily(e){
 }
 
 const FOOD_DB={"rice": {"cat": "Carbohidrato", "name": "Arroz (en seco)", "unit": "g", "ref": "peso en seco, antes de cocinar", "kcal": 360, "p": 7, "c": 79, "f": 0.6}, "pasta": {"cat": "Carbohidrato", "name": "Pasta (en seco)", "unit": "g", "ref": "peso en seco, antes de cocinar", "kcal": 371, "p": 13, "c": 74.7, "f": 1.5}, "potato": {"cat": "Carbohidrato", "name": "Patata cruda", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 77, "p": 2, "c": 17.5, "f": 0.1}, "bread": {"cat": "Carbohidrato", "name": "Pan", "unit": "g", "ref": "peso directo", "kcal": 250, "p": 8.5, "c": 49, "f": 3.2}, "oats": {"cat": "Carbohidrato", "name": "Avena", "unit": "g", "ref": "peso en seco", "kcal": 389, "p": 16.9, "c": 66.3, "f": 6.9}, "lentils": {"cat": "Carbohidrato", "name": "Lentejas (en seco)", "unit": "g", "ref": "peso en seco, antes de cocinar", "kcal": 352, "p": 24.6, "c": 63.4, "f": 1.1}, "chicken": {"cat": "Proteína", "name": "Pechuga de pollo", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 120, "p": 22.5, "c": 0, "f": 2.6}, "turkey": {"cat": "Proteína", "name": "Pavo", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 114, "p": 23.7, "c": 0, "f": 1.2}, "beef": {"cat": "Proteína", "name": "Ternera magra", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 150, "p": 21.5, "c": 0, "f": 7}, "whitefish": {"cat": "Proteína", "name": "Pescado blanco", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 82, "p": 18, "c": 0, "f": 0.7}, "salmon": {"cat": "Proteína", "name": "Salmón", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 208, "p": 20.4, "c": 0, "f": 13.4}, "tuna": {"cat": "Proteína", "name": "Atún fresco", "unit": "g", "ref": "peso crudo, antes de cocinar", "kcal": 109, "p": 24.4, "c": 0, "f": 0.5}, "egg": {"cat": "Proteína", "name": "Huevo", "unit": "ud", "ref": "unidad mediana", "perUnit": true, "kcal": 72, "p": 6.3, "c": 0.4, "f": 4.8}, "veg": {"cat": "Verdura", "name": "Verduras variadas", "unit": "g", "ref": "peso crudo, parte comestible, antes de cocinar", "kcal": 35, "p": 2, "c": 5, "f": 0.3}, "banana": {"cat": "Fruta", "name": "Plátano", "unit": "ud", "ref": "unidad mediana", "perUnit": true, "kcal": 105, "p": 1.3, "c": 27, "f": 0.4}, "apple": {"cat": "Fruta", "name": "Manzana", "unit": "ud", "ref": "unidad mediana", "perUnit": true, "kcal": 95, "p": 0.5, "c": 25, "f": 0.3}, "orange": {"cat": "Fruta", "name": "Naranja", "unit": "ud", "ref": "unidad mediana", "perUnit": true, "kcal": 62, "p": 1.2, "c": 15.4, "f": 0.2}, "kiwi": {"cat": "Fruta", "name": "Kiwi", "unit": "ud", "ref": "unidad mediana", "perUnit": true, "kcal": 42, "p": 0.8, "c": 10.1, "f": 0.4}, "milk": {"cat": "Lácteo", "name": "Leche semidesnatada", "unit": "ml", "ref": "volumen", "kcal": 47, "p": 3.4, "c": 4.8, "f": 1.6}, "yogurt": {"cat": "Lácteo", "name": "Yogur alto en proteína / skyr", "unit": "g", "ref": "peso directo", "kcal": 63, "p": 10.5, "c": 4, "f": 0.5}, "oil": {"cat": "Extra", "name": "Aceite de oliva", "unit": "g", "ref": "peso directo", "kcal": 884, "p": 0, "c": 0, "f": 100}, "rice_cakes": {"cat": "Carbohidrato", "name": "Tortitas de arroz", "unit": "g", "ref": "peso directo", "kcal": 387, "p": 7.8, "c": 81.5, "f": 3.1}, "cereal": {"cat": "Carbohidrato", "name": "Cereales simples", "unit": "g", "ref": "peso directo", "kcal": 375, "p": 7.5, "c": 82, "f": 1.5}, "whey": {"cat": "Suplemento", "name": "Proteína whey (polvo)", "unit": "g", "ref": "peso del polvo; si la tomas con leche, registra también la leche", "kcal": 390, "p": 78, "c": 8, "f": 6}};
-const MEAL_TYPES=["Desayuno","Almuerzo","Merienda","Cena","Post-entreno"];
+const MEAL_TYPES=["Desayuno","Media mañana","Almuerzo","Merienda","Cena","Post-entreno"];
 
 const FOOD_INPUT_META={
  bread:{inputUnit:"rebanadas",singular:"rebanada",gramsPerInput:30,presets:[1,2,3,4],reference:"1 rebanada ≈ 30 g"},
@@ -88,6 +88,7 @@ function foodDisplayAmount(item){
 
 const MEAL_FOOD_KEYS={
  "Desayuno":["bread","oats","cereal","egg","banana","apple","orange","kiwi","milk","yogurt","whey"],
+ "Media mañana":["bread","rice_cakes","egg","banana","apple","orange","kiwi","milk","yogurt","whey","turkey","tuna"],
  "Almuerzo":["rice","pasta","potato","bread","lentils","chicken","turkey","beef","whitefish","salmon","tuna","egg","veg","banana","apple","orange","kiwi","oil"],
  "Merienda":["bread","oats","cereal","rice_cakes","egg","banana","apple","orange","kiwi","milk","yogurt","whey","tuna","turkey"],
  "Cena":["rice","pasta","potato","bread","lentils","chicken","turkey","beef","whitefish","salmon","tuna","egg","veg","banana","apple","orange","kiwi","oil"],
@@ -95,6 +96,7 @@ const MEAL_FOOD_KEYS={
 };
 const MEAL_HINTS={
  "Desayuno":"Opciones rápidas y habituales para empezar el día.",
+ "Media mañana":"Opcional.",
  "Almuerzo":"Comida completa: base de carbohidrato + proteína + verdura.",
  "Merienda":"Opciones sencillas y transportables.",
  "Cena":"Comida completa, igual que el almuerzo.",
@@ -104,6 +106,11 @@ const FOOD_QUICK_COMBOS={
  "Desayuno":[
   {name:"Avena + leche + plátano",items:[["oats",60],["milk",250],["banana",1]]},
   {name:"Huevos + pan",items:[["egg",2],["bread",60]]}
+ ],
+ "Media mañana":[
+  {name:"Yogur + plátano",items:[["yogurt",200],["banana",1]]},
+  {name:"Whey + leche",items:[["whey",25],["milk",250]]},
+  {name:"Tortitas + pavo",items:[["rice_cakes",3],["turkey",60]]}
  ],
  "Merienda":[
   {name:"Yogur + plátano",items:[["yogurt",250],["banana",1]]},
