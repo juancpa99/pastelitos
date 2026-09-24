@@ -61,6 +61,12 @@ try{
  // Food logging exposes a broad library and editable multi-ingredient dishes.
  run(`showView('Food');openFoodModal('Almuerzo')`);
  assert.ok(run(`Object.keys(FOOD_DB).length`)>=60,'expanded food library is loaded');
+ const uncookedKeys=['rice','pasta','potato','lentils','sweet_potato','quinoa','couscous','chickpeas','beans','chicken','turkey','beef','whitefish','salmon','tuna','veg'];
+ assert.ok(run(`[${uncookedKeys.map(k=>`'${k}'`).join(',')}].every(k=>!/cocid|cocinad|preparado/i.test(foodInputMeta(k).reference))`),'foods cooked at home are never logged by cooked weight');
+ assert.match(run(`foodInputMeta('lentils').reference`),/seco/);
+ assert.match(run(`foodInputMeta('potato').reference`),/crudo/);
+ assert.match(run(`foodInputMeta('pasta').reference`),/seco/);
+ assert.equal(run(`FOOD_DB.lentils.kcal`),352,'dry lentils use dry-state nutrition values');
  assert.ok(doc.querySelectorAll('.food-dish-choice').length>=8,'lunch offers several quick dishes');
  assert.match(doc.getElementById('fdDishes').textContent,/Pollo con arroz y verduras/);
  run(`openFoodModal('Desayuno');document.getElementById('fdSearch').value='merluza';renderFoodPicker()`);
