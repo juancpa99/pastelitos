@@ -63,6 +63,8 @@ try{
  assert.ok(run(`Object.keys(FOOD_DB).length`)>=60,'expanded food library is loaded');
  assert.ok(doc.querySelectorAll('.food-dish-choice').length>=8,'lunch offers several quick dishes');
  assert.match(doc.getElementById('fdDishes').textContent,/Pollo con arroz y verduras/);
+ run(`openFoodModal('Desayuno');document.getElementById('fdSearch').value='merluza';renderFoodPicker()`);
+ assert.match(doc.getElementById('fdPicker').textContent,/Merluza/,'search spans the full food library from any meal');
  run(`openDishTemplate('Almuerzo',0)`);
  assert.equal(doc.querySelectorAll('.dish-component-input').length,3);
  assert.match(doc.getElementById('dishPreview').textContent,/kcal/);
