@@ -105,7 +105,7 @@
     planned.forEach(item=>{
       if(item.type==='gym'){
         const record=(state.sessions||[]).find(s=>s.date===item.date&&s.completed);
-        if(record)score+=record.incomplete?.valueOf?.()?0.75:1;
+        if(record)score+=record.incomplete?0.75:1;
       }else if(item.type==='swim'){
         if((state.swim||[]).some(s=>s.date===item.date&&s.completed))score+=1;
       }
@@ -231,13 +231,20 @@
 
   function planMealRowHTML(date,row){
     if(row.meal==='Post-entreno'&&row.skipped){
-      return `<div class="nutrition-plan-meal nutrition-plan-post skipped"><div class="nutrition-plan-meal-main"><span>Post-entreno · opcional</span><strong>No tomar hoy</strong><small>La merienda y la cena ya están reajustadas.</small></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">Reactivar</button></div></div>`
+      return `<div class="nutrition-plan-meal nutrition-plan-post skipped"><div class="nutrition-plan-meal-main"><span>Post-entreno · opcional</span><strong>No tomar hoy</strong></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">Reactivar</button></div></div>`
     }
     const logged=slotLogged(date,row.meal),post=row.meal==='Post-entreno';
     return `<div class="nutrition-plan-meal ${post?'nutrition-plan-post':''}">
       <div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${post?' · opcional':''}</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div>
-      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${post?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">No tomar hoy</button>`:''}</div>
+      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${post?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">No tomar</button>`:''}</div>
     </div>`
+  }
+  function signedKcal(value){
+    const n=Math.round(Number(value)||0);
+    return n===0?'0 kcal':`${n>0?'+':'−'}${Math.abs(n)} kcal`
+  }
+  function nutritionModeHTML(target){
+    return `<div class="nutrition-plan-mode" role="group" aria-label="Objetivo energético">${Object.entries(NUTRITION_MODES).map(([key,cfg])=>`<button type="button" class="${target.mode===key?'active':''}" onclick="setNutritionPlanMode('${key}')">${esc(cfg.label)}</button>`).join('')}</div>`
   }
 
   function nutritionPlanHTML(date=currentDate()){
@@ -245,22 +252,40 @@
     const active=inPlan(date);
     let targetHTML='';
     if(target.complete){
-      targetHTML=`<div class="nutrition-plan-targets"><div><span>Objetivo</span><strong>${target.kcal} kcal</strong></div><div><span>Proteína</span><strong>${target.protein} g</strong><small>${target.weight?`${target.weight.toFixed(1)} kg × 2,2`:''}</small></div><div><span>Déficit</span><strong>−${target.deficit} kcal</strong></div></div>`
+      targetHTML=`${nutritionModeHTML(target)}<div class="nutrition-plan-targets"><div><span>Objetivo</span><strong>${target.kcal} kcal</strong></div><div><span>Proteína</span><strong>${target.protein} g</strong><small>${target.weight?`${target.weight.toFixed(1)} kg × 2,2`:''}</small></div><button type="button" class="nutrition-plan-balance" onclick="openNutritionPlanModeSettings()"><span>Balance</span><strong>${signedKcal(target.effectiveOffset)}</strong></button></div>`
     }else{
-      targetHTML=`<div class="nutrition-plan-missing"><span>Falta completar peso o estimación de mantenimiento.</span><button type="button" class="btn ghost small" onclick="goToMetabolismSettings()">Configurar</button></div>`
+      targetHTML=`${nutritionModeHTML(target)}<div class="nutrition-plan-missing"><span>Falta peso o mantenimiento.</span><button type="button" class="btn ghost small" onclick="goToMetabolismSettings()">Configurar</button></div>`
     }
     const weekHTML=`<div class="nutrition-plan-week">${days.map(d=>`<button type="button" class="${d===date?'active':''} ${inPlan(d)?'':'outside'}" onclick="selectNutritionPlanDate('${d}')"><span>${esc(dateLabel(d))}</span><b>${inPlan(d)?'•':'—'}</b></button>`).join('')}</div>`;
     const totals=active&&target.complete?dayPlanNutrition(date):null;
     const body=active&&target.complete
       ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}</div>`
       :active
-        ?`<div class="nutrition-plan-empty">Completa el peso y el gasto estimado para calcular las cantidades.</div>`
-        :`<div class="nutrition-plan-empty">Plan activo del 25 de septiembre al 30 de octubre.</div>`;
+        ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
+        :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
     return `<section class="nutrition-plan-card">
       <div class="nutrition-plan-head"><div><div class="eyebrow">Plan nutricional · hasta 30 oct</div><h2>Comidas de la semana</h2></div><button type="button" class="btn secondary small" onclick="openNutritionShoppingList()">Calcular compra</button></div>
       ${targetHTML}${weekHTML}${body}
     </section>`
   }
+
+  window.setNutritionPlanMode=function(mode){
+    if(!NUTRITION_MODES[mode])return;
+    const ps=planState(),changed=ps.mode!==mode;
+    ps.mode=mode;ps.baseOffset=NUTRITION_MODES[mode].defaultOffset;
+    if(changed)ps.amountOverrides={};
+    saveState(true);renderAll();showView('Food')
+  };
+  window.openNutritionPlanModeSettings=function(){
+    const ps=planState(),cfg=NUTRITION_MODES[ps.mode],values=[];
+    for(let value=cfg.min;value<=cfg.max;value+=cfg.step)values.push(value);
+    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(cfg.label)}</div><div class="hero-title">Ajuste energético</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="nutrition-offset-grid">${values.map(value=>`<button type="button" class="${value===ps.baseOffset?'active':''}" onclick="setNutritionPlanOffset(${value})">${signedKcal(value)}</button>`).join('')}</div></div></div>`
+  };
+  window.setNutritionPlanOffset=function(value){
+    const ps=planState(),cfg=NUTRITION_MODES[ps.mode],next=clamp(Number(value)||0,cfg.min,cfg.max);
+    ps.baseOffset=next;ps.amountOverrides={};
+    saveState(true);closeModal();renderAll();showView('Food')
+  };
 
   window.selectNutritionPlanDate=function(date){
     document.getElementById('selectedDate').value=date;renderAll();showView('Food')
