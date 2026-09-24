@@ -8,9 +8,10 @@ function workoutLandingHTML(date){
  ${disclosureHTML('workout-extras','Otras sesiones e historial',extraSessionsHTML(date)+(typeof seasonComplementHTML==='function'?seasonComplementHTML(date):'')+ (p.type==='cardio'?cardioHTML(date):''))}`;
 }
 function trainingChoices(){
- const date=currentDate();
- if(typeof oct26FlexContext==='function'&&oct26FlexContext(date))return oct26WeekOrder(date).map(key=>oct26TemplateForKey(key,date));
- return [...new Map(Object.values(getPlans()[state.settings.mode]||{}).filter(p=>p.type==='gym').map(p=>[p.key,p])).values()];
+ const date=currentDate(),recommended=planFor(date).key;
+ const prioritize=rows=>rows.sort((a,b)=>Number(b.key===recommended)-Number(a.key===recommended));
+ if(typeof oct26FlexContext==='function'&&oct26FlexContext(date))return prioritize(oct26WeekOrder(date).map(key=>oct26TemplateForKey(key,date))); 
+ return prioritize([...new Map(Object.values(getPlans()[state.settings.mode]||{}).filter(p=>p.type==='gym').map(p=>[p.key,p])).values()]);
 }
 function openTrainingSelector(){
  const recommended=planFor(currentDate()).key;
