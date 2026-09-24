@@ -231,7 +231,7 @@ function updateBottomNavInset(){
  const h=Math.ceil(nav.getBoundingClientRect().height);
  document.documentElement.style.setProperty("--bottom-nav-height",`${h}px`);
  const spacer=document.querySelector(".page-end-spacer");
- if(spacer)spacer.style.height=`${h}px`;
+ if(spacer)spacer.style.removeProperty("height");
 }
 function installBottomNavInsetObserver(){
  updateBottomNavInset();
@@ -496,12 +496,14 @@ function nutritionDashboardHTML(nut){
  return `<div class="nutrition-dashboard">${nutritionMetricHTML("Energía","kcal",nut.kcal,"kcal")}${nutritionMetricHTML("Proteína","p",nut.p)}${nutritionMetricHTML("Carbohidratos","c",nut.c)}${nutritionMetricHTML("Grasas","f",nut.f)}</div>`
 }
 function renderHome(){
- const x=currentDate(),activities=dayActivities(x),next=activities.find(a=>a.active)||activities.find(a=>!a.done),allDone=activities.length&&!next;
- const heading=next?.title||(allDone?'Entrenamiento completado':'Día de descanso');
- const subtitle=next?.subtitle||(allDone?'Tus sesiones de hoy están registradas.':'Recupera y consulta tu semana cuando lo necesites.');
+ const x=currentDate(),activities=dayActivities(x),pending=activities.filter(a=>!a.done),active=pending.some(a=>a.active),allDone=activities.length>0&&!pending.length,inPast=x<todayISO();
+ const heading=active?'Continuar entrenamiento':pending.length?'Registrar entrenamiento':allDone?'Entrenamiento registrado':'Sin entrenamiento pendiente';
+ const subtitle=active?'Hay una sesión en curso. Continúa desde Entreno.':pending.length?(inPast?(pending.length===1?'Queda 1 sesión sin registrar. Fuerza y natación se gestionan desde Entreno.':`Quedan ${pending.length} sesiones sin registrar. Fuerza y natación se gestionan desde Entreno.`):'Fuerza y natación se registran desde Entreno.'):allDone?'Las sesiones de este día ya están registradas.':'No hay sesiones programadas para este día.';
+ const context=active?'En curso':pending.length?(inPast?'Pendiente':'Entrenamiento'):allDone?'Hecho por hoy':'Recuperación';
+ const buttonLabel=active?'Continuar en Entreno':pending.length?'Registrar entrenamiento':allDone?'Revisar entrenamientos':'Ver Entreno';
  const root=document.getElementById('viewHome');rememberDisclosures(root);
- let html=`<div class="day-lead"><span class="context-label">${next?(next.active?'En curso':x<todayISO()?'Sin registrar':'Tu siguiente sesión'):allDone?'Hecho por hoy':'Recuperación'}</span><h2>${esc(heading)}</h2><p>${esc(subtitle)}</p><div class="actions">${next?`<button class="btn" onclick="${next.action}">${next.active?'Continuar entrenamiento':'Abrir sesión'}</button>`:`<button class="btn secondary" onclick="showView('Workout')">${allDone?'Revisar sesiones':'Ver mi semana'}</button>`}</div></div>`;
- let tasks=activities.filter(a=>a!==next).map(a=>task(a.done?'✓':a.kind==='Natación'?'N':'G',a.title,a.done?'Registrado':a.subtitle,a.done,a.action)).join('');
+ let html=`<div class="day-lead"><span class="context-label">${context}</span><h2>${esc(heading)}</h2><p>${esc(subtitle)}</p><div class="actions"><button class="btn ${pending.length||active?'':'secondary'}" onclick="showView('Workout')">${buttonLabel}</button></div></div>`;
+ let tasks='';
  if(isSunday(x)){
   tasks+=task('M','Peso y cintura',measurementDone(x)?'Mediciones registradas':'Medición semanal',measurementDone(x),'openMeasurements()');
   if(!monthlyReviewDone(x))tasks+=task('M','Revisión corporal mensual','Perímetros y fotos',false,'openMonthlyReview()');
