@@ -498,7 +498,7 @@ function nutritionDashboardHTML(nut){
 function renderHome(){
  const x=currentDate(),activities=dayActivities(x),pending=activities.filter(a=>!a.done),active=pending.some(a=>a.active),allDone=activities.length>0&&!pending.length,inPast=x<todayISO();
  const heading=active?'Continuar entrenamiento':pending.length?'Registrar entrenamiento':allDone?'Entrenamiento registrado':'Sin entrenamiento pendiente';
- const subtitle=active?'Hay una sesión en curso. Continúa desde Entreno.':pending.length?(inPast?(pending.length===1?'Queda 1 sesión sin registrar. Fuerza y natación se gestionan desde Entreno.':`Quedan ${pending.length} sesiones sin registrar. Fuerza y natación se gestionan desde Entreno.`):'Fuerza y natación se registran desde Entreno.'):allDone?'Las sesiones de este día ya están registradas.':'No hay sesiones programadas para este día.';
+ const subtitle=active?'Hay una sesión en curso. Continúa desde Entreno.':pending.length?(inPast?(pending.length===1?'Queda 1 sesión sin registrar. Abre Entreno para completar el registro.':`Quedan ${pending.length} sesiones sin registrar. Abre Entreno para completar el registro.`):'Abre Entreno para iniciar o registrar la sesión.'):allDone?'Las sesiones de este día ya están registradas.':'No hay sesiones programadas para este día.';
  const context=active?'En curso':pending.length?(inPast?'Pendiente':'Entrenamiento'):allDone?'Hecho por hoy':'Recuperación';
  const buttonLabel=active?'Continuar en Entreno':pending.length?'Registrar entrenamiento':allDone?'Revisar entrenamientos':'Ver Entreno';
  const root=document.getElementById('viewHome');rememberDisclosures(root);
