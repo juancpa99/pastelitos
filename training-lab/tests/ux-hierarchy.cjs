@@ -58,6 +58,22 @@ try{
  run(`openSwimRegistration()`);doc.getElementById('swM').value='1250';doc.getElementById('swD').value='40';run(`saveSwim()`);
  assert.equal(run(`state.swim.find(s=>s.date===currentDate()).meters`),1250);
  assert.equal(doc.getElementById('modalRoot').children.length,0);
+ // Food logging exposes a broad library and editable multi-ingredient dishes.
+ run(`showView('Food');openFoodModal('Almuerzo')`);
+ assert.ok(run(`Object.keys(FOOD_DB).length`)>=60,'expanded food library is loaded');
+ assert.ok(doc.querySelectorAll('.food-dish-choice').length>=8,'lunch offers several quick dishes');
+ assert.match(doc.getElementById('fdDishes').textContent,/Pollo con arroz y verduras/);
+ run(`openDishTemplate('Almuerzo',0)`);
+ assert.equal(doc.querySelectorAll('.dish-component-input').length,3);
+ assert.match(doc.getElementById('dishPreview').textContent,/kcal/);
+ const foodCountBefore=run(`state.foods.length`);
+ doc.getElementById('dishAmount_1').value='100';
+ run(`updateDishTemplatePreview();saveDishTemplate('Almuerzo',0)`);
+ assert.equal(run(`state.foods.length`),foodCountBefore+3);
+ assert.equal(run(`state.foods.at(-2).foodKey`),'rice');
+ assert.equal(run(`state.foods.at(-2).amount`),100,'rice in a dish is stored as dry grams');
+ assert.equal(run(`state.foods.at(-1).dishName`),'Pollo con arroz y verduras');
+ assert.match(doc.getElementById('viewFood').textContent,/Plato rápido/);
  // Calendar windows handle short months, leap years and year boundaries.
  assert.equal(run(`progressBuckets('2024-03-15','month')[2].end`),'2024-02-29');
  assert.equal(run(`progressBuckets('2026-01-02','month')[2].start`),'2025-12-01');
