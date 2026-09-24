@@ -793,3 +793,61 @@ body[data-view="Home"] .today-btn{
  .dish-component-row label{grid-template-columns:minmax(0,1fr)}
  .dish-component-row label>span{text-align:right}
 }
+
+
+/* v6.48 - adaptive nutrition plan */
+.nutrition-plan-card{margin:14px 0;padding:16px;border:1px solid #315c48;border-radius:18px;background:linear-gradient(180deg,#0a1b20,#08151d)}
+.nutrition-plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.nutrition-plan-head h2{margin:3px 0 0;font-size:20px}
+.nutrition-plan-targets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:13px}
+.nutrition-plan-targets>div{padding:10px;border:1px solid #294658;border-radius:11px;background:#091824}
+.nutrition-plan-targets span,.nutrition-plan-targets small{display:block;color:var(--muted);font-size:9px}
+.nutrition-plan-targets strong{display:block;margin-top:3px;font-size:15px}
+.nutrition-plan-targets small{margin-top:3px}
+.nutrition-plan-missing{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:11px}
+.nutrition-plan-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:13px 0}
+.nutrition-plan-week button{min-width:0;padding:8px 3px;border:1px solid var(--line);border-radius:10px;background:#081522;color:var(--muted);font:inherit}
+.nutrition-plan-week button span,.nutrition-plan-week button b{display:block;font-size:9px}
+.nutrition-plan-week button b{margin-top:3px;color:#83e6a4}
+.nutrition-plan-week button.active{border-color:var(--teal);background:#0d2b2a;color:var(--text)}
+.nutrition-plan-week button.outside{opacity:.38}
+.nutrition-plan-day-head{display:flex;justify-content:space-between;align-items:end;gap:10px;padding:4px 0 9px;border-bottom:1px solid var(--line)}
+.nutrition-plan-day-head span{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;font-weight:800}
+.nutrition-plan-day-head strong{display:block;margin-top:2px;font-size:13px}
+.nutrition-plan-day-total{font-size:10px;color:#83e6a4;font-weight:800;text-align:right}
+.nutrition-plan-meals{display:grid}
+.nutrition-plan-meal{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.nutrition-plan-meal-main>span,.nutrition-plan-meal-main>strong,.nutrition-plan-meal-main>small,.nutrition-plan-meal-main>em{display:block}
+.nutrition-plan-meal-main>span{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:800;letter-spacing:.04em}
+.nutrition-plan-meal-main>strong{margin-top:3px;font-size:13px}
+.nutrition-plan-meal-main>small{margin-top:4px;color:var(--muted);font-size:9px;line-height:1.4}
+.nutrition-plan-meal-main>em{margin-top:5px;color:#83e6a4;font-size:10px;font-style:normal;font-weight:700}
+.nutrition-plan-meal-actions{display:flex;flex-direction:column;gap:6px;align-self:center}
+.nutrition-plan-meal-actions .btn{min-width:74px}
+.nutrition-plan-post{border-left:2px solid #38bdf8;padding-left:10px}
+.nutrition-plan-post.skipped{opacity:.72}
+.nutrition-plan-empty{padding:14px 4px;color:var(--muted);font-size:11px}
+.nutrition-plan-option-list{display:grid;gap:8px;margin-top:14px}
+.nutrition-plan-option{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--text);text-align:left}
+.nutrition-plan-option.active{border-color:var(--teal);background:#0d2b2a}
+.nutrition-plan-option strong,.nutrition-plan-option small{display:block}.nutrition-plan-option small{margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}
+.nutrition-plan-option em{font-size:10px;color:#83e6a4;font-style:normal;font-weight:700;text-align:right}
+.shopping-controls{display:grid;grid-template-columns:1fr 100px;gap:10px;margin:14px 0 10px}
+.shopping-controls label{font-size:10px;color:var(--muted);font-weight:800}
+.shopping-controls input{display:block;width:100%;min-height:44px;margin-top:5px}
+.shopping-range{margin:14px 0 8px;color:#83e6a4;font-size:10px;font-weight:800}
+.shopping-category{margin-top:12px;padding-bottom:5px;color:var(--muted);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--line)}
+.shopping-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.shopping-row strong,.shopping-row small{display:block}.shopping-row strong{font-size:12px}.shopping-row small{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.35}
+.shopping-row>b{font-size:12px;white-space:nowrap}
+@media(max-width:430px){
+ .nutrition-plan-card{padding:13px}
+ .nutrition-plan-head{align-items:stretch;flex-direction:column}
+ .nutrition-plan-head>.btn{width:100%}
+ .nutrition-plan-targets{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .nutrition-plan-targets strong{font-size:13px}
+ .nutrition-plan-meal{grid-template-columns:1fr}
+ .nutrition-plan-meal-actions{flex-direction:row;flex-wrap:wrap}
+ .nutrition-plan-meal-actions .btn{flex:1 1 86px}
+ .shopping-controls{grid-template-columns:1fr 90px}
+}
