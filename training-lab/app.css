@@ -741,3 +741,7 @@ body[data-view="Home"] .today-btn{
  .home-destination-grid{grid-template-columns:1fr}
  .home-destination{min-height:145px}
 }
+
+
+/* v6.41 - Home bottom breathing room */
+#viewHome{padding-bottom:14px}
