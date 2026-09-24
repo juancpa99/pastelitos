@@ -19,7 +19,9 @@ try{
  }
  date('2026-09-22');run(`showView('Home')`);
  assert.equal(run(`dayActivities(currentDate()).length`),2,'Tuesday has two gym sessions');
- assert.equal(doc.querySelectorAll('#viewHome .task-action').length>=1,true);
+ assert.match(doc.querySelector('#viewHome .day-lead').textContent,/Registrar entrenamiento/);
+ assert.ok(!doc.querySelector('#viewHome .day-lead').textContent.includes(run(`dayActivities(currentDate())[0].title`)),'Home hides the recommended workout name');
+ assert.equal(doc.querySelectorAll('#viewHome .day-tasks .task-action').length,0,'training sessions are not duplicated as Home tasks before check-in');
  assert.equal(doc.querySelectorAll('#viewHome [onclick^="openFoodModal"]').length,0,'meals are not repeated as tasks');
  run(`const oldCheckHour=afterCheckHour;afterCheckHour=()=>false;renderHome()`);
  assert.ok(!doc.getElementById('viewHome').textContent.includes('Check-in final'));
@@ -27,10 +29,11 @@ try{
  assert.ok(doc.getElementById('viewHome').textContent.includes('Check-in final'));
  run(`afterCheckHour=oldCheckHour`);
  date('2026-09-23');assert.equal(run(`dayActivities(currentDate())[0].title`),'Natación');
- run(`showView('Workout')`);assert.ok(!doc.getElementById('swM'),'swim form hidden until requested');run(`openSwimRegistration()`);assert.ok(doc.getElementById('swM'));run(`closeModal()`);
+ run(`showView('Home')`);assert.match(doc.querySelector('#viewHome .day-lead').textContent,/Registrar entrenamiento/);assert.ok(!doc.querySelector('#viewHome .day-lead').textContent.includes('Natación'),'Home uses one generic training entry');
+ run(`showView('Workout')`);assert.equal(doc.querySelectorAll('#viewWorkout .training-entry').length,1);assert.equal(doc.querySelectorAll('#viewWorkout .training-mode-choice').length,2);assert.ok(!doc.getElementById('swM'),'swim form hidden until requested');run(`openSwimRegistration()`);assert.ok(doc.getElementById('swM'));run(`closeModal()`);
  date('2026-09-27');run(`showView('Home')`);assert.match(doc.getElementById('viewHome').textContent,/Peso y cintura/);
  date('2026-09-24');run(`showView('Workout')`);
- assert.ok(doc.querySelector('#viewWorkout').firstElementChild.classList.contains('training-entry'));assert.equal(doc.querySelectorAll('#viewWorkout .exercise').length,0);run(`openTrainingSelector()`);assert.equal(doc.querySelectorAll('.training-choice').length,5);run(`closeModal()`);
+ assert.ok(doc.querySelector('#viewWorkout').firstElementChild.classList.contains('training-hub'));assert.equal(doc.querySelectorAll('#viewWorkout .training-mode-choice').length,2);assert.equal(doc.querySelectorAll('#viewWorkout .exercise').length,0);run(`openTrainingSelector()`);assert.equal(doc.querySelectorAll('.training-choice').length,5);run(`closeModal()`);
  assert.equal(doc.querySelector('[data-disclosure="workout-week"]').open,false);
  run(`startGym()`);doc.getElementById('watchReady').click();
  assert.ok(doc.getElementById('workoutWorkspace'));
