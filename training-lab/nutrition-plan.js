@@ -179,8 +179,13 @@
     const id=selectedOptionId(date,meal);
     return OPTIONS[meal]?.find(option=>option.id===id)||OPTIONS[meal]?.[0]||null
   }
-  function isPostSkipped(date){return !!planState().postSkipped?.[date]}
-  function mealShare(date,meal){return (isPostSkipped(date)?SHARES_NO_POST:SHARES_WITH_POST)[meal]||{kcal:0,protein:0}}
+  function isMealSkipped(date,meal){
+    return !!planState().skippedMeals?.[date]?.[meal]
+  }
+  function optionalMealActive(date,meal){
+    if(meal!=='Media mañana')return true;
+    return !!planState().optionalMeals?.[date]?.[meal]||slotLogged(date,meal)
+  }
   function foodInputNutrition(foodKey,inputAmount){
     const amount=toStoredFoodAmount(foodKey,inputAmount);
     return calcFood({foodKey,amount})
@@ -192,13 +197,61 @@
       return sum
     },{kcal:0,p:0,c:0,f:0})
   }
+  function redistributeTarget(targets,sourceMeal,recipients){
+    const freed={...targets[sourceMeal]};
+    targets[sourceMeal]={kcal:0,protein:0};
+    if(!recipients.length)return;
+    ['kcal','protein'].forEach(key=>{
+      const weight=recipients.reduce((sum,meal)=>sum+Math.max(0,targets[meal][key]),0);
+      recipients.forEach(meal=>{
+        const share=weight>0?Math.max(0,targets[meal][key])/weight:1/recipients.length;
+        targets[meal][key]+=freed[key]*share
+      })
+    })
+  }
+  function subtractOptionalTarget(targets,desired,donors){
+    if(!donors.length)return;
+    ['kcal','protein'].forEach(key=>{
+      const available=donors.reduce((sum,meal)=>sum+Math.max(0,targets[meal][key]),0);
+      const take=Math.min(desired[key],available);
+      donors.forEach(meal=>{
+        const share=available>0?Math.max(0,targets[meal][key])/available:0;
+        targets[meal][key]=Math.max(0,targets[meal][key]-take*share)
+      })
+    })
+  }
+  function mealTargetMap(date){
+    const target=targetFor(date);
+    const targets={};
+    MEALS.forEach(meal=>{
+      const share=BASE_SHARES[meal]||{kcal:0,protein:0};
+      targets[meal]={kcal:(target.kcal||0)*share.kcal,protein:(target.protein||0)*share.protein}
+    });
+    if(optionalMealActive(date,'Media mañana')&&!isMealSkipped(date,'Media mañana')){
+      const desired={kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein};
+      targets['Media mañana']={...desired};
+      const donors=['Merienda','Cena','Post-entreno'].filter(meal=>!isMealSkipped(date,meal)&&!slotLogged(date,meal));
+      subtractOptionalTarget(targets,desired,donors)
+    }
+    MEALS.forEach((meal,index)=>{
+      if(!isMealSkipped(date,meal))return;
+      const recipients=MEALS.slice(index+1).filter(next=>
+        FLEXIBLE_MEALS.includes(next)&&
+        optionalMealActive(date,next)&&
+        !isMealSkipped(date,next)&&
+        !slotLogged(date,next)
+      );
+      redistributeTarget(targets,meal,recipients)
+    });
+    return targets
+  }
   function range(min,max,step){
     const out=[];for(let n=min;n<=max+1e-9;n+=step)out.push(Number(n.toFixed(4)));return out
   }
-  function fitOption(date,meal,option){
-    const target=targetFor(date),share=mealShare(date,meal);
+  function fitOption(date,meal,option,targetOverride=null){
+    const target=targetFor(date),mealTarget=targetOverride||mealTargetMap(date)[meal]||{kcal:0,protein:0};
     if(!target.complete)return {items:[...(option.fixed||[])],nutrition:sumNutrition(option.fixed||[])};
-    const targetKcal=target.kcal*share.kcal,targetProtein=target.protein*share.protein;
+    const targetKcal=mealTarget.kcal,targetProtein=mealTarget.protein;
     const fixed=option.fixed||[],vars=option.vars||[];
     const choices=vars.map(v=>range(v[1],v[2],v[3]));
     let best=null;
@@ -219,17 +272,33 @@
   function mealPlan(date,meal){
     const option=selectedOption(date,meal);
     if(!option)return null;
-    if(meal==='Post-entreno'&&isPostSkipped(date))return {meal,option,skipped:true,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
-    const fitted=fitOption(date,meal,option),custom=planState().amountOverrides?.[date]?.[meal];
+    if(isMealSkipped(date,meal))return {meal,option,skipped:true,optionalInactive:false,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
+    const optionalInactive=meal==='Media mañana'&&!optionalMealActive(date,meal);
+    const target=targetFor(date);
+    const previewTarget=optionalInactive?{kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein}:null;
+    const fitted=fitOption(date,meal,option,previewTarget),custom=planState().amountOverrides?.[date]?.[meal];
     if(custom?.optionId===option.id&&custom.amounts){
       fitted.items=fitted.items.map(([key,amount])=>[key,Number.isFinite(+custom.amounts[key])?+custom.amounts[key]:amount]).filter(([,amount])=>amount>0);
       fitted.nutrition=sumNutrition(fitted.items)
     }
-    return {meal,option,skipped:false,...fitted}
+    return {meal,option,skipped:false,optionalInactive,...fitted}
   }
   function dayPlan(date){return MEALS.map(meal=>mealPlan(date,meal)).filter(Boolean)}
   function dayPlanNutrition(date){
-    return dayPlan(date).reduce((sum,row)=>{sum.kcal+=row.nutrition.kcal;sum.p+=row.nutrition.p;sum.c+=row.nutrition.c;sum.f+=row.nutrition.f;return sum},{kcal:0,p:0,c:0,f:0})
+    return dayPlan(date).reduce((sum,row)=>{
+      if(row.skipped||row.optionalInactive)return sum;
+      sum.kcal+=row.nutrition.kcal;sum.p+=row.nutrition.p;sum.c+=row.nutrition.c;sum.f+=row.nutrition.f;return sum
+    },{kcal:0,p:0,c:0,f:0})
+  }
+  function clearFlexibleOverrides(date,afterMeal=null){
+    const ps=planState(),overrides=ps.amountOverrides?.[date];
+    if(!overrides)return;
+    const afterIndex=afterMeal?MEALS.indexOf(afterMeal):-1;
+    FLEXIBLE_MEALS.forEach(meal=>{
+      const index=MEALS.indexOf(meal);
+      if(index<=afterIndex||slotLogged(date,meal))return;
+      delete overrides[meal]
+    })
   }
   function amountText(key,amount){
     const meta=foodInputMeta(key),shown=Number.isInteger(amount)?amount:Number(amount.toFixed(1));
