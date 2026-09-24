@@ -86,6 +86,14 @@ try{
  run(`state.body.push({date:'2026-09-25',weight:80});state.metabolism={sex:'male',birthDate:'2000-01-01',heightCm:175,activityFactor:1.55};document.getElementById('selectedDate').value='2026-09-25';renderAll();showView('Food')`);
  assert.ok(doc.querySelector('.nutrition-plan-card'),'nutrition plan is visible in Food');
  assert.equal(run(`nutritionPlanTarget('2026-09-25').protein`),176,'protein target follows 2.2 g/kg');
+ assert.ok(run(`nutritionPlanTarget('2026-09-25').effectiveOffset`)<=-100&&run(`nutritionPlanTarget('2026-09-25').effectiveOffset`)>=-200,'cut mode stays within -100 to -200 kcal');
+ run(`setNutritionPlanMode('maintain')`);
+ assert.ok(Math.abs(run(`nutritionPlanTarget('2026-09-25').effectiveOffset`))<=100,'maintenance stays within ±100 kcal');
+ run(`setNutritionPlanMode('bulk')`);
+ assert.ok(run(`nutritionPlanTarget('2026-09-25').effectiveOffset`)>=200&&run(`nutritionPlanTarget('2026-09-25').effectiveOffset`)<=500,'bulk stays within +200 to +500 kcal');
+ assert.equal(run(`nutritionPlanTarget('2026-09-25').protein`),176,'protein target is stable across calorie modes');
+ run(`setNutritionPlanMode('cut')`);
+ assert.equal(doc.querySelectorAll('.nutrition-plan-mode button').length,3,'three nutrition modes are visible');
  assert.equal(doc.querySelectorAll('.nutrition-plan-meal').length,5,'daily plan includes five slots');
  assert.match(doc.querySelector('.nutrition-plan-post').textContent,/Post-entreno/);
  run(`openNutritionPlanMealOptions('2026-09-25','Almuerzo')`);
