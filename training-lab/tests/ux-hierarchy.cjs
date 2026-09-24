@@ -117,6 +117,16 @@ try{
  assert.ok(run(`state.foods.length`)>plannedFoodBefore,'planned meal can be added to the diary');
  run(`toggleNutritionPlanPost('2026-09-25')`);
  assert.match(doc.querySelector('.nutrition-plan-post').textContent,/No hecha/);
+ run(`openNutritionCookingPlan()`);
+ assert.ok(doc.getElementById('cookingResults'),'cooking planner opens');
+ assert.ok(run(`cookingMeals('2026-09-25',7).every(row=>row.meal==='Almuerzo'||row.meal==='Cena')`),'cooking planner only uses lunch and dinner');
+ assert.ok(run(`cookingMeals('2026-09-25',7).length`)<=14,'seven-day cooking plan cannot exceed fourteen lunch/dinner meals');
+ assert.match(doc.getElementById('cookingResults').textContent,/Platos/);
+ assert.match(doc.getElementById('cookingResults').textContent,/Preparar/);
+ assert.match(doc.getElementById('cookingResults').textContent,/raciones/);
+ assert.match(doc.getElementById('cookingResults').textContent,/cocid/,'dry staples include an approximate cooked yield');
+ doc.getElementById('cookDays').value='20';run(`refreshNutritionCookingPlan()`);
+ assert.equal(doc.getElementById('cookDays').value,'7','cooking planner is capped at seven days');
  run(`openNutritionShoppingList()`);
  assert.match(doc.getElementById('shoppingResults').textContent,/Pollo|Pavo|Merluza/,'shopping list aggregates planned foods');
  // Calendar windows handle short months, leap years and year boundaries.
