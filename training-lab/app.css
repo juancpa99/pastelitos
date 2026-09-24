@@ -900,3 +900,15 @@ body[data-view="Home"] .today-btn{
  .nutrition-plan-mode button{font-size:10px;padding:0 5px}
  .nutrition-offset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* v6.51 - flexible meal rebalancing */
+.nutrition-plan-day-tools{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.nutrition-rebalance-button{min-height:34px!important;padding:6px 9px!important;font-size:10px!important}
+.nutrition-plan-optional{border-left:2px solid #83e6a4;padding-left:10px}
+.nutrition-plan-meal.skipped{opacity:.68}
+.nutrition-plan-meal.skipped .nutrition-plan-meal-main>strong{color:var(--muted)}
+@media(max-width:430px){
+ .nutrition-plan-day-head{align-items:flex-start}
+ .nutrition-plan-day-tools{align-items:flex-end}
+}
