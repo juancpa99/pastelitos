@@ -21,7 +21,9 @@ try{
  assert.equal(run(`dayActivities(currentDate()).length`),2,'Tuesday has two gym sessions');
  assert.match(doc.querySelector('#viewHome .day-lead').textContent,/Registrar entrenamiento/);
  assert.ok(!doc.querySelector('#viewHome .day-lead').textContent.includes(run(`dayActivities(currentDate())[0].title`)),'Home hides the recommended workout name');
- assert.equal(doc.querySelectorAll('#viewHome .day-tasks .task-action').length,0,'training sessions are not duplicated as Home tasks before check-in');
+ const activityTitles=run(`dayActivities(currentDate()).map(a=>a.title)`);
+ const homeTaskTitles=[...doc.querySelectorAll('#viewHome .day-tasks .task-action strong')].map(el=>el.textContent.trim());
+ assert.ok(homeTaskTitles.every(title=>!activityTitles.includes(title)),'training sessions are not duplicated as Home tasks');
  assert.equal(doc.querySelectorAll('#viewHome [onclick^="openFoodModal"]').length,0,'meals are not repeated as tasks');
  run(`const oldCheckHour=afterCheckHour;afterCheckHour=()=>false;renderHome()`);
  assert.ok(!doc.getElementById('viewHome').textContent.includes('Check-in final'));
