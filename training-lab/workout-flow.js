@@ -1,9 +1,20 @@
 // The landing page never creates a workout. Only explicit selection starts one.
 let plannedWorkspaceOpen=false;
 function workoutLandingHTML(date){
- const p=planFor(date),s=p.type==='gym'?findSession(date,p.key):null;
- return `<div class="training-entry"><span class="context-label">Gimnasio</span><h2>Entrenamiento de fuerza e hipertrofia</h2><p>Elige una sesión y registra tu entrenamiento.</p><button class="btn" onclick="openTrainingSelector()">Iniciar sesión</button>${s?.startedAt&&!s.completed?'<button class="btn secondary" onclick="openPlannedWorkspace()">Continuar entrenamiento</button>':''}</div>
- <div class="training-entry"><span class="context-label">Piscina</span><h2>Entrenamiento de natación</h2><p>Apunta lo que has hecho al terminar.</p><button class="btn secondary" onclick="openSwimRegistration()">Registrar sesión</button></div>
+ const p=planFor(date),planned=p.type==='gym'?findSession(date,p.key):null;
+ const activeExtra=state.extraSessions.find(s=>s.date===date&&s.startedAt&&!s.completed&&s.exercises?.some(e=>e.type==='strength'));
+ const plannedActive=!!(planned?.startedAt&&!planned.completed),strengthActive=plannedActive||!!activeExtra;
+ const strengthAction=plannedActive?'openPlannedWorkspace()':activeExtra?`editExtraSession('${activeExtra.id}')`:'openTrainingSelector()';
+ const swimRecord=(state.swim||[]).find(s=>s.date===date&&s.completed);
+ return `<div class="training-entry training-hub">
+  <span class="context-label">Entrenamiento</span>
+  <h2>Registrar entrenamiento</h2>
+  <p>Fuerza y natación están en el mismo sitio. Elige qué quieres registrar.</p>
+  <div class="training-mode-list">
+   <button type="button" class="training-mode-choice" onclick="${strengthAction}"><span class="training-mode-icon" aria-hidden="true">F</span><span class="training-mode-copy"><strong>Fuerza</strong><small>${strengthActive?'Sesión en curso · continuar':'Elegir e iniciar una sesión'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
+   <button type="button" class="training-mode-choice" onclick="openSwimRegistration()"><span class="training-mode-icon" aria-hidden="true">N</span><span class="training-mode-copy"><strong>Natación</strong><small>${swimRecord?'Sesión registrada · revisar o editar':'Registrar al terminar'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
+  </div>
+ </div>
  ${disclosureHTML('workout-week','Semana y planificación',typeof oct26FlexContext==='function'&&oct26FlexContext(date)?oct26WeeklyPoolHTML(date):'<button class="btn secondary" onclick="openPendingWorkouts()">Ver sesiones pendientes</button>')}
  ${disclosureHTML('workout-extras','Otras sesiones e historial',extraSessionsHTML(date)+(typeof seasonComplementHTML==='function'?seasonComplementHTML(date):'')+ (p.type==='cardio'?cardioHTML(date):''))}`;
 }
