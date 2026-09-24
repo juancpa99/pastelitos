@@ -497,8 +497,8 @@
       row.items.forEach(([foodKey,inputAmount])=>{
         const db=foodRecord(foodKey),meta=foodInputMeta(foodKey);if(!db||!meta)return;
         const key=`${foodKey}|${meta.inputUnit}`;
-        if(!map.has(key))map.set(key,{foodKey,name:db.name,cat:db.cat,unit:meta.inputUnit,total:0,uses:0,dishes:new Set()});
-        const entry=map.get(key);entry.total+=inputAmount;entry.uses+=1;entry.dishes.add(row.option.name)
+        if(!map.has(key))map.set(key,{foodKey,name:db.name,cat:db.cat,unit:meta.inputUnit,total:0,uses:0,portions:[],dishes:new Set()});
+        const entry=map.get(key);entry.total+=inputAmount;entry.uses+=1;entry.portions.push(inputAmount);entry.dishes.add(row.option.name)
       })
     });
     return [...map.values()].sort((a,b)=>{
@@ -512,14 +512,19 @@
     const n=Number.isInteger(value)?value:Number(value.toFixed(1));
     return `${n} ${unit}`
   }
+  function portionRangeText(portions,unit,factor=1){
+    const values=(portions||[]).map(value=>value*factor).filter(Number.isFinite);
+    if(!values.length)return '';
+    const min=Math.min(...values),max=Math.max(...values);
+    return Math.abs(max-min)<.01?prepAmount(min,unit):`${prepAmount(min,unit)}–${prepAmount(max,unit)}`
+  }
   function cookingIngredientMeta(row){
-    const perUse=row.uses?row.total/row.uses:row.total;
     const yieldInfo=COOKING_YIELDS[row.foodKey];
     if(yieldInfo&&row.unit==='g'){
-      const cooked=row.total*yieldInfo.factor,cookedPerUse=cooked/Math.max(1,row.uses);
-      return `${row.uses} raciones · ≈ ${prepAmount(cooked,'g')} ${yieldInfo.label} · ≈ ${prepAmount(cookedPerUse,'g')}/ración`
+      const cooked=row.total*yieldInfo.factor,cookedRange=portionRangeText(row.portions,'g',yieldInfo.factor);
+      return `${row.uses} raciones · ≈ ${prepAmount(cooked,'g')} ${yieldInfo.label} · ≈ ${cookedRange}/ración`
     }
-    return `${row.uses} raciones · ≈ ${prepAmount(perUse,row.unit)}/ración`
+    return `${row.uses} raciones · ${portionRangeText(row.portions,row.unit)}/ración`
   }
   function cookingResultsHTML(start,days){
     const safeDays=Math.max(1,Math.min(7,Math.round(Number(days)||7)));
