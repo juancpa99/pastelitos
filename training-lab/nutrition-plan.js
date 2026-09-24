@@ -6,33 +6,35 @@
   const PLAN_START='2026-09-25';
   const PLAN_END='2026-10-30';
   const PROTEIN_PER_KG=2.2;
-  const MEALS=['Desayuno','Almuerzo','Merienda','Cena','Post-entreno'];
+  const MEALS=['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Post-entreno'];
+  const FLEXIBLE_MEALS=['Media mañana','Merienda','Cena','Post-entreno'];
   const NUTRITION_MODES={
-    cut:{label:'Definición',defaultOffset:-150,min:-200,max:-100,step:50},
+    cut:{label:'Definición',defaultOffset:-200,min:-300,max:-100,step:50},
     maintain:{label:'Mantener',defaultOffset:0,min:-100,max:100,step:50},
     bulk:{label:'Volumen',defaultOffset:300,min:200,max:500,step:50}
   };
 
-  const SHARES_WITH_POST={
+  const BASE_SHARES={
     'Desayuno':{kcal:.23,protein:.22},
+    'Media mañana':{kcal:0,protein:0},
     'Almuerzo':{kcal:.31,protein:.30},
     'Merienda':{kcal:.14,protein:.18},
     'Cena':{kcal:.22,protein:.20},
     'Post-entreno':{kcal:.10,protein:.10}
   };
-  const SHARES_NO_POST={
-    'Desayuno':{kcal:.23,protein:.22},
-    'Almuerzo':{kcal:.31,protein:.30},
-    'Merienda':{kcal:.18,protein:.22},
-    'Cena':{kcal:.28,protein:.26},
-    'Post-entreno':{kcal:0,protein:0}
-  };
+  const MEDIA_MORNING_SHARE={kcal:.08,protein:.08};
 
   const OPTIONS={
     'Desayuno':[
       {id:'breakfast_oats',name:'Avena con leche, whey y plátano',fixed:[['milk',250],['banana',1]],vars:[['whey',10,55,5],['oats',30,120,5]]},
       {id:'breakfast_toast',name:'Tostadas con huevos y jamón cocido',fixed:[['egg',2],['tomato',100]],vars:[['ham_york_90',30,130,10],['whole_bread',1,5,1]]},
       {id:'breakfast_yogurt',name:'Yogur con avena, whey y fresas',fixed:[['greek_yogurt_0',250],['strawberries',150]],vars:[['whey',0,45,5],['oats',30,110,5]]}
+    ],
+    'Media mañana':[
+      {id:'mid_yogurt_banana',name:'Yogur griego con plátano',fixed:[['greek_yogurt_0',200]],vars:[['banana',0,1,1],['whey',0,25,5]]},
+      {id:'mid_toast_turkey',name:'Tostas con pavo',fixed:[],vars:[['ham_york_90',40,100,10],['whole_bread',1,3,1]]},
+      {id:'mid_ricecakes_turkey',name:'Tortitas de arroz con pavo',fixed:[],vars:[['ham_york_90',40,100,10],['rice_cakes',2,5,1]]},
+      {id:'mid_shake',name:'Batido de proteína con leche',fixed:[['milk',250]],vars:[['whey',15,35,5]]}
     ],
     'Almuerzo':[
       {id:'lunch_chicken_rice',name:'Pollo con arroz y verduras',fixed:[['veg',200],['oil',5]],vars:[['chicken',130,280,10],['rice',45,150,5]]},
@@ -74,7 +76,15 @@
     if(!state.nutritionPlan||typeof state.nutritionPlan!=='object')state.nutritionPlan={};
     if(!state.nutritionPlan.overrides||typeof state.nutritionPlan.overrides!=='object')state.nutritionPlan.overrides={};
     if(!state.nutritionPlan.postSkipped||typeof state.nutritionPlan.postSkipped!=='object')state.nutritionPlan.postSkipped={};
+    if(!state.nutritionPlan.skippedMeals||typeof state.nutritionPlan.skippedMeals!=='object')state.nutritionPlan.skippedMeals={};
+    if(!state.nutritionPlan.optionalMeals||typeof state.nutritionPlan.optionalMeals!=='object')state.nutritionPlan.optionalMeals={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
+    Object.keys(state.nutritionPlan.postSkipped).forEach(date=>{
+      if(state.nutritionPlan.postSkipped[date]){
+        if(!state.nutritionPlan.skippedMeals[date])state.nutritionPlan.skippedMeals[date]={};
+        state.nutritionPlan.skippedMeals[date]['Post-entreno']=true
+      }
+    });
     if(!NUTRITION_MODES[state.nutritionPlan.mode])state.nutritionPlan.mode='cut';
     const cfg=NUTRITION_MODES[state.nutritionPlan.mode];
     const stored=Number(state.nutritionPlan.baseOffset);
@@ -124,9 +134,9 @@
   function activityAdjustment(date){
     const a=recentTrainingAdherence(date);
     if(a.ratio==null)return {kcal:0,...a};
-    let kcal=a.ratio>=.9?0:a.ratio>=.75?-25:a.ratio>=.6?-50:-100;
+    let kcal=a.ratio>=.9?0:a.ratio>=.75?-25:-50;
     kcal+=Math.min(50,a.extra*25);
-    return {kcal:clamp(kcal,-100,50),...a}
+    return {kcal:clamp(kcal,-50,50),...a}
   }
   function weightAdjustment(mode,date){
     const weekly=recentWeightTrend(date);
