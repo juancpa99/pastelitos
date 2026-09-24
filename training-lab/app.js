@@ -2250,4 +2250,35 @@ installAccessibilityEnhancer();
 setTimeout(showInstallHint,450);
 syncRuntimeTimers();
 if(state.restTimer||state.cardioRuntime)startRuntimeTicker();
-if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{});
+function installPwaAutoUpdate(){
+ if(!("serviceWorker" in navigator)||!/^https?:$/.test(location.protocol))return;
+ const hadControllerAtStart=!!navigator.serviceWorker.controller;
+ let reloadingForUpdate=false;
+ const requestActivation=worker=>{
+  if(!worker)return;
+  const activate=()=>{if(worker.state==="installed"&&navigator.serviceWorker.controller)worker.postMessage({type:"SKIP_WAITING"})};
+  worker.addEventListener("statechange",activate);
+  activate();
+ };
+ const checkForUpdate=registration=>{
+  registration.update().then(()=>{
+   if(registration.waiting)registration.waiting.postMessage({type:"SKIP_WAITING"});
+  }).catch(()=>{});
+ };
+ navigator.serviceWorker.addEventListener("controllerchange",()=>{
+  if(!hadControllerAtStart||reloadingForUpdate)return;
+  reloadingForUpdate=true;
+  location.reload();
+ });
+ navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(registration=>{
+  if(registration.installing)requestActivation(registration.installing);
+  if(registration.waiting)registration.waiting.postMessage({type:"SKIP_WAITING"});
+  registration.addEventListener("updatefound",()=>requestActivation(registration.installing));
+  checkForUpdate(registration);
+  document.addEventListener("visibilitychange",()=>{
+   if(document.visibilityState==="visible")checkForUpdate(registration);
+  });
+  window.addEventListener("pageshow",()=>checkForUpdate(registration));
+ }).catch(()=>{});
+}
+installPwaAutoUpdate();
