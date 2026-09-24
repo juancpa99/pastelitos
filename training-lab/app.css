@@ -912,3 +912,55 @@ body[data-view="Home"] .today-btn{
  .nutrition-plan-day-head{align-items:flex-start}
  .nutrition-plan-day-tools{align-items:flex-end}
 }
+
+
+/* v6.52 - shopping modal mobile layout */
+.shopping-sheet{overflow-x:hidden}
+.shopping-head{align-items:flex-start}
+.shopping-head>div{min-width:0}
+.shopping-head .hero-title{line-height:1.12}
+.shopping-head>.btn{flex:0 0 auto}
+.shopping-controls{
+  grid-template-columns:minmax(0,1fr) minmax(120px,160px);
+  align-items:end;
+  gap:12px;
+}
+.shopping-controls label{
+  display:grid!important;
+  gap:6px;
+  min-width:0;
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  color:var(--muted);
+  font-weight:800;
+}
+.shopping-controls input{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:48px;
+  margin:0;
+  padding:10px 12px;
+  border:1px solid #29435f;
+  border-radius:11px;
+  background:#081525;
+  color:var(--text);
+  color-scheme:dark;
+}
+.shopping-controls input[type="number"]{text-align:left}
+.shopping-sheet .quickchips{margin-top:4px}
+.shopping-sheet>.actions{margin-top:10px}
+.shopping-row>div{min-width:0}
+.shopping-row small{overflow-wrap:anywhere}
+@media(max-width:620px){
+ .shopping-controls{grid-template-columns:1fr;gap:10px}
+ .shopping-sheet>.actions .btn{width:100%}
+}
+@media(max-width:380px){
+ .shopping-head .hero-title{font-size:21px}
+ .shopping-head>.btn{padding-left:9px;padding-right:9px}
+ .shopping-sheet .quickchips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .shopping-sheet .quickchips .chip{width:100%}
+}
