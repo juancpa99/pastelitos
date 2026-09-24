@@ -317,13 +317,16 @@
   }
 
   function planMealRowHTML(date,row){
-    if(row.meal==='Post-entreno'&&row.skipped){
-      return `<div class="nutrition-plan-meal nutrition-plan-post skipped"><div class="nutrition-plan-meal-main"><span>Post-entreno · opcional</span><strong>No tomar hoy</strong></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">Reactivar</button></div></div>`
+    const logged=slotLogged(date,row.meal),post=row.meal==='Post-entreno',mid=row.meal==='Media mañana',optional=post||mid;
+    if(row.skipped){
+      return `<div class="nutrition-plan-meal ${post?'nutrition-plan-post ':''}skipped"><div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${optional?' · opcional':''}</span><strong>No hecha</strong></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanMealSkipped('${date}','${row.meal}')">Reactivar</button></div></div>`
     }
-    const logged=slotLogged(date,row.meal),post=row.meal==='Post-entreno';
+    if(row.optionalInactive){
+      return `<div class="nutrition-plan-meal nutrition-plan-optional"><div class="nutrition-plan-meal-main"><span>Media mañana · opcional</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn small" onclick="addNutritionPlanMeal('${date}','Media mañana')">Añadir</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','Media mañana')">Ajustar</button></div></div>`
+    }
     return `<div class="nutrition-plan-meal ${post?'nutrition-plan-post':''}">
-      <div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${post?' · opcional':''}</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div>
-      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${post?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">No tomar</button>`:''}</div>
+      <div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${optional?' · opcional':''}</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div>
+      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${!logged?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanMealSkipped('${date}','${row.meal}')">No hecha</button>`:''}</div>
     </div>`
   }
   function signedKcal(value){
@@ -346,7 +349,7 @@
     const weekHTML=`<div class="nutrition-plan-week">${days.map(d=>`<button type="button" class="${d===date?'active':''} ${inPlan(d)?'':'outside'}" onclick="selectNutritionPlanDate('${d}')"><span>${esc(dateLabel(d))}</span><b>${inPlan(d)?'•':'—'}</b></button>`).join('')}</div>`;
     const totals=active&&target.complete?dayPlanNutrition(date):null;
     const body=active&&target.complete
-      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}</div>`
+      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}</div>`
       :active
         ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
         :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
