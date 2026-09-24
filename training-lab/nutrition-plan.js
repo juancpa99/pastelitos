@@ -70,6 +70,7 @@
     if(!state.nutritionPlan||typeof state.nutritionPlan!=='object')state.nutritionPlan={};
     if(!state.nutritionPlan.overrides||typeof state.nutritionPlan.overrides!=='object')state.nutritionPlan.overrides={};
     if(!state.nutritionPlan.postSkipped||typeof state.nutritionPlan.postSkipped!=='object')state.nutritionPlan.postSkipped={};
+    if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
     return state.nutritionPlan;
   }
   function inPlan(date){return date>=PLAN_START&&date<=PLAN_END}
@@ -138,7 +139,12 @@
     const option=selectedOption(date,meal);
     if(!option)return null;
     if(meal==='Post-entreno'&&isPostSkipped(date))return {meal,option,skipped:true,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
-    return {meal,option,skipped:false,...fitOption(date,meal,option)}
+    const fitted=fitOption(date,meal,option),custom=planState().amountOverrides?.[date]?.[meal];
+    if(custom?.optionId===option.id&&custom.amounts){
+      fitted.items=fitted.items.map(([key,amount])=>[key,Number.isFinite(+custom.amounts[key])?+custom.amounts[key]:amount]).filter(([,amount])=>amount>0);
+      fitted.nutrition=sumNutrition(fitted.items)
+    }
+    return {meal,option,skipped:false,...fitted}
   }
   function dayPlan(date){return MEALS.map(meal=>mealPlan(date,meal)).filter(Boolean)}
   function dayPlanNutrition(date){
@@ -167,7 +173,7 @@
     const logged=slotLogged(date,row.meal),post=row.meal==='Post-entreno';
     return `<div class="nutrition-plan-meal ${post?'nutrition-plan-post':''}">
       <div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${post?' · opcional':''}</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div>
-      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Cambiar</button>${post?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">No tomar hoy</button>`:''}</div>
+      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${post?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanPost('${date}')">No tomar hoy</button>`:''}</div>
     </div>`
   }
 
@@ -209,12 +215,27 @@
     saveState();renderAll();showView('Food');toast(`${row.option.name} añadido`)
   };
   window.openNutritionPlanMealOptions=function(date,meal){
-    const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal);
-    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Cambiar plato</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}'')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
+    const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal),current=mealPlan(date,meal);
+    const amounts=current&&!current.skipped?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades</div>${current.items.map(([key,amount],i)=>{const db=foodRecord(key),meta=foodInputMeta(key);return `<label><span><strong>${esc(db?.name||key)}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" inputmode="decimal" value="${amount}"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
+    document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Ajustar comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>${amounts}<div class="nutrition-plan-option-title">Cambiar plato</div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
+  };
+  window.saveNutritionPlanMealAmounts=function(date,meal){
+    const option=selectedOption(date,meal),inputs=[...document.querySelectorAll('[id^="planAmount_"]')];
+    if(!option||!inputs.length)return;
+    const amounts={};
+    for(const input of inputs){
+      const n=Number(input.value);if(!Number.isFinite(n)||n<0){toast('Revisa las cantidades');return}
+      amounts[input.dataset.foodKey]=n
+    }
+    const ps=planState();if(!ps.amountOverrides[date])ps.amountOverrides[date]={};
+    ps.amountOverrides[date][meal]={optionId:option.id,amounts};
+    saveState(true);closeModal();renderAll();showView('Food');toast('Cantidades actualizadas')
   };
   window.chooseNutritionPlanMeal=function(date,meal,optionId){
     const ps=planState();if(!ps.overrides[date])ps.overrides[date]={};
-    ps.overrides[date][meal]=optionId;saveState(true);closeModal();renderAll();showView('Food')
+    ps.overrides[date][meal]=optionId;
+    if(ps.amountOverrides?.[date])delete ps.amountOverrides[date][meal];
+    saveState(true);closeModal();renderAll();showView('Food')
   };
   window.toggleNutritionPlanPost=function(date){
     const ps=planState(),next=!ps.postSkipped[date];
