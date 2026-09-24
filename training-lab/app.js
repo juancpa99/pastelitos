@@ -1435,7 +1435,8 @@ function foodKeysForMeal(meal){
 function renderFoodPicker(){
  const root=document.getElementById("fdPicker");if(!root)return;
  const meal=val("fdMeal")||"Desayuno",query=(val("fdSearch")||"").trim().toLocaleLowerCase("es");
- const keys=foodKeysForMeal(meal).filter(k=>{const f=foodRecord(k);return !query||`${f.name} ${f.cat}`.toLocaleLowerCase("es").includes(query)});
+ const source=query?allFoodKeys():foodKeysForMeal(meal);
+ const keys=[...new Set(source)].filter(k=>{const f=foodRecord(k);return f&&(!query||`${f.name} ${f.cat}`.toLocaleLowerCase("es").includes(query))});
  root.innerHTML=keys.length?keys.map(k=>{const f=foodRecord(k),active=val("fdKey")===k;return `<button type="button" class="food-option ${active?"active":""}" role="option" aria-selected="${active}" onclick="setFoodSelection('${k}')"><span><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · ${esc(foodInputMeta(k).reference)}</small></span><b>${active?"✓":"+"}</b></button>`}).join(""):`<div class="empty">No hay resultados. Puedes crear este alimento.</div>`
 }
 function setFoodSelection(key){
