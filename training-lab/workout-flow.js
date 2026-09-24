@@ -9,7 +9,6 @@ function workoutLandingHTML(date){
  return `<div class="training-entry training-hub">
   <span class="context-label">Entrenamiento</span>
   <h2>Registrar entrenamiento</h2>
-  <p>Fuerza y natación están en el mismo sitio. Elige qué quieres registrar.</p>
   <div class="training-mode-list">
    <button type="button" class="training-mode-choice" onclick="${strengthAction}"><span class="training-mode-icon" aria-hidden="true">F</span><span class="training-mode-copy"><strong>Fuerza</strong><small>${strengthActive?'Sesión en curso · continuar':'Elegir e iniciar una sesión'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
    <button type="button" class="training-mode-choice" onclick="openSwimRegistration()"><span class="training-mode-icon" aria-hidden="true">N</span><span class="training-mode-copy"><strong>Natación</strong><small>${swimRecord?'Sesión registrada · revisar o editar':'Registrar al terminar'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
