@@ -256,7 +256,7 @@ function showView(v){
  document.body.dataset.view=v;
  document.querySelector(".date-nav")?.classList.toggle("hidden",v==="Progress"||v==="Settings");
  activeView=v;["Home","Workout","Food","Progress","Settings"].forEach(x=>{document.getElementById("view"+x)?.classList.toggle("hidden",x!==v);document.querySelector(`[data-view="${x}"]`)?.classList.toggle("active",x===v)});
- const meta={Home:["Hoy","Lo importante del día."],Workout:["Entreno","Registra la sesión sin perder el ritmo."],Food:["Comidas","Añade alimentos y revisa el total del día."],Progress:["Progreso","Entrenamiento, nutrición y medidas."],Settings:["Ajustes","Plan, objetivos, notificaciones y datos."]}[v];
+ const meta={Home:["Hoy","Entrenamiento, comida y progreso."],Workout:["Entreno","Registra la sesión sin perder el ritmo."],Food:["Comidas","Añade alimentos y revisa el total del día."],Progress:["Progreso","Entrenamiento, nutrición y medidas."],Settings:["Ajustes","Plan, objetivos, notificaciones y datos."]}[v];
  document.getElementById("pageTitle").textContent=meta[0];document.getElementById("pageSubtitle").textContent=meta[1];
  if(v==="Home")renderHome();if(v==="Workout")renderWorkout();if(v==="Food")renderFood();if(v==="Progress")renderProgress();if(v==="Settings")renderSettings();
  if(changingView)scrollViewToTop();
@@ -495,24 +495,78 @@ function nutritionMetricHTML(label,key,value,unit="g"){
 function nutritionDashboardHTML(nut){
  return `<div class="nutrition-dashboard">${nutritionMetricHTML("Energía","kcal",nut.kcal,"kcal")}${nutritionMetricHTML("Proteína","p",nut.p)}${nutritionMetricHTML("Carbohidratos","c",nut.c)}${nutritionMetricHTML("Grasas","f",nut.f)}</div>`
 }
+function homeIconSVG(kind){
+ const paths={
+  training:'<path d="M5 8v8M2.5 9.5v5M19 8v8M21.5 9.5v5M5 12h14"/>',
+  food:'<path d="M7 3v8M4.5 3v5A2.5 2.5 0 0 0 7 10.5 2.5 2.5 0 0 0 9.5 8V3M7 10.5V21M16 3v18M16 3c3 2 4 5 4 8h-4"/>',
+  progress:'<path d="m4 17 5-5 4 3 7-8"/><path d="M15 7h5v5"/>',
+  measure:'<path d="M4 6h16v12H4z"/><path d="M7 6v4M10 6v2M13 6v4M16 6v2"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/>'
+ };
+ return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[kind]||paths.check}</svg>`;
+}
+function homeWeekSnapshot(date){
+ const sessions=allCompletedTraining().filter(s=>inWeek(s.date,date)&&s.date<=date);
+ const strength=sessions.filter(s=>s._kind==='gym'||(s._kind==='extra'&&s.exercises?.some(e=>e.type==='strength'))).length;
+ const swim=sessions.filter(s=>s._kind==='swim').length;
+ return {sessions:sessions.length,strength,swim,minutes:periodMinutes(sessions)};
+}
+function homePendingItems(date){
+ const rows=[];
+ if(isSunday(date)&&!measurementDone(date))rows.push({icon:'measure',title:'Peso y cintura',desc:'Medición semanal',action:'openMeasurements()'});
+ if(isSunday(date)&&!monthlyReviewDone(date))rows.push({icon:'measure',title:'Revisión corporal',desc:'Perímetros y fotos del mes',action:'openMonthlyReview()'});
+ if(afterCheckHour(date)&&!dailyDone(date))rows.push({icon:'check',title:'Check-in final',desc:'Energía, fatiga, sueño y sensaciones',action:'openDailyCheck()'});
+ return rows;
+}
+function homePendingItemHTML(item){
+ return `<button type="button" class="home-pending-item" onclick="${item.action}"><span class="home-pending-icon">${homeIconSVG(item.icon)}</span><span><strong>${esc(item.title)}</strong><small>${esc(item.desc)}</small></span><span class="home-chevron" aria-hidden="true">›</span></button>`;
+}
 function renderHome(){
- const x=currentDate(),activities=dayActivities(x),pending=activities.filter(a=>!a.done),active=pending.some(a=>a.active),allDone=activities.length>0&&!pending.length,inPast=x<todayISO();
- const heading=active?'Continuar entrenamiento':pending.length?'Registrar entrenamiento':allDone?'Entrenamiento registrado':'Sin entrenamiento pendiente';
- const subtitle=active?'Hay una sesión en curso. Continúa desde Entreno.':pending.length?(inPast?(pending.length===1?'Queda 1 sesión sin registrar. Abre Entreno para completar el registro.':`Quedan ${pending.length} sesiones sin registrar. Abre Entreno para completar el registro.`):'Abre Entreno para iniciar o registrar la sesión.'):allDone?'Las sesiones de este día ya están registradas.':'No hay sesiones programadas para este día.';
- const context=active?'En curso':pending.length?(inPast?'Pendiente':'Entrenamiento'):allDone?'Hecho por hoy':'Recuperación';
- const buttonLabel=active?'Continuar en Entreno':pending.length?'Registrar entrenamiento':allDone?'Revisar entrenamientos':'Ver Entreno';
+ const x=currentDate(),activities=dayActivities(x),trainingPending=activities.filter(a=>!a.done),active=trainingPending.some(a=>a.active),allDone=activities.length>0&&!trainingPending.length,inPast=x<todayISO();
+ const weekly=homeWeekSnapshot(x),nut=dayNutrition(x),goals=state.settings.nutritionGoals||{},pendingItems=homePendingItems(x);
+ const trainingStatus=active?'Sesión en curso':trainingPending.length===1?'1 sesión pendiente':trainingPending.length>1?`${trainingPending.length} sesiones pendientes`:allDone?'Entrenamiento registrado':'Sin sesión pendiente';
+ const heroTitle=active?'Sigue donde lo dejaste.':trainingPending.length?(inPast?'Completa el registro del día.':'Tu día empieza aquí.'):allDone?'Entrenamiento listo.':'Hoy toca recuperar.';
+ const heroText=active?'Tienes una sesión abierta. Continúa sin perder el registro.':trainingPending.length?'Entrena cuando te venga bien y deja el resto de MAREVO preparado desde aquí.':allDone?'Ya has dejado el entrenamiento de este día registrado.':'No hay entrenamiento obligatorio para este día. Puedes revisar comida y progreso.';
+ const buttonLabel=active?'Continuar entrenamiento':trainingPending.length?'Registrar entrenamiento':allDone?'Revisar entrenamiento':'Ir a Entreno';
+ const kcal=Math.round(nut.kcal||0),protein=Math.round(nut.p||0),kcalGoal=Math.round(+goals.kcal||0),proteinGoal=Math.round(+goals.p||0),kcalPct=kcalGoal?Math.min(100,Math.max(0,kcal/kcalGoal*100)):0;
  const root=document.getElementById('viewHome');rememberDisclosures(root);
- let html=`<div class="day-lead"><span class="context-label">${context}</span><h2>${esc(heading)}</h2><p>${esc(subtitle)}</p><div class="actions"><button class="btn ${pending.length||active?'':'secondary'}" onclick="showView('Workout')">${buttonLabel}</button></div></div>`;
- let tasks='';
- if(isSunday(x)){
-  tasks+=task('M','Peso y cintura',measurementDone(x)?'Mediciones registradas':'Medición semanal',measurementDone(x),'openMeasurements()');
-  if(!monthlyReviewDone(x))tasks+=task('M','Revisión corporal mensual','Perímetros y fotos',false,'openMonthlyReview()');
- }
- if(afterCheckHour(x))tasks+=task('✓','Check-in final',dailyDone(x)?'Día cerrado':'Registrar cómo te has encontrado',dailyDone(x),'openDailyCheck()');
- if(tasks)html+=`<h2 class="section">También hoy</h2><div class="day-tasks">${tasks}</div>`;
- if(typeof sep26AssessmentCard==='function')html+=sep26AssessmentCard(x);
- html+=`<section class="home-nutrition"><div class="row between"><h2 class="section">Alimentación</h2><button class="btn ghost small" onclick="showView('Food')">Ver diario</button></div>${nutritionSummaryHTML(x)}<button class="btn secondary" onclick="openMealChooser()">Añadir comida</button></section>`;
- html+=`<button class="week-link" onclick="showView('Progress')"><span>Esta semana<small>${weekActivitySummary(x)}</small></span><span aria-hidden="true">›</span></button>`;
+ let html=`<section class="home-command">
+   <div class="home-command-orb home-command-orb-a" aria-hidden="true"></div><div class="home-command-orb home-command-orb-b" aria-hidden="true"></div>
+   <div class="home-command-content">
+    <div class="home-command-kicker"><span>HOY EN MAREVO</span><span class="home-command-status">${esc(trainingStatus)}</span></div>
+    <h2>${esc(heroTitle)}</h2>
+    <p>${esc(heroText)}</p>
+    <button type="button" class="home-training-cta" onclick="showView('Workout')">
+      <span class="home-cta-icon">${homeIconSVG('training')}</span>
+      <span class="home-cta-copy"><small>ENTRENAMIENTO</small><strong>${esc(buttonLabel)}</strong><span>${esc(trainingStatus)}</span></span>
+      <span class="home-cta-arrow" aria-hidden="true">›</span>
+    </button>
+    <div class="home-week-strip" aria-label="Resumen de entrenamiento semanal">
+      <div><strong>${weekly.strength}</strong><span>Fuerza</span></div>
+      <div><strong>${weekly.swim}</strong><span>Natación</span></div>
+      <div><strong>${weekly.minutes}</strong><span>Minutos</span></div>
+    </div>
+   </div>
+  </section>`;
+ if(pendingItems.length)html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">AHORA</span><h2>Pendiente</h2></div><span class="home-count">${pendingItems.length}</span></div><div class="home-pending-list">${pendingItems.map(homePendingItemHTML).join('')}</div></section>`;
+ html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">DE UN VISTAZO</span><h2>Tu MAREVO</h2></div></div>
+   <div class="home-destination-grid">
+    <button type="button" class="home-destination home-food-card" onclick="showView('Food')">
+      <div class="home-destination-top"><span class="home-destination-icon">${homeIconSVG('food')}</span><span class="home-chevron" aria-hidden="true">›</span></div>
+      <span class="home-destination-label">Comidas</span>
+      <strong>${kcal.toLocaleString('es-ES')}${kcalGoal?` <small>/ ${kcalGoal.toLocaleString('es-ES')} kcal</small>`:' <small>kcal</small>'}</strong>
+      <span>${protein} g proteína${proteinGoal?` · objetivo ${proteinGoal} g`:''}</span>
+      ${kcalGoal?`<div class="home-meter" aria-label="${Math.round(kcalPct)}% del objetivo de energía"><i style="width:${kcalPct}%"></i></div>`:''}
+    </button>
+    <button type="button" class="home-destination home-progress-card" onclick="showView('Progress')">
+      <div class="home-destination-top"><span class="home-destination-icon">${homeIconSVG('progress')}</span><span class="home-chevron" aria-hidden="true">›</span></div>
+      <span class="home-destination-label">Progreso</span>
+      <strong>${weekly.sessions} <small>${weekly.sessions===1?'sesión':'sesiones'}</small></strong>
+      <span>Esta semana · ${weekly.strength} fuerza · ${weekly.swim} natación</span>
+      <div class="home-progress-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    </button>
+   </div>
+  </section>`;
  root.innerHTML=html;
  const todayButton=document.querySelector('.today-btn');if(todayButton){todayButton.hidden=x===todayISO();todayButton.textContent='Volver a hoy';}
 }
@@ -1832,6 +1886,7 @@ function renderProgress(){
  const root=document.getElementById('viewProgress');rememberDisclosures(root);
  let html=`<div class="period-tabs" role="group" aria-label="Periodo de análisis">${['day','week','month'].map(p=>`<button aria-pressed="${period===p}" class="${period===p?'active':''}" onclick="setProgressPeriod('${p}')">${progressPeriodLabel(p)}</button>`).join('')}</div>`;
  html+=progressCarouselHTML(ref,period);
+ if(typeof sep26AssessmentCard==='function'){const assessment=sep26AssessmentCard(ref);if(assessment)html+=`<div class="progress-phase-assessment">${assessment}</div>`;}
  html+=disclosureHTML('progress-summary','Resumen y medidas',progressOverviewHTML(ref,period,sessions));
  html+=disclosureHTML('progress-strength','Fuerza',strengthProgressHTML(ref,period),false,'Por zona muscular, ejercicio y equipo');
  const bodyPeriod=state.settings.bodyPeriod||"6m";
