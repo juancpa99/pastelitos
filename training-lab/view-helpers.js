@@ -29,7 +29,7 @@ function dayActivities(date){
    activities.push({title:p.title,subtitle:p.exercises?`${p.exercises.length} ejercicios`:p.subtitle||'',done:sessionDone(date,p),active:!!(s?.startedAt&&!s.completed&&(!s.date||s.date===date)),action:"showView('Workout')",kind:p.type==='swim'?'Natación':p.type==='gym'?'Fuerza':'Cardio'});
   }
  }
- if(flex&&oct26SwimDay(date))activities.push({title:'Natación',subtitle:'22–23 h · sesión con tu entrenador',done:!!state.swim.find(s=>s.date===date&&s.completed),active:false,action:"showView('Workout');openViewSection('swimToday')",kind:'Natación'});
+ if(flex&&oct26SwimDay(date))activities.push({title:'Natación',subtitle:'22–23 h · sesión con tu entrenador',done:!!state.swim.find(s=>s.date===date&&s.completed),active:false,action:"showView('Workout');openSwimRegistration()",kind:'Natación'});
  // A recovered/extra session can be active even when today has no planned gym.
  const activeExtra=state.extraSessions.find(s=>s.date===date&&s.startedAt&&!s.completed);
  if(activeExtra&&!activities.some(a=>a.active))activities.unshift({title:activeExtra.title||'Sesión extra',subtitle:'Sesión en curso',done:false,active:true,action:`editExtraSession('${activeExtra.id}')`,kind:'Fuerza'});

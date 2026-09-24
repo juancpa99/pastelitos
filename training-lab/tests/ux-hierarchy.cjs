@@ -27,34 +27,53 @@ try{
  assert.ok(doc.getElementById('viewHome').textContent.includes('Check-in final'));
  run(`afterCheckHour=oldCheckHour`);
  date('2026-09-23');assert.equal(run(`dayActivities(currentDate())[0].title`),'Natación');
- run(`showView('Workout')`);assert.ok(doc.getElementById('swM'),'swim registration reachable on Wednesday');
- assert.ok(doc.getElementById('swM').closest('#swimToday'));
+ run(`showView('Workout')`);assert.ok(!doc.getElementById('swM'),'swim form hidden until requested');run(`openSwimRegistration()`);assert.ok(doc.getElementById('swM'));run(`closeModal()`);
  date('2026-09-27');run(`showView('Home')`);assert.match(doc.getElementById('viewHome').textContent,/Peso y cintura/);
  date('2026-09-24');run(`showView('Workout')`);
- assert.ok(doc.querySelector('#viewWorkout').firstElementChild.classList.contains('session-heading'));
+ assert.ok(doc.querySelector('#viewWorkout').firstElementChild.classList.contains('training-entry'));assert.equal(doc.querySelectorAll('#viewWorkout .exercise').length,0);run(`openTrainingSelector()`);assert.equal(doc.querySelectorAll('.training-choice').length,5);run(`closeModal()`);
  assert.equal(doc.querySelector('[data-disclosure="workout-week"]').open,false);
  run(`startGym()`);doc.getElementById('watchReady').click();
- assert.ok(doc.getElementById('viewWorkout').classList.contains('workout-focus'));
- let exercises=[...doc.querySelectorAll('#viewWorkout > details[data-disclosure^="exercise:"]')];
+ assert.ok(doc.getElementById('workoutWorkspace'));
+ let exercises=[...doc.querySelectorAll('#workoutWorkspace .workspace-inner > details[data-disclosure^="exercise:"]')];
  assert.equal(exercises.filter(e=>e.open).length,1,'one exercise initially open');
  exercises[1].open=true;
  run(`addSetAttempt('planned',1,'effective')`);
- exercises=[...doc.querySelectorAll('#viewWorkout > details[data-disclosure^="exercise:"]')];
+ exercises=[...doc.querySelectorAll('#workoutWorkspace .workspace-inner > details[data-disclosure^="exercise:"]')];
  assert.equal(exercises[1].open,true,'adding a set preserves exercise disclosure');
  const input=doc.querySelector('[data-gym="planned"]');input.value='17';
- run(`showView('Food');showView('Workout')`);
+ run(`closePlannedWorkspace();showView('Food');showView('Workout');openPlannedWorkspace()`);
  assert.equal(doc.getElementById(input.id).value,'17','navigation preserves unsubmitted set input');
+ // Landing has no side effects and swimming works on any selected day.
+ run(`closePlannedWorkspace();closeModal()`);
+ const countBefore=run(`state.sessions.length`);run(`renderWorkout();renderWorkout()`);
+ assert.equal(run(`state.sessions.length`),countBefore);
+ assert.equal(doc.querySelectorAll('#viewWorkout [data-gym]').length,0);
+ run(`openSwimRegistration()`);doc.getElementById('swM').value='1250';doc.getElementById('swD').value='40';run(`saveSwim()`);
+ assert.equal(run(`state.swim.find(s=>s.date===currentDate()).meters`),1250);
+ assert.equal(doc.getElementById('modalRoot').children.length,0);
+ // Calendar windows handle short months, leap years and year boundaries.
+ assert.equal(run(`progressBuckets('2024-03-15','month')[2].end`),'2024-02-29');
+ assert.equal(run(`progressBuckets('2026-01-02','month')[2].start`),'2025-12-01');
+ assert.equal(run(`progressBuckets('2026-01-02','week').at(-1).start`),'2025-12-29');
+ assert.equal(run(`progressBuckets('2026-01-02','week').at(-1).end`),'2026-01-02');
+ assert.equal(run(`progressBuckets('2026-01-02','day').length`),1);
+ run(`showView('Progress')`);assert.equal(doc.querySelectorAll('.chart-slide').length,4);
+ assert.ok(!doc.getElementById('viewProgress').textContent.includes('v2'));
+ assert.ok(doc.querySelector('.date-nav').classList.contains('hidden'));
+ run(`showView('Settings')`);assert.ok(doc.querySelector('.date-nav').classList.contains('hidden'));
+ run(`showView('Workout')`);assert.ok(!doc.querySelector('.date-nav').classList.contains('hidden'));
  // Settings shortcuts expand the parent category, keeping all forms reachable.
  run(`goToNutritionSettings()`);assert.ok(doc.querySelector('[data-disclosure="settings-nutrition"]').open);
  run(`goToPlanSettings()`);assert.ok(doc.querySelector('[data-disclosure="settings-training"]').open);
  run(`goToMetabolismSettings()`);assert.ok(doc.querySelector('[data-disclosure="settings-nutrition"]').open);
  assert.ok(doc.querySelector('[data-disclosure="settings-data"] .marevo-data-safety'));
  assert.ok(doc.querySelector('[data-disclosure="settings-notifications"]'));
+ run(`todayISO=()=> '2026-09-24'`);
  // Charts compare records only on or before the selected date, and include swimming.
  run(`state.body.push({date:'2026-09-20',weight:60,waist:75},{date:'2026-09-24',weight:61,waist:74},{date:'2026-10-10',weight:90,waist:99});state.swim.push({date:'2026-09-23',completed:true,meters:1800,duration:60,rpe:6,pain:0});showView('Progress')`);
  const overview=doc.querySelector('.progress-overview').textContent;
  assert.match(overview,/61/);assert.ok(!overview.includes('90'));
- assert.match(doc.querySelector('[data-disclosure="progress-swim"]').textContent,/1800|1\.800/);
+ assert.match(doc.querySelector('[data-disclosure="progress-swim"]').textContent,/3050|3\.050/);
  assert.equal(doc.getElementById('viewProgress').lastElementChild.dataset.disclosure,'progress-reports');
  // History-copy ordinal is independent of warm-up rows.
  run(`state.sessions.push({date:'2026-09-20',completed:true,exercises:[{key:'ux_ref',type:'strength',name:'Test',min:8,max:12,rir:'2',loadProfile:{mode:'total',machine:'M',base:'',unilateral:false},recordedSets:[{attemptType:'effective',kg:'20',reps:'10',rir:'2',completedAt:1}]}]});state.extraSessions.push({id:'ux_extra',date:currentDate(),startedAt:Date.now(),exercises:[{key:'ux_ref',name:'Test',type:'strength',sets:2,min:8,max:12,rir:'2',loadProfile:{mode:'total',machine:'M',base:'',unilateral:false},recordedSets:[{attemptType:'warmup',kg:'10',reps:'10',rir:'3',completedAt:1},{attemptType:'effective',kg:'',reps:'',rir:''}]}]});editExtraSession('ux_extra')`);

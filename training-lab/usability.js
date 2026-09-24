@@ -332,6 +332,7 @@ function watchReminder(next) {
 }
 const legacyStartGym = startGym;
 startGym = function () {
+  if(planFor(currentDate()).type!=="gym"){openTrainingSelector();return;}
   saveScopeInputs("planned");
   const s = normalizePlannedSession();
   if (!s.startedAt) watchReminder(legacyStartGym);
@@ -451,7 +452,7 @@ toggleGymPause = function () {
 };
 const legacyShowView = showView;
 showView = function (v) {
-  if (activeView === "Workout") saveScopeInputs("planned");
+  if (document.querySelector('[data-gym="planned"]')) saveScopeInputs("planned");
   document.body.dataset.view = v;
   legacyShowView(v);
 };
@@ -684,7 +685,7 @@ function strengthChartGroups(ref) {
 }
 let activeStrengthChartKey = null;
 function setStrengthChartExercise(index) {
-  const group = strengthChartGroups(currentDate())[+index];
+  const group = strengthChartGroups(activeView==="Progress"?todayISO():currentDate())[+index];
   if (!group) return;
   activeStrengthChartKey = activeStrengthChartKey === group.key ? null : group.key;
   updateStrengthExplorer();
@@ -698,7 +699,7 @@ function setStrengthChartRange(range) {
 function updateStrengthExplorer() {
   const explorer=document.querySelector('.strength-explorer');
   if(!explorer)return;
-  const groups=strengthChartGroups(currentDate());
+  const groups=strengthChartGroups(activeView==="Progress"?todayISO():currentDate());
   // Keep the actual disclosure and exercise buttons. Only the selected chart
   // changes, so unrelated menus, focus and the rest of Progress stay intact.
   explorer.querySelectorAll('.strength-exercise-choice').forEach(button=>{
@@ -714,7 +715,7 @@ function updateStrengthExplorer() {
       if(ancestor.matches('details'))ancestor.open=true;
     }
     const template=document.createElement('template');
-    template.innerHTML=strengthExerciseChartHTML(group,currentDate());
+    template.innerHTML=strengthExerciseChartHTML(group,activeView==="Progress"?todayISO():currentDate());
     if(chart){
       const open=chart.querySelector('details')?.open;
       renderLivePanel(chart,template.content.firstElementChild.innerHTML);

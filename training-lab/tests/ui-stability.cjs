@@ -26,7 +26,7 @@ async function test(){
  assert.equal(doc.querySelector('#extraClock button'),pause);
  assert.equal(doc.activeElement,pause);
  assert.equal(pause.textContent,'Reanudar');
- run(`closeModal();state.restTimer={date:currentDate(),scope:'planned',endAt:Date.now()+90000,exercise:'Remo',feedback:{text:'Mantén'}};updateRestTimerPanel()`);
+ run(`closeModal();normalizePlannedSession().startedAt=Date.now();openPlannedWorkspace();state.restTimer={date:currentDate(),scope:'planned',endAt:Date.now()+90000,exercise:'Remo',feedback:{text:'Mantén'}};updateRestTimerPanel()`);
  const rest=doc.querySelector('[onclick="addRestTime(30)"]');rest.focus();
  run(`updateRestTimerPanel();addRestTime(30);updateRestTimerPanel()`);
  assert.equal(doc.querySelector('[onclick="addRestTime(30)"]'),rest);

@@ -251,7 +251,10 @@ function scrollViewToTop(){
 
 function showView(v){
  const changingView=activeView!==v;
+ if(v!=='Workout'&&plannedWorkspaceOpen){if(document.querySelector('[data-gym="planned"]'))saveScopeInputs('planned');plannedWorkspaceOpen=false;document.getElementById('workoutWorkspace')?.remove();}
  document.querySelectorAll(".nav button[data-view]").forEach(b=>{if(b.dataset.view===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
+ document.body.dataset.view=v;
+ document.querySelector(".date-nav")?.classList.toggle("hidden",v==="Progress"||v==="Settings");
  activeView=v;["Home","Workout","Food","Progress","Settings"].forEach(x=>{document.getElementById("view"+x)?.classList.toggle("hidden",x!==v);document.querySelector(`[data-view="${x}"]`)?.classList.toggle("active",x===v)});
  const meta={Home:["Hoy","Lo importante del día."],Workout:["Entreno","Registra la sesión sin perder el ritmo."],Food:["Comidas","Añade alimentos y revisa el total del día."],Progress:["Progreso","Entrenamiento, nutrición y medidas."],Settings:["Ajustes","Plan, objetivos, notificaciones y datos."]}[v];
  document.getElementById("pageTitle").textContent=meta[0];document.getElementById("pageSubtitle").textContent=meta[1];
@@ -896,23 +899,9 @@ function saveCompletedCardio(){
 }
 
 function renderWorkout(){
- const x=currentDate(),p=planFor(x),root=document.getElementById('viewWorkout');rememberDisclosures(root);
- const labels=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
- const week=`<div class="compact-week-card"><div class="row between"><strong>Tu semana</strong><button class="btn ghost small" onclick="goToPlanSettings()">Editar plan</button></div><div class="week">${[1,2,3,4,5,6,0].map(d=>`<button class="day ${weekday(x)===d?'active':''}" onclick="selectWeekday(${d})"><span class="d">${labels[d]}</span><span class="w">${esc(typeof homeWeekLabel==='function'?homeWeekLabel(dateForWeekday(x,d)):planFor(dateForWeekday(x,d)).title)}</span></button>`).join('')}</div></div>`;
- const planned=p.type==='gym'?findSession(x,p.key):null;
- const active=!!(planned?.startedAt&&!planned.completed)||(state.cardioRuntime?.date===x&&!state.cardioRuntime.completed);
- let primary='';
- if(p.type==='gym')primary=gymHTML(p,x);
- if(p.type==='swim')primary=swimHTML(x);
- if(p.type==='cardio')primary=cardioHTML(x);
- const swim=typeof oct26SwimDay==='function'&&oct26SwimDay(x);
- if(p.type==='rest'&&!swim)primary='<div class="day-lead"><span class="context-label">Recuperación</span><h2>Descanso</h2><p>Tu calendario y las sesiones pendientes están debajo.</p></div>';
- const complement=typeof seasonComplementHTML==='function'?seasonComplementHTML(x):'';
- let restOfDay='';
- if(typeof oct26SecondaryTuesdayHTML==='function')restOfDay+=oct26SecondaryTuesdayHTML(x);
- if(swim)restOfDay+=`<div id="swimToday">${oct26SwimBlockHTML(x)}</div>`;
- root.classList.toggle('workout-focus',active);
- root.innerHTML=(active?'':complement)+primary+(active?disclosureHTML('workout-day','Otras sesiones de hoy',complement+restOfDay):restOfDay)+workoutPlanningHTML(x,week)+disclosureHTML('workout-extras','Sesiones extra',extraSessionsHTML(x),false,'Añadir o revisar una sesión adicional');
+ const x=currentDate(),root=document.getElementById('viewWorkout');rememberDisclosures(root);
+ root.innerHTML=workoutLandingHTML(x);
+ refreshPlannedWorkspace();
 }
 
 
@@ -1087,7 +1076,7 @@ function normalizePlannedSession(){
  const x=currentDate(),p=planFor(x),s=ensureDraftSession(x,p);
  s.exercises=s.exercises.map(normalizeSessionExercise);return s
 }
-function startGym(){const s=normalizePlannedSession();if(!s.startedAt){s.startedAt=Date.now();s.pausedAt=null;s.pausedDuration=0}else if(s.pausedAt){s.pausedDuration=(+s.pausedDuration||0)+(Date.now()-s.pausedAt);s.pausedAt=null}saveState();renderWorkout();startRuntimeTicker();requestSessionWakeLock()}
+function startGym(){const s=normalizePlannedSession();if(!s.startedAt){s.startedAt=Date.now();s.pausedAt=null;s.pausedDuration=0}else if(s.pausedAt){s.pausedDuration=(+s.pausedDuration||0)+(Date.now()-s.pausedAt);s.pausedAt=null}saveState();openPlannedWorkspace();startRuntimeTicker();requestSessionWakeLock()}
 function collectPlannedInputs(){
  const s=normalizePlannedSession();
  s.exercises.forEach((e,i)=>{
@@ -1287,7 +1276,7 @@ function openFinishExtra(id){saveExtraInputs(id);const s=state.extraSessions.fin
 function finishExtra(id){const s=state.extraSessions.find(x=>x.id===id);if(!s)return;s.completed=true;s.duration=num("exDur");s.rpe=num("exRPE");s.activeKcal=num("exKcal");saveState();closeModal();renderAll()}
 
 function swimHTML(x){const old=state.swim.find(s=>s.date===x)||{};return `<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">Natación</div><div class="subtitle">Sesión planificada por tu entrenador.</div></div><div class="card"><div class="formgrid"><div class="field"><label>Metros</label><input id="swM" inputmode="numeric" value="${old.meters??1800}"></div><div class="field"><label>Duración min</label><input id="swD" inputmode="numeric" value="${old.duration??60}"></div><div class="field"><label>RPE 1–10</label><input id="swR" inputmode="decimal" value="${old.rpe??""}"></div><div class="field"><label>Hombro 0–10</label><input id="swP" inputmode="decimal" value="${old.pain??0}"></div><div class="field wide"><label>Kcal activas (manual, opcional)</label><input id="swK" inputmode="numeric" value="${old.activeKcal??""}"></div><div class="field wide"><label>Notas</label><textarea id="swN">${esc(old.notes??"")}</textarea></div></div><div class="actions"><button class="btn" onclick="saveSwim()">Guardar natación</button></div></div>`}
-function saveSwim(){upsert(state.swim,{date:currentDate(),completed:true,meters:num("swM"),duration:num("swD"),rpe:num("swR"),pain:num("swP"),activeKcal:num("swK"),notes:val("swN")});saveState();renderAll()}
+function saveSwim(){upsert(state.swim,{date:currentDate(),completed:true,meters:num("swM"),duration:num("swD"),rpe:num("swR"),pain:num("swP"),activeKcal:num("swK"),notes:val("swN")});saveState();closeModal();renderAll();toast("Natación guardada")}
 function cardioHTML(x){
  const old=state.cardio.find(s=>s.date===x)||{},m=state.mobility.find(s=>s.date===x)||{done:[]},mobility=EXERCISE_LIBRARY.filter(e=>e.type==="mobility").slice(0,9),runtime=state.cardioRuntime&&state.cardioRuntime.date===x?state.cardioRuntime:null,selected=runtime?.templateKey||old.cardioType||"z2";
  let html=`<div class="card hero"><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">Cardio + movilidad</div><div class="subtitle">Elige cardio continuo o un HIIT guiado.</div></div>`;
@@ -1837,10 +1826,11 @@ function strengthProgressHTML(ref,period){
 }
 
 function renderProgress(){
- const ref=currentDate(),period=state.settings.progressPeriod||'week',sessions=sessionsForProgress(ref,period).filter(s=>s.date<=ref);
+ const ref=todayISO(),period=state.settings.progressPeriod||'week',sessions=sessionsForProgress(ref,period).filter(s=>s.date<=ref);
  const root=document.getElementById('viewProgress');rememberDisclosures(root);
  let html=`<div class="period-tabs" role="group" aria-label="Periodo de análisis">${['day','week','month'].map(p=>`<button aria-pressed="${period===p}" class="${period===p?'active':''}" onclick="setProgressPeriod('${p}')">${progressPeriodLabel(p)}</button>`).join('')}</div>`;
- html+=progressOverviewHTML(ref,period,sessions);
+ html+=progressCarouselHTML(ref,period);
+ html+=disclosureHTML('progress-summary','Resumen y medidas',progressOverviewHTML(ref,period,sessions));
  html+=disclosureHTML('progress-strength','Fuerza',strengthProgressHTML(ref,period),false,'Por zona muscular, ejercicio y equipo');
  const bodyPeriod=state.settings.bodyPeriod||"6m";
  let bodyHTML=`<div class="section">Composición corporal</div>

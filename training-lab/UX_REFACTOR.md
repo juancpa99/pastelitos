@@ -29,3 +29,13 @@ node training-lab/tests/push-notifications.cjs
 La prueba nueva recorre cinco pantallas y nueve fechas, incluida la doble sesión, piscina, descanso, domingo y fechas anteriores al bloque. Comprueba foco, conservación de entradas, disclosure, atajos a ajustes, referencias por tipo de serie, copia, almacenamiento y lectura de sesiones completadas. La prueba histórica se adapta a la composición explícita en vez de exigir la existencia de un wrapper eliminado.
 
 La inspección visual de la web y la prueba física Safari/PWA tienen alcances distintos: el navegador remoto no reproduce la isla dinámica, el teclado ni el comportamiento de reinstalación del iPhone.
+
+## Correcciones de Entreno y Progreso — 24 septiembre
+
+- Entreno empieza con fuerza/hipertrofia y natación; renderizar la pantalla no crea borradores ni muestra ejercicios.
+- Iniciar sesión abre todas las sesiones disponibles y señala la recomendada. El entrenamiento planificado vive en una pantalla independiente; sus diálogos de equipo y cierre se superponen sin destruir el formulario principal. Volver conserva las entradas.
+- Natación siempre tiene un formulario de registro posterior, sin cronómetro.
+- Progreso usa su propia referencia (hoy), sin heredar una fecha seleccionada en Comidas o Entreno. Ajustes tampoco muestra el selector de fecha.
+- Carrusel con radar muscular, series, carga por ejercicio/equipo y metros nadados. Día muestra actividad; semana/mes muestran cuatro periodos de calendario. El radar compara con el periodo anterior con escala común. Los periodos actuales se identifican como incompletos y no se publican porcentajes de mejora engañosos.
+- No se cambian las prescripciones ni el esquema del historial. Se eliminan las referencias de revisión «v2» del texto de la interfaz.
+- Pruebas ampliadas: entrada sin efectos laterales, selector, formularios separados, conservación de series, límites de año y febrero bisiesto, ocultación de fechas y carrusel.

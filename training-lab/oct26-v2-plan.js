@@ -138,7 +138,7 @@ exerciseAdvice=function(e){
   const base=oct26V2BaseAdvice(e),w=oct26Week(currentDate());
   if(!w||e.type==="mobility")return base;
   if(e.preventive)return "Preventivo: RIR 2–3, nunca al fallo. Prioriza control escapular/rotador y ausencia de dolor. "+base;
-  if(e.v2Role==="upper")return "Upper: mantén el RIR prescrito de la v2; no lo intensifiques por encima del plan porque nadas al día siguiente. "+base;
+  if(e.v2Role==="upper")return "Upper: mantén el RIR prescrito del plan; no lo intensifiques por encima del plan porque nadas al día siguiente. "+base;
   if(w===4&&e.v2Role==="isolation")return "Semana 4: última serie segura puede quedar en RIR 0–1; las anteriores alrededor de RIR 1. "+base;
   if(w===5&&e.v2Role==="compound")return "Semana 5: busca PR de reps o carga a RIR 1 con ROM y técnica limpios. "+base;
   if(w===6)return "Semana 6: menos series a propósito; conserva cargas y no conviertas la descarga en una sesión al fallo. "+base;
@@ -157,15 +157,15 @@ function oct26V2ShoulderWeekStatus(date=currentDate()){
 oct26RulesHTML=function(date=currentDate()){
   if(!oct26InRange(date))return"";
   const shoulder=oct26V2ShoulderWeekStatus(date),warn=shoulder.max!=null&&shoulder.max>3;
-  return '<div class="card oct26-cycle-card"><div class="eyebrow">MAREVO v2 · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
-    (warn?'<div class="callout warn" style="margin-top:8px"><strong>Hombro >3/10 esta semana.</strong> No progreses presses/overhead a ciegas; aplica la regla de dolor de la v2.</div>':'')+
-    '<details style="margin-top:10px"><summary>Reglas v2 de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper conserva RIR 2 en S1–S5; no se intensifica como los otros días.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
+  return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
+    (warn?'<div class="callout warn" style="margin-top:8px"><strong>Hombro >3/10 esta semana.</strong> No progreses presses/overhead a ciegas; aplica la regla de dolor del plan.</div>':'')+
+    '<details style="margin-top:10px"><summary>Reglas de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper conserva RIR 2 en S1–S5; no se intensifica como los otros días.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
 };
 
 const oct26V2OldPoolHTML=oct26WeeklyPoolHTML;
 oct26WeeklyPoolHTML=function(date=currentDate()){
   return oct26V2OldPoolHTML(date)
-    .replace("Recomendación inicial: Push lunes; Pull + Pierna A el martes; miércoles solo natación; Upper jueves; Pierna B viernes.","Recomendación v2: Pierna A lunes; Push + Pull el martes (orden intercambiable); miércoles solo natación; Upper jueves a RIR 2; Pierna B viernes.")
+    .replace("Recomendación inicial: Push lunes; Pull + Pierna A el martes; miércoles solo natación; Upper jueves; Pierna B viernes.","Distribución recomendada: Pierna A lunes; Push + Pull el martes (orden intercambiable); miércoles solo natación; Upper jueves a RIR 2; Pierna B viernes.")
     .replace("Dobles sesiones:</strong> el martes puedes decidir cuál haces primero.","Dobles sesiones:</strong> el martes puedes decidir si haces Push o Pull primero.");
 };
 
@@ -174,7 +174,7 @@ function oct26V2SwimSlot(index){return index!=null&&[1,5].includes(OCT26_SLOT_DE
 const oct26V2OldSetSlot=setOct26Slot;
 setOct26Slot=function(index,key){
   if(oct26V2SwimSlot(index)&&oct26V2UpperBodyKey(key)){
-    openAppConfirm("Tren superior + piscina","La v2 recomienda reservar lunes y viernes para pierna porque hay natación por la noche. Puedes hacerlo si tu agenda lo exige, pero aumenta la carga del hombro ese día.","Mover igualmente",function(){oct26V2OldSetSlot(index,key);},function(){openOct26SlotChooser(index);});
+    openAppConfirm("Tren superior + piscina","El plan recomienda reservar lunes y viernes para pierna porque hay natación por la noche. Puedes hacerlo si tu agenda lo exige, pero aumenta la carga del hombro ese día.","Mover igualmente",function(){oct26V2OldSetSlot(index,key);},function(){openOct26SlotChooser(index);});
     return;
   }
   oct26V2OldSetSlot(index,key);
@@ -182,7 +182,7 @@ setOct26Slot=function(index,key){
 const oct26V2OldStartWeekly=oct26StartWeeklySession;
 oct26StartWeeklySession=function(key){
   if(oct26SwimDay(currentDate())&&oct26V2UpperBodyKey(key)&&oct26SessionStatus(currentDate(),key).state==="pending"){
-    openAppConfirm("Sesión de torso en día de piscina","La v2 recomienda evitar Push, Pull y Upper en lunes/miércoles/viernes. Si hoy es el único hueco, puedes recuperarla igualmente.","Hacer hoy",function(){oct26V2OldStartWeekly(key);},function(){closeModal();});
+    openAppConfirm("Sesión de torso en día de piscina","El plan recomienda evitar Push, Pull y Upper en lunes/miércoles/viernes. Si hoy es el único hueco, puedes recuperarla igualmente.","Hacer hoy",function(){oct26V2OldStartWeekly(key);},function(){closeModal();});
     return;
   }
   oct26V2OldStartWeekly(key);

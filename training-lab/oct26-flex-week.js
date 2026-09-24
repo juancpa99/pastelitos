@@ -108,12 +108,12 @@ function oct26StartWeeklySession(key){
  if(status.state==="done"){toast("Esta sesión ya está completada esta semana");return}
  if(status.state==="active"){
   if(status.record.id){closeModal();editExtraSession(status.record.id)}
-  else{closeModal();showView("Workout")}
+  else{closeModal();document.getElementById("selectedDate").value=status.record.date;showView("Workout");openPlannedWorkspace()}
   return;
  }
  const current=planFor(date);
  if(current.type==="gym"&&current.key===key){
-  closeModal();showView("Workout");return;
+  closeModal();showView("Workout");startGym();return;
  }
  const template=oct26TemplateForKey(key,date);if(!template)return;
  const id="weekly_"+Date.now().toString(36);
