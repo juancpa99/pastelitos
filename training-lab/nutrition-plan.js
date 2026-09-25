@@ -282,9 +282,17 @@
     vars.forEach((v,i)=>{out[v[0]]=best.values[i]});
     return out
   }
+  let autoTupperCacheKey='',autoTupperCacheValue=null;
   function autoTupperPortions(){
     const target=targetFor(tupperReferenceDate());
     if(!target.complete)return {...TUPPER_PORTIONS};
+    const preferred=planState().preferredFoods||{};
+    const foodSignature=Object.entries(preferred).sort(([a],[b])=>a.localeCompare(b)).map(([base,key])=>{
+      const food=(state.customFoods||[]).find(f=>f.key===key);
+      return [base,key,food?.kcal,food?.p,food?.c,food?.f,food?.inputMeta?.gramsPerInput,food?.perUnit]
+    });
+    const cacheKey=JSON.stringify([target.kcal,target.protein,foodSignature]);
+    if(cacheKey===autoTupperCacheKey&&autoTupperCacheValue)return {...autoTupperCacheValue};
     const targetKcal=target.kcal*BASE_SHARES.Almuerzo.kcal;
     const targetProtein=target.protein*BASE_SHARES.Almuerzo.protein;
     const suggestions={};
@@ -303,6 +311,7 @@
       const step=Math.min(...defs.map(v=>v[3]).filter(Number.isFinite));
       result[key]=step?Math.round(m/step)*step:m
     });
+    autoTupperCacheKey=cacheKey;autoTupperCacheValue={...result};
     return result
   }
   function tupperPortions(){
