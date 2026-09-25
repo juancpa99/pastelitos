@@ -58,22 +58,29 @@ try{
  run(`openSwimRegistration()`);doc.getElementById('swM').value='1250';doc.getElementById('swD').value='40';run(`saveSwim()`);
  assert.equal(run(`state.swim.find(s=>s.date===currentDate()).meters`),1250);
  assert.equal(doc.getElementById('modalRoot').children.length,0);
- // Food logging exposes a broad library and editable multi-ingredient dishes.
+ // Food logging exposes one daily add action and keeps reusable-food registration secondary.
  run(`showView('Food')`);
- assert.match(doc.getElementById('viewFood').textContent,/Añadir comida/);
- assert.match(doc.getElementById('viewFood').textContent,/Registrar comida/,'Food has a separate registration action below normal meal entry');
- run(`openFoodRegistrationHub()`);
- assert.match(doc.getElementById('modalRoot').textContent,/Comida puntual/);
- assert.match(doc.getElementById('modalRoot').textContent,/Alimento de uso común/);
+ const foodText=doc.getElementById('viewFood').textContent;
+ assert.match(foodText,/Añadir comida/,'daily food log has one main add action');
+ assert.ok(!/Registrar comida/.test(foodText),'daily view no longer exposes the ambiguous register meal action');
+ assert.match(foodText,/Más opciones/,'secondary food tools stay out of the daily flow');
+ assert.match(foodText,/Registrar alimento/,'reusable-food registration lives in secondary tools');
+ assert.ok(doc.querySelector('.food-diary-head'),'daily add action is placed after the nutrition plan');
+ run(`openAddFoodHub()`);
+ assert.match(doc.getElementById('modalRoot').textContent,/Alimento o plato/);
+ assert.match(doc.getElementById('modalRoot').textContent,/Producto puntual/);
+ assert.match(doc.getElementById('modalRoot').textContent,/Comida de restaurante/);
  run(`openCommonFoodRegistration('Desayuno')`);
+ assert.match(doc.getElementById('modalRoot').textContent,/Registrar alimento/,'common food registration is explicitly named');
  assert.match(doc.getElementById('modalRoot').textContent,/Leer código de barras/,'common food supports barcode');
  assert.match(doc.getElementById('modalRoot').textContent,/Leer etiqueta/,'common food supports label reading');
  assert.match(doc.getElementById('modalRoot').textContent,/Añadir manualmente/,'common food supports manual entry');
  run(`openPunctualRegistration('Cena')`);
+ assert.match(doc.getElementById('modalRoot').textContent,/Producto puntual/);
  assert.match(doc.getElementById('modalRoot').textContent,/Leer código de barras/,'punctual food supports barcode');
  assert.match(doc.getElementById('modalRoot').textContent,/Leer etiqueta/,'punctual food supports label reading');
  assert.match(doc.getElementById('modalRoot').textContent,/Añadir manualmente/,'punctual food supports manual entry');
- assert.match(doc.getElementById('modalRoot').textContent,/Comida de restaurante/,'punctual food includes restaurant estimates');
+ assert.ok(!/Comida de restaurante/.test(doc.getElementById('modalRoot').textContent),'restaurant entry is a sibling, not nested under punctual products');
  run(`openRestaurantFood('Cena')`);
  assert.match(doc.getElementById('modalRoot').textContent,/Hamburguesa completa/);
  assert.match(doc.getElementById('modalRoot').textContent,/≈ 850 kcal/,'restaurant examples show explicit approximate calories');
