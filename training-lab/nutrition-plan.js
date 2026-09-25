@@ -555,11 +555,11 @@
   function cookingDishRows(start,days){
     const map=new Map();
     cookingMeals(start,days).forEach(row=>{
-      const key=`${row.meal}|${row.option.id}`;
-      if(!map.has(key))map.set(key,{meal:row.meal,name:row.option.name,count:0,dates:[]});
+      const key=row.option.name;
+      if(!map.has(key))map.set(key,{name:row.option.name,count:0,dates:[]});
       const entry=map.get(key);entry.count+=1;entry.dates.push(row.date)
     });
-    return [...map.values()].sort((a,b)=>a.meal.localeCompare(b.meal,'es')||b.count-a.count||a.name.localeCompare(b.name,'es'))
+    return [...map.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,'es'))
   }
   function cookingIngredientRows(start,days){
     const map=new Map();
@@ -602,18 +602,13 @@
     if(!meals.length)return '<div class="nutrition-plan-empty">No hay almuerzos o cenas pendientes en ese intervalo.</div>';
     const actualDays=Math.max(1,Math.min(safeDays,Math.floor((dateObj(PLAN_END)-dateObj(start))/86400000)+1));
     const end=addDaysISO(start,actualDays-1);
-    const lunchCount=meals.filter(row=>row.meal==='Almuerzo').length,dinnerCount=meals.filter(row=>row.meal==='Cena').length;
-    let currentMeal='';
-    const dishHTML=dishes.map(row=>{
-      const heading=row.meal!==currentMeal?(currentMeal=row.meal,`<div class="cooking-section-label">${esc(row.meal)}</div>`):'';
-      return `${heading}<div class="cooking-dish-row"><strong>${row.count} × ${esc(row.name)}</strong></div>`
-    }).join('');
+    const dishHTML=dishes.map(row=>`<div class="cooking-dish-row"><strong>${row.count} × ${esc(row.name)}</strong></div>`).join('');
     let currentCat='';
     const ingredientHTML=ingredients.map(row=>{
       const heading=row.cat!==currentCat?(currentCat=row.cat,`<div class="cooking-section-label">${esc(row.cat)}</div>`):'';
       return `${heading}<div class="cooking-ingredient-row"><div><strong>${esc(row.name)}</strong><small>${esc(cookingIngredientMeta(row))}</small></div><b>${esc(prepAmount(row.total,row.unit))}</b></div>`
     }).join('');
-    return `<div class="cooking-range">${esc(shoppingDateLabel(start))} → ${esc(shoppingDateLabel(end))}</div><div class="cooking-summary"><div><span>Almuerzos</span><strong>${lunchCount}</strong></div><div><span>Cenas</span><strong>${dinnerCount}</strong></div><div><span>Platos</span><strong>${meals.length}</strong></div></div><div class="cooking-block"><div class="eyebrow">Platos</div>${dishHTML}</div><div class="cooking-block"><div class="eyebrow">Preparar</div>${ingredientHTML}</div>`
+    return `<div class="cooking-range">${esc(shoppingDateLabel(start))} → ${esc(shoppingDateLabel(end))}</div><div class="cooking-summary"><div><span>Táperes</span><strong>${meals.length}</strong></div><div><span>Recetas</span><strong>${dishes.length}</strong></div><div><span>Días</span><strong>${actualDays}</strong></div></div><div class="cooking-block"><div class="eyebrow">Táperes</div>${dishHTML}</div><div class="cooking-block"><div class="eyebrow">Preparar</div>${ingredientHTML}</div>`
   }
   window.openNutritionCookingPlan=function(){
     const start=inPlan(currentDate())?currentDate():PLAN_START;
