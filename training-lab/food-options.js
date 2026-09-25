@@ -183,14 +183,14 @@
     ],
     Almuerzo:[
       {name:'Pollo con arroz y verduras',items:[['chicken',180],['rice',75],['veg',200]]},
-      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',90],['veg',200]]},
+      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',75],['veg',200]]},
       {name:'Pollo con patatas y verduras',items:[['chicken',180],['potato',350],['veg',200]]},
       {name:'Pavo con arroz y verduras',items:[['turkey',180],['rice',75],['veg',200]]},
       {name:'Ternera con patatas y verduras',items:[['beef',180],['potato',350],['veg',200]]},
-      {name:'Salmón con patatas y verduras',items:[['salmon',180],['potato',300],['veg',200]]},
-      {name:'Pescado blanco con arroz y verduras',items:[['whitefish',200],['rice',75],['veg',200]]},
-      {name:'Lomo con pasta y verduras',items:[['pork_loin',180],['pasta',90],['veg',200]]},
-      {name:'Garbanzos, huevo y verduras',items:[['chickpeas',90],['egg',2],['veg',150]]}
+      {name:'Salmón con patatas y verduras',items:[['salmon',180],['potato',350],['veg',200]]},
+      {name:'Pescado blanco con arroz y verduras',items:[['whitefish',180],['rice',75],['veg',200]]},
+      {name:'Lomo con pasta y verduras',items:[['pork_loin',180],['pasta',75],['veg',200]]},
+      {name:'Garbanzos, huevo y verduras',items:[['chickpeas',75],['egg',2],['veg',150]]}
     ],
     Merienda:[
       {name:'Yogur, avena y plátano',items:[['greek_yogurt_0',250],['oats',40],['banana',1]]},
@@ -201,13 +201,13 @@
     ],
     Cena:[
       {name:'Pollo con arroz y verduras',items:[['chicken',180],['rice',75],['veg',200]]},
-      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',90],['veg',200]]},
+      {name:'Pollo con pasta y verduras',items:[['chicken',180],['pasta',75],['veg',200]]},
       {name:'Pollo con patatas y verduras',items:[['chicken',180],['potato',350],['veg',200]]},
       {name:'Pavo con arroz y verduras',items:[['turkey',180],['rice',75],['veg',200]]},
       {name:'Ternera con patatas y verduras',items:[['beef',180],['potato',350],['veg',200]]},
-      {name:'Salmón con patatas y verduras',items:[['salmon',180],['potato',300],['veg',200]]},
-      {name:'Merluza con arroz y verduras',items:[['hake',200],['rice',75],['veg',200]]},
-      {name:'Tofu con arroz y verduras',items:[['tofu',200],['rice',75],['veg',200]]}
+      {name:'Salmón con patatas y verduras',items:[['salmon',180],['potato',350],['veg',200]]},
+      {name:'Merluza con arroz y verduras',items:[['hake',180],['rice',75],['veg',200]]},
+      {name:'Tofu con arroz y verduras',items:[['tofu',180],['rice',75],['veg',200]]}
     ],
     'Post-entreno':[
       {name:'Whey, leche y plátano',items:[['whey',30],['milk',250],['banana',1]]},
