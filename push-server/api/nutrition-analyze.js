@@ -97,7 +97,7 @@ export default async function handler(req,res){
       method:'POST',
       headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:String(process.env.OPENAI_NUTRITION_MODEL||'gpt-6-astra'),
+        model:String(process.env.OPENAI_NUTRITION_MODEL||'gpt-6-sol'),
         input:[{role:'user',content:[
           {type:'input_text',text:prompt},
           {type:'input_image',image_url:image,detail:'high'}
