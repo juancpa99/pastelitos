@@ -20,7 +20,7 @@
   }
   function decimal(value){
     if(value==null)return null;
-    const x=parseFloat(String(value).replace(/\s/g,'').replace(',','.'));
+    const x=typeof parseLocaleNumber==='function'?parseLocaleNumber(value):parseFloat(String(value).replace(/\s/g,'').replace(',','.'));
     return Number.isFinite(x)&&x>=0?x:null
   }
   function cleanBarcode(value){
