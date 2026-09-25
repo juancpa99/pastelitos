@@ -105,7 +105,7 @@
         <div class="eyebrow">Unidad habitual</div>
         <div class="formgrid">
           <div class="field"><label>Unidad</label><input id="scanUnitName" placeholder="rebanada, unidad…" value="${esc(unitName)}"></div>
-          <div class="field"><label>Peso medio</label><div class="nutrition-scan-input"><input id="scanUnitWeight" inputmode="decimal" placeholder="opcional" value="${shown(unitWeight)}"><b>${esc(data.unitWeightUnit||'g')}</b></div></div>
+          <div class="field"><label>Peso medio</label><div class="nutrition-scan-input"><input id="scanUnitWeight" inputmode="decimal" placeholder="opcional" value="${shown(unitWeight)}"><select id="scanUnitWeightUnit" aria-label="Unidad del peso"><option value="g" ${data.unitWeightUnit!=='ml'?'selected':''}>g</option><option value="ml" ${data.unitWeightUnit==='ml'?'selected':''}>ml</option></select></div></div>
         </div>
         ${missingUnit?'<small>La etiqueta no indica cuánto pesa una unidad. Puedes introducir el peso medio o dejar el alimento en gramos.</small>':''}
       </div>
@@ -130,10 +130,10 @@
     const meal=val('scanMeal')||'Desayuno',name=val('scanName').trim(),brand=val('scanBrand').trim(),basis=val('scanBasis'),cat=val('scanCategory')||'Extra';
     const values=scanNutrients();if(!name||[values.p,values.c,values.f].some(v=>v==null)){toast('Revisa proteína, hidratos y grasas');return}
     if(values.kcal==null)values.kcal=derivedKcal(values.p,values.c,values.f);
-    const unitName=val('scanUnitName').trim(),unitWeight=n(val('scanUnitWeight'));
+    const unitName=val('scanUnitName').trim(),unitWeight=n(val('scanUnitWeight')),unitWeightUnit=val('scanUnitWeightUnit')||'g';
     let perUnit=false,unit=basis==='100ml'?'ml':'g',factor=1,inputMeta=null;
     if(basis==='serving'){
-      if(unitWeight&&unitWeight>0){factor=100/unitWeight;unit='g'}
+      if(unitWeight&&unitWeight>0){factor=100/unitWeight;unit=unitWeightUnit}
       else{perUnit=true;unit='ud'}
     }
     const scaled={};
