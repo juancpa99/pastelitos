@@ -549,7 +549,7 @@ function homeNutritionPrompt(date,minuteOfDay=null){
  if(minute>=1065&&minute<1170&&!done('Merienda'))return prompt('Merienda','Que no se te olvide merendar','Buena ventana: 18–19 h.');
  if(swimDay&&minute>=1170&&minute<1290&&!done('Cena'))return prompt('Cena','Cena antes de natación','Hoy, alrededor de las 20 h.');
  if(!swimDay&&minute>=1245&&minute<1350&&!done('Cena'))return prompt('Cena','Hora de cenar','Hoy, entre las 21 y 22 h.');
- if(swimDay&&minute>=1400&&minute<=1439&&!done('Post-entreno'))return prompt('Post-entreno','Post-entreno pendiente','Al volver de natación · 23:30–00:00.');
+ if(swimDay&&minute>=1410&&minute<=1439&&!done('Post-entreno'))return prompt('Post-entreno','Post-entreno pendiente','Al volver de natación · 23:30–00:00.');
  return null
 }
 function openHomeNutritionMeal(meal){
