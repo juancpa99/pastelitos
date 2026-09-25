@@ -527,8 +527,40 @@ function homeWeekSnapshot(date){
  const swim=sessions.filter(s=>s._kind==='swim').length;
  return {sessions:sessions.length,strength,swim,minutes:periodMinutes(sessions)};
 }
+function homeMealRegistered(date,meal){
+ const rows=foodsFor(date).filter(item=>item.meal===meal);
+ if(meal!=='Post-entreno')return rows.length>0;
+ return rows.some(item=>!String(item.planSlotId||'').includes(':Post-entreno-extra:'))
+}
+function homeMealSkipped(date,meal){
+ return !!state.nutritionPlan?.skippedMeals?.[date]?.[meal]
+}
+function homeNutritionPrompt(date,minuteOfDay=null){
+ if(minuteOfDay==null&&date!==todayISO())return null;
+ const minute=minuteOfDay==null?new Date().getHours()*60+new Date().getMinutes():Number(minuteOfDay);
+ if(!Number.isFinite(minute))return null;
+ const done=meal=>homeMealRegistered(date,meal)||homeMealSkipped(date,meal);
+ const swimDay=dayActivities(date).some(item=>item.kind==='Natación')||(state.swim||[]).some(item=>item.date===date);
+ const mediaActive=!!state.nutritionPlan?.optionalMeals?.[date]?.['Media mañana']||homeMealRegistered(date,'Media mañana');
+ const prompt=(meal,title,desc)=>({icon:'food',title,desc,action:`openHomeNutritionMeal('${meal}')`,nutrition:true,meal});
+ if(minute>=420&&minute<630&&!done('Desayuno'))return prompt('Desayuno','Registra el desayuno',minute>=570?'Si ya has desayunado, déjalo registrado.':'Desayuna antes de las 10 h.');
+ if(minute>=630&&minute<750&&mediaActive&&!done('Media mañana'))return prompt('Media mañana','Media mañana pendiente','Regístrala cuando la hagas.');
+ if(minute>=810&&minute<960&&!done('Almuerzo'))return prompt('Almuerzo','Registra el almuerzo','Déjalo registrado cuando termines.');
+ if(minute>=1065&&minute<1170&&!done('Merienda'))return prompt('Merienda','Que no se te olvide merendar','Buena ventana: 18–19 h.');
+ if(swimDay&&minute>=1170&&minute<1290&&!done('Cena'))return prompt('Cena','Cena antes de natación','Hoy, alrededor de las 20 h.');
+ if(!swimDay&&minute>=1245&&minute<1350&&!done('Cena'))return prompt('Cena','Hora de cenar','Hoy, entre las 21 y 22 h.');
+ if(swimDay&&minute>=1400&&minute<=1439&&!done('Post-entreno'))return prompt('Post-entreno','Post-entreno pendiente','Al volver de natación · 23:30–00:00.');
+ return null
+}
+function openHomeNutritionMeal(meal){
+ showView('Food');
+ const row=[...document.querySelectorAll('.nutrition-plan-meal')].find(el=>el.dataset.planMeal===meal);
+ if(row)row.scrollIntoView?.({behavior:'smooth',block:'center'})
+}
 function homePendingItems(date){
  const rows=[];
+ const nutrition=homeNutritionPrompt(date);
+ if(nutrition)rows.push(nutrition);
  if(isSunday(date)&&!measurementDone(date))rows.push({icon:'measure',title:'Peso y cintura',desc:'Medición semanal',action:'openMeasurements()'});
  if(isSunday(date)&&!monthlyReviewDone(date))rows.push({icon:'measure',title:'Revisión corporal',desc:'Perímetros y fotos del mes',action:'openMonthlyReview()'});
  if(afterCheckHour(date)&&!dailyDone(date))rows.push({icon:'check',title:'Check-in final',desc:'Energía, fatiga, sueño y sensaciones',action:'openDailyCheck()'});
@@ -2334,6 +2366,8 @@ function download(name,content,type){
 }
 
 document.getElementById("selectedDate").value=todayISO();
+window.addEventListener("focus",()=>{if(activeView==="Home"&&currentDate()===todayISO())renderHome()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&activeView==="Home"&&currentDate()===todayISO())renderHome()});
 installBottomNavInsetObserver();
 installRuntimeRecovery();
 installModalAccessibility();
