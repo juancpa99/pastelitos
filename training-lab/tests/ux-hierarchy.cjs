@@ -141,6 +141,16 @@ try{
  const plannedFoodBefore=run(`state.foods.length`);
  run(`addNutritionPlanMeal('2026-09-25','Almuerzo')`);
  assert.ok(run(`state.foods.length`)>plannedFoodBefore,'planned meal can be added to the diary');
+ assert.match(doc.getElementById('viewFood').textContent,/Deshacer registro/,'registered meals expose an undo action');
+ run(`removeNutritionPlanMeal('2026-09-25','Almuerzo')`);
+ assert.equal(run(`state.foods.length`),plannedFoodBefore,'undo removes only the planned meal registration');
+ assert.ok(!run(`slotLogged('2026-09-25','Almuerzo')`),'undo returns the meal to pending');
+ run(`addNutritionPlanMeal('2026-09-25','Almuerzo')`);
+ run(`markNutritionPlanMealNotDone('2026-09-25','Almuerzo')`);
+ assert.ok(!run(`slotLogged('2026-09-25','Almuerzo')`),'marking a registered meal not done removes its food log');
+ assert.ok(run(`isMealSkipped('2026-09-25','Almuerzo')`),'registered meal can be reversed directly to not done');
+ assert.equal(run(`state.foods.length`),plannedFoodBefore,'reversing to not done leaves no accidental calories logged');
+ run(`toggleNutritionPlanMealSkipped('2026-09-25','Almuerzo')`);
  run(`toggleNutritionPlanPost('2026-09-25')`);
  assert.match(doc.querySelector('.nutrition-plan-post').textContent,/No hecha/);
  run(`openNutritionCookingPlan()`);
