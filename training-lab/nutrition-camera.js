@@ -212,7 +212,7 @@
     originalFoodModal(meal);
     const actions=document.querySelector('.food-modal-actions');
     if(actions&&!actions.querySelector('.nutrition-scan-label-btn')){
-      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear etiqueta';button.onclick=()=>scanNutritionLabel(val('fdMeal')||meal);
+      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear producto';button.onclick=()=>scanNutritionLabel(val('fdMeal')||meal);
       actions.insertBefore(button,actions.children[1]||null)
     }
   };
@@ -230,7 +230,7 @@
     originalCustom(meal);
     const actions=document.querySelector('#modalRoot .actions');
     if(actions&&!actions.querySelector('.nutrition-scan-label-btn')){
-      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear etiqueta';button.onclick=()=>scanNutritionLabel(meal);
+      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear producto';button.onclick=()=>scanNutritionLabel(meal);
       actions.prepend(button)
     }
   };
