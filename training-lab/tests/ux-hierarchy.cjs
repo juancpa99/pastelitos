@@ -61,6 +61,10 @@ try{
  // Food logging exposes a broad library and editable multi-ingredient dishes.
  run(`showView('Food');openFoodModal('Almuerzo')`);
  assert.ok(doc.querySelector('.nutrition-scan-label-btn'),'food modal exposes nutrition-label camera scan');
+ run(`state.customFoods.push({key:'custom_pref_bread',name:'Mi pan',cat:'Carbohidrato',unit:'g',ref:'etiqueta por 100 g',custom:true,kcal:260,p:14,c:38,f:5,inputMeta:{inputUnit:'rebanadas',singular:'rebanada',gramsPerInput:27,presets:[1,2,3,4],reference:'1 rebanada ≈ 27 g'}});state.nutritionPlan=state.nutritionPlan||{};state.nutritionPlan.preferredFoods=state.nutritionPlan.preferredFoods||{};state.nutritionPlan.preferredFoods.whole_bread='custom_pref_bread';chooseNutritionPlanMeal('2026-09-25','Desayuno','breakfast_toast')`);
+ assert.ok(run(`mealPlan('2026-09-25','Desayuno').items.some(([key])=>key==='custom_pref_bread')`),'habitual scanned food replaces the generic food inside the plan');
+ assert.equal(run(`foodInputMeta('custom_pref_bread').gramsPerInput`),27,'habitual scanned unit weight is used by the plan');
+ run(`delete state.nutritionPlan.preferredFoods.whole_bread;state.customFoods=state.customFoods.filter(f=>f.key!=='custom_pref_bread')`);
  run(`openMealChooser()`);
  assert.match(doc.getElementById('modalRoot').textContent,/Foto de comida/,'meal chooser exposes one-off meal photo logging');
  run(`closeModal();state.customFoods.push({key:'adhoc_test',name:'Temporal foto',cat:'Extra',unit:'ud',ref:'estimación',perUnit:true,custom:true,transient:true,kcal:100,p:10,c:10,f:2,sat:1,trans:null,addedSugars:null,fiber:2,salt:.3});state.foods.push({id:'adhoc_test_row',created:Date.now(),date:'2026-09-25',meal:'Merienda',foodKey:'adhoc_test',amount:1})`);
