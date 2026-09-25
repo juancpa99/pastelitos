@@ -617,7 +617,7 @@
     if(!option||!inputs.length)return;
     const amounts={};
     for(const input of inputs){
-      const n=Number(input.value);if(!Number.isFinite(n)||n<0){toast('Revisa las cantidades');return}
+      const n=parseLocaleNumber(input.value);if(!Number.isFinite(n)||n<0){toast('Revisa las cantidades');return}
       amounts[input.dataset.foodKey]=n
     }
     const ps=planState();
