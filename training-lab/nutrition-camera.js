@@ -173,7 +173,7 @@
       if(!state.nutritionPlan.preferredFoods||typeof state.nutritionPlan.preferredFoods!=='object')state.nutritionPlan.preferredFoods={};
       state.nutritionPlan.preferredFoods[planFood]=key
     }
-    saveState(true);openFoodModal(meal);const input=document.getElementById('fdKey');if(input){input.value=key;setFoodSelection(key)}toast(planFood?'Alimento guardado y plan recalculado':'Alimento guardado')
+    saveState(true);closeModal();renderAll();showView('Food');toast(planFood?'Alimento guardado y plan recalculado':'Alimento guardado')
   };
 
   function openMealPhotoReview(data,meal){
