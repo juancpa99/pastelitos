@@ -807,8 +807,9 @@
     cookingMeals(start,days).forEach(row=>{
       row.items.forEach(([foodKey,inputAmount])=>{
         const db=foodRecord(foodKey),meta=foodInputMeta(foodKey);if(!db||!meta)return;
-        const key=`${foodKey}|${meta.inputUnit}`;
-        if(!map.has(key))map.set(key,{foodKey,name:db.name,cat:db.cat,unit:meta.inputUnit,total:0,uses:0,portions:[],dishes:new Set()});
+        const baseKey=basePlanFoodKey(foodKey),baseDb=FOOD_DB[baseKey]||db;
+        const key=`${baseKey}|${meta.inputUnit}`;
+        if(!map.has(key))map.set(key,{foodKey:baseKey,name:baseDb.name,cat:baseDb.cat,unit:meta.inputUnit,total:0,uses:0,portions:[],dishes:new Set()});
         const entry=map.get(key);entry.total+=inputAmount;entry.uses+=1;entry.portions.push(inputAmount);entry.dishes.add(row.option.name)
       })
     });
@@ -871,8 +872,9 @@
         row.items.forEach(([foodKey,inputAmount])=>{
           const meta=foodInputMeta(foodKey),db=foodRecord(foodKey);
           if(!db)return;
-          const unit=meta.inputUnit,key=`${foodKey}|${unit}`;
-          if(!map.has(key))map.set(key,{foodKey,name:db.name,cat:db.cat,unit,total:0,uses:0,dishes:new Set()});
+          const baseKey=basePlanFoodKey(foodKey),baseDb=FOOD_DB[baseKey]||db;
+          const unit=meta.inputUnit,key=`${baseKey}|${unit}`;
+          if(!map.has(key))map.set(key,{foodKey:baseKey,name:baseDb.name,cat:baseDb.cat,unit,total:0,uses:0,dishes:new Set()});
           const entry=map.get(key);entry.total+=inputAmount;entry.uses+=1;entry.dishes.add(row.option.name)
         })
       })
