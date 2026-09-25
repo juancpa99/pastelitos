@@ -301,10 +301,21 @@
       targets[meal]={kcal:(target.kcal||0)*share.kcal,protein:(target.protein||0)*share.protein}
     });
     TUPPER_MEALS.forEach(meal=>{
-      if(isMealSkipped(date,meal))return;
+      const moved=isTupperMoved(date,meal);
+      if(isMealSkipped(date,meal)&&!moved)return;
       const option=selectedOption(date,meal);if(!option)return;
       const actual=standardTupperPlan(option).nutrition;
       const planned={...targets[meal]};
+      if(moved){
+        const postPlanned={...targets['Post-entreno']};
+        targets[meal]={kcal:0,protein:0};
+        targets['Post-entreno']={kcal:actual.kcal,protein:actual.p};
+        const recipients=FLEXIBLE_MEALS.filter(next=>
+          next!=='Post-entreno'&&!isMealSkipped(date,next)&&!slotLogged(date,next)&&optionalMealActive(date,next)
+        );
+        applyTargetDifference(targets,{kcal:planned.kcal+postPlanned.kcal-actual.kcal,protein:planned.protein+postPlanned.protein-actual.p},recipients);
+        return
+      }
       targets[meal]={kcal:actual.kcal,protein:actual.p};
       const recipients=FLEXIBLE_MEALS.filter(next=>
         !isMealSkipped(date,next)&&!slotLogged(date,next)&&optionalMealActive(date,next)
@@ -355,9 +366,14 @@
     return best||{items:[...fixed],nutrition:sumNutrition(fixed)}
   }
   function mealPlan(date,meal){
+    const movedSource=movedTupperSource(date);
+    if(meal==='Post-entreno'&&movedSource){
+      const option=selectedOption(date,movedSource);if(!option)return null;
+      return {meal,option,skipped:false,optionalInactive:false,movedTupper:true,sourceMeal:movedSource,...standardTupperPlan(option)}
+    }
     const option=selectedOption(date,meal);
     if(!option)return null;
-    if(isMealSkipped(date,meal))return {meal,option,skipped:true,optionalInactive:false,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
+    if(isMealSkipped(date,meal))return {meal,option,skipped:true,optionalInactive:false,movedTupper:isTupperMoved(date,meal),items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
     const optionalInactive=meal==='Media mañana'&&!optionalMealActive(date,meal);
     const target=targetFor(date);
     const previewTarget=optionalInactive?{kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein}:null;
