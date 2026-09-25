@@ -446,7 +446,7 @@
     if(!vars.length)test([]);else visit(0,[]);
     return best||{items:[...fixed],nutrition:sumNutrition(fixed)}
   }
-  function mealPlan(date,meal){
+  function rawMealPlan(date,meal){
     const option=selectedOption(date,meal);
     if(!option)return null;
     if(isMealSkipped(date,meal))return {meal,option,skipped:true,optionalInactive:false,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
@@ -460,7 +460,81 @@
     }
     return {meal,option,skipped:false,optionalInactive,...fitted}
   }
-  function dayPlan(date){return MEALS.map(meal=>mealPlan(date,meal)).filter(Boolean)}
+  function addNutrition(a,b,sign=1){
+    ['kcal','p','c','f'].forEach(key=>a[key]=(Number(a[key])||0)+(Number(b[key])||0)*sign);
+    return a
+  }
+  function activeRowsNutrition(rows){
+    return rows.reduce((sum,row)=>{
+      if(row.skipped||row.optionalInactive)return sum;
+      return addNutrition(sum,row.nutrition)
+    },{kcal:0,p:0,c:0,f:0})
+  }
+  function dayAdjustmentScore(n,target){
+    const proteinShort=Math.max(0,(target.protein||0)-n.p);
+    const proteinExcess=Math.max(0,n.p-(target.protein||0));
+    return proteinShort*10000+Math.abs(n.kcal-(target.kcal||0))*100+proteinExcess
+  }
+  function adjustableRowItems(date,row){
+    if(!row||row.skipped||row.optionalInactive||slotLogged(date,row.meal))return [];
+    const ps=planState(),manual=ps.amountOverrides?.[date]?.[row.meal];
+    if(!TUPPER_MEALS.includes(row.meal)&&manual?.optionId===row.option.id&&manual.amounts)return [];
+    const tupperManual=ps.tupperPortions||{};
+    return row.items.map(([key,amount],index)=>{
+      const baseKey=basePlanFoodKey(key);
+      const def=(row.option.vars||[]).find(v=>v[0]===baseKey);
+      if(!def)return null;
+      if(TUPPER_MEALS.includes(row.meal)&&Object.prototype.hasOwnProperty.call(tupperManual,baseKey))return null;
+      const meta=foodInputMeta(key),continuous=meta.inputUnit==='g'||meta.inputUnit==='ml';
+      return {index,key,baseKey,amount,min:def[1],max:def[2],step:continuous?1:def[3],continuous}
+    }).filter(Boolean)
+  }
+  function fineTuneDayPlan(date,rows){
+    const target=targetFor(date);
+    if(!target.complete)return rows;
+    const tuned=rows.map(row=>({...row,items:(row.items||[]).map(item=>[...item]),nutrition:{...row.nutrition}}));
+    let total=activeRowsNutrition(tuned);
+    postTupperExtras(date).forEach(meal=>{
+      if(!postTupperLogged(date,meal))return;
+      const option=selectedOption(date,meal);if(option)addNutrition(total,standardTupperPlan(option).nutrition)
+    });
+    let bestScore=dayAdjustmentScore(total,target);
+    for(let pass=0;pass<16;pass++){
+      const kcalDelta=target.kcal-total.kcal;
+      let best=null;
+      tuned.forEach((row,rowIndex)=>{
+        adjustableRowItems(date,row).forEach(variable=>{
+          const current=Number(row.items[variable.index]?.[1])||0;
+          const perUnit=foodInputNutrition(variable.key,1);
+          if(!Number.isFinite(perUnit.kcal)||perUnit.kcal<=0)return;
+          const ideal=clamp(current+kcalDelta/perUnit.kcal,variable.min,variable.max);
+          const step=variable.step||1;
+          const snapped=variable.continuous?Math.round(ideal):Math.round(ideal/step)*step;
+          const candidates=[snapped,snapped-step,snapped+step,variable.min,variable.max]
+            .map(value=>clamp(value,variable.min,variable.max))
+            .filter((value,index,array)=>Number.isFinite(value)&&value>0&&array.indexOf(value)===index&&Math.abs(value-current)>.0001);
+          candidates.forEach(value=>{
+            const oldN=foodInputNutrition(variable.key,current),newN=foodInputNutrition(variable.key,value);
+            const candidateTotal={...total};addNutrition(candidateTotal,oldN,-1);addNutrition(candidateTotal,newN,1);
+            const score=dayAdjustmentScore(candidateTotal,target);
+            if(score+1e-8<bestScore&&(!best||score<best.score))best={rowIndex,index:variable.index,value,total:candidateTotal,score}
+          })
+        })
+      });
+      if(!best)break;
+      const row=tuned[best.rowIndex];
+      row.items[best.index]=[row.items[best.index][0],best.value];
+      row.nutrition=sumNutrition(row.items);
+      total=best.total;bestScore=best.score;
+      if(Math.round(total.kcal)===target.kcal&&total.p+0.05>=target.protein)break
+    }
+    return tuned
+  }
+  function dayPlan(date){
+    const rows=MEALS.map(meal=>rawMealPlan(date,meal)).filter(Boolean);
+    return fineTuneDayPlan(date,rows)
+  }
+  function mealPlan(date,meal){return dayPlan(date).find(row=>row.meal===meal)||null}
   function dayPlanNutrition(date){
     const sum=dayPlan(date).reduce((acc,row)=>{
       if(row.skipped||row.optionalInactive)return acc;
