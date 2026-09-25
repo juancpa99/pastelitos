@@ -172,7 +172,22 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1200)}
 function upsert(arr,obj,keys=["date"]){const i=arr.findIndex(x=>keys.every(k=>x[k]===obj[k]));if(i>=0)arr[i]={...arr[i],...obj};else arr.push(obj)}
 function val(id){return document.getElementById(id)?.value??""}
-function num(id){const x=val(id);return x===""?null:+x}
+function parseLocaleNumber(value){
+ if(value==null||value==="")return null;
+ if(typeof value==="number")return Number.isFinite(value)?value:null;
+ let text=String(value).trim().replace(/\s+/g,"");
+ if(!text)return null;
+ const comma=text.lastIndexOf(","),dot=text.lastIndexOf(".");
+ if(comma>=0&&dot>=0){
+  const decimalPos=Math.max(comma,dot),integer=text.slice(0,decimalPos).replace(/[.,]/g,""),fraction=text.slice(decimalPos+1).replace(/[.,]/g,"");
+  text=integer+"."+fraction
+ }else if(comma>=0){
+  text=text.replace(",",".")
+ }
+ const number=Number(text);
+ return Number.isFinite(number)?number:null
+}
+function num(id){return parseLocaleNumber(val(id))}
 function latest(arr,key){return arr.filter(x=>x[key]!=null&&x[key]!=="").sort((a,b)=>b.date.localeCompare(a.date))[0]?.[key]??"—"}
 function foodRecord(key){return FOOD_DB[key]||(state.customFoods||[]).find(f=>f.key===key)||null}
 function allFoodKeys(){return [...Object.keys(FOOD_DB),...(state.customFoods||[]).filter(f=>!f.transient).map(f=>f.key)]}
@@ -1539,7 +1554,7 @@ function openDishTemplate(meal,index){
  updateDishTemplatePreview()
 }
 function updateDishTemplatePreview(){
- const inputs=[...document.querySelectorAll(".dish-component-input")],values=inputs.map(input=>+input.value);
+ const inputs=[...document.querySelectorAll(".dish-component-input")],values=inputs.map(input=>parseLocaleNumber(input.value));
  const meal=document.querySelector(".dish-sheet .eyebrow")?.textContent?.split(" · ")[0]||"";
  const title=document.querySelector(".dish-sheet .hero-title")?.textContent||"";
  const dish=foodDishTemplates(meal).find(d=>d.name===title);
@@ -1550,7 +1565,7 @@ function updateDishTemplatePreview(){
 function saveDishTemplate(meal,index){
  const dish=foodDishTemplates(meal)[index];if(!dish)return;
  const inputs=[...document.querySelectorAll(".dish-component-input")];
- const values=inputs.map(input=>+input.value);
+ const values=inputs.map(input=>parseLocaleNumber(input.value));
  if(values.some(v=>!Number.isFinite(v)||v<0)){toast("Revisa las cantidades");return}
  if(!values.some(v=>v>0)){toast("Añade al menos un ingrediente");return}
  const groupId=`dish_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
@@ -1587,7 +1602,7 @@ function addFoodCombo(meal,index){
  saveState();closeModal();renderAll();showView("Food");toast(`${combo.name} añadido`)
 }
 function saveFood(){
- const key=val("fdKey"),inputAmount=+val("fdAmount");if(!key||!Number.isFinite(inputAmount)||inputAmount<=0){toast("Introduce una cantidad válida");return}
+ const key=val("fdKey"),inputAmount=parseLocaleNumber(val("fdAmount"));if(!key||!Number.isFinite(inputAmount)||inputAmount<=0){toast("Introduce una cantidad válida");return}
  const meta=foodInputMeta(key),amount=toStoredFoodAmount(key,inputAmount);
  state.foods.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),created:Date.now(),date:currentDate(),meal:val("fdMeal"),foodKey:key,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit});
  saveState();closeModal();renderAll();showView("Food")
@@ -1611,7 +1626,7 @@ function openEditFood(id){
 }
 function saveEditedFood(id){
  const item=state.foods.find(i=>i.id===id);if(!item)return;
- const inputAmount=+val("editFoodAmount");if(!Number.isFinite(inputAmount)||inputAmount<=0){toast("Introduce una cantidad válida");return}
+ const inputAmount=parseLocaleNumber(val("editFoodAmount"));if(!Number.isFinite(inputAmount)||inputAmount<=0){toast("Introduce una cantidad válida");return}
  const meta=foodInputMeta(item.foodKey);
  item.amount=toStoredFoodAmount(item.foodKey,inputAmount);
  item.displayAmount=inputAmount;
