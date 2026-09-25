@@ -237,6 +237,10 @@
     const custom=(state.customFoods||[]).find(f=>f.key===mapped&&!f.transient);
     return custom?mapped:foodKey
   }
+  function basePlanFoodKey(foodKey){
+    const preferred=planState().preferredFoods||{};
+    return Object.keys(preferred).find(base=>preferred[base]===foodKey)||foodKey
+  }
   window.marevoPreferredFoodKey=planFoodKey;
   function foodInputNutrition(foodKey,inputAmount){
     const key=planFoodKey(foodKey),amount=toStoredFoodAmount(key,inputAmount);
@@ -623,7 +627,8 @@
     const ps=planState();
     if(TUPPER_MEALS.includes(meal)){
       Object.entries(amounts).forEach(([key,value])=>{
-        if(Object.prototype.hasOwnProperty.call(TUPPER_PORTIONS,key))ps.tupperPortions[key]=value
+        const baseKey=basePlanFoodKey(key);
+        if(Object.prototype.hasOwnProperty.call(TUPPER_PORTIONS,baseKey))ps.tupperPortions[baseKey]=value
       });
       Object.values(ps.amountOverrides).forEach(day=>{
         if(day&&typeof day==='object'){delete day.Almuerzo;delete day.Cena}
