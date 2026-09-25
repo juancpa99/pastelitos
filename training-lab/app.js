@@ -1644,10 +1644,19 @@ function saveEditedFood(id){
  item.displayUnit=meta.inputUnit;
  saveState();closeModal();renderAll();showView("Food")
 }
-function openFoodNutritionEditor(key,returnFoodId=""){
+function openSavedFoodManager(returnMeal="Desayuno"){
+ const meal=MEAL_TYPES.includes(returnMeal)?returnMeal:"Desayuno";
+ const foods=(state.customFoods||[]).filter(f=>!f.transient);
+ const rows=foods.map(f=>`<button type="button" class="meal-choice" onclick="openFoodNutritionEditor('${f.key}','','${esc(meal)}')"><span><strong>${esc(f.name)}</strong><small>${esc(foodNutritionBasisLabel(f))} · ${Math.round(+f.kcal||0)} kcal · P ${foodNutritionInputValue(f.p)} · HC ${foodNutritionInputValue(f.c)} · G ${foodNutritionInputValue(f.f)}</small></span><span>›</span></button>`).join("");
+ document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
+  <div class="row between"><div><div class="eyebrow">Registrar alimento</div><div class="hero-title">Mis alimentos</div><div class="subtitle">Toca un alimento para corregir su información nutricional.</div></div><button type="button" class="btn ghost small" onclick="openCommonFoodRegistration('${esc(meal)}')">Volver</button></div>
+  <div class="meal-choice-list" style="margin-top:12px">${rows||'<div class="empty">Todavía no hay alimentos guardados.</div>'}</div>
+ </div></div>`
+}
+function openFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
  const food=(state.customFoods||[]).find(f=>f.key===key);
  if(!food){toast("Este alimento no se puede editar");return}
- const basis=foodNutritionBasisLabel(food),back=returnFoodId?`openEditFood('${returnFoodId}')`:"closeModal()";
+ const basis=foodNutritionBasisLabel(food),back=returnFoodId?`openEditFood('${returnFoodId}')`:returnMeal?`openSavedFoodManager('${returnMeal}')`:"closeModal()";
  const categories=["Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet nutrition-scan-sheet">
   <div class="row between"><div><div class="eyebrow">Mis alimentos</div><div class="hero-title">Editar información nutricional</div><div class="subtitle">Valores por ${esc(basis)}</div></div><button type="button" class="btn ghost small" onclick="${back}">Volver</button></div>
@@ -1676,10 +1685,10 @@ function openFoodNutritionEditor(key,returnFoodId=""){
     <label><span>Sodio</span><span class="nutrition-scan-input"><input id="editNutritionSodium" inputmode="decimal" value="${foodNutritionInputValue(food.sodiumMg)}"><b>mg</b></span></label>
    </div>
   </details>
-  <div class="actions"><button type="button" class="btn" onclick="saveFoodNutritionEditor('${key}','${returnFoodId}')">Guardar información</button><button type="button" class="btn secondary" onclick="${back}">Cancelar</button></div>
+  <div class="actions"><button type="button" class="btn" onclick="saveFoodNutritionEditor('${key}','${returnFoodId}','${returnMeal}')">Guardar información</button><button type="button" class="btn secondary" onclick="${back}">Cancelar</button></div>
  </div></div>`
 }
-function saveFoodNutritionEditor(key,returnFoodId=""){
+function saveFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
  const food=(state.customFoods||[]).find(f=>f.key===key);if(!food)return;
  const name=val("editNutritionName").trim(),cat=val("editNutritionCat")||"Extra";
  const required={kcal:parseLocaleNumber(val("editNutritionKcal")),p:parseLocaleNumber(val("editNutritionP")),c:parseLocaleNumber(val("editNutritionC")),f:parseLocaleNumber(val("editNutritionF"))};
@@ -1694,7 +1703,9 @@ function saveFoodNutritionEditor(key,returnFoodId=""){
  }
  Object.assign(food,{name,cat,...required,...optional});
  saveState(true);renderAll();
- if(returnFoodId){openEditFood(returnFoodId)}else{closeModal();showView("Settings");openViewSection("nutritionSettings")}
+ if(returnFoodId){openEditFood(returnFoodId)}
+ else if(returnMeal){showView("Food");openSavedFoodManager(returnMeal)}
+ else{closeModal();showView("Settings");openViewSection("nutritionSettings")}
  toast("Información nutricional actualizada")
 }
 
