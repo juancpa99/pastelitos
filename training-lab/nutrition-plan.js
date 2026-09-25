@@ -10,8 +10,8 @@
   const TUPPER_MEALS=['Almuerzo','Cena'];
   const FLEXIBLE_MEALS=['Media mañana','Merienda','Post-entreno'];
   const TUPPER_PORTIONS={
-    chicken:180,turkey:180,beef:180,hake:180,whitefish:180,salmon:180,pork_loin:180,
-    rice:75,pasta:75,potato:350,quinoa:75,couscous:75,
+    chicken:180,turkey:180,beef:180,hake:180,whitefish:180,salmon:180,pork_loin:180,prawns:180,tofu:180,tempeh:180,
+    rice:75,pasta:75,potato:350,quinoa:75,couscous:75,lentils:75,chickpeas:75,beans:75,
     veg:200,oil:5
   };
   const NUTRITION_MODES={
