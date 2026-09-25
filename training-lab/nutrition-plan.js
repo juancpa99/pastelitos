@@ -551,12 +551,37 @@
     const ps=planState();if(!ps.skippedMeals[date])ps.skippedMeals[date]={};
     const next=!ps.skippedMeals[date][meal];
     if(next)ps.skippedMeals[date][meal]=true;else delete ps.skippedMeals[date][meal];
+    if(!next&&TUPPER_MEALS.includes(meal)){
+      const slot=postTupperSlotId(date,meal);
+      state.foods=state.foods.filter(item=>item.planSlotId!==slot);
+      if(Array.isArray(ps.postTupperExtras?.[date]))ps.postTupperExtras[date]=ps.postTupperExtras[date].filter(x=>x!==meal)
+    }
     if(meal==='Media mañana'&&!optionalMealActive(date,meal)&&!next){
       if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
       ps.optionalMeals[date][meal]=true
     }
-    clearFlexibleOverrides(date,meal);
+    if(FLEXIBLE_MEALS.includes(meal))clearFlexibleOverrides(date,meal);
     saveState(true);renderAll();showView('Food')
+  };
+  window.addSkippedTupperToPost=function(date,meal){
+    if(!TUPPER_MEALS.includes(meal)||!isMealSkipped(date,meal))return;
+    const option=selectedOption(date,meal);if(!option)return;
+    const ps=planState();if(!Array.isArray(ps.postTupperExtras[date]))ps.postTupperExtras[date]=[];
+    if(!ps.postTupperExtras[date].includes(meal))ps.postTupperExtras[date].push(meal);
+    const slot=postTupperSlotId(date,meal);
+    state.foods=state.foods.filter(item=>item.planSlotId!==slot);
+    const plan=standardTupperPlan(option),groupId=`post_tupper_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+    plan.items.forEach(([foodKey,inputAmount],index)=>{
+      const meta=foodInputMeta(foodKey),amount=toStoredFoodAmount(foodKey,inputAmount);
+      state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal:'Post-entreno',foodKey,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:option.name,planSlotId:slot})
+    });
+    saveState();renderAll();showView('Food');toast('Táper añadido al post-entreno')
+  };
+  window.removeSkippedTupperFromPost=function(date,meal){
+    const ps=planState(),slot=postTupperSlotId(date,meal);
+    state.foods=state.foods.filter(item=>item.planSlotId!==slot);
+    if(Array.isArray(ps.postTupperExtras?.[date]))ps.postTupperExtras[date]=ps.postTupperExtras[date].filter(x=>x!==meal);
+    saveState();renderAll();showView('Food')
   };
   window.toggleNutritionPlanPost=function(date){
     window.toggleNutritionPlanMealSkipped(date,'Post-entreno')
