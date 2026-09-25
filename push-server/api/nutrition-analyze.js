@@ -33,7 +33,7 @@ function nutrientProperties(){
 const nutrientKeys=Object.keys(nutrientProperties());
 const labelSchema={
   type:'object',additionalProperties:false,
-  required:['kind','name','brand','category','referenceBasis','unitName','unitWeight','unitWeightUnit','confidence','warnings',...nutrientKeys],
+  required:['kind','name','brand','category','referenceBasis','unitName','unitWeight','unitWeightUnit','addedSugarStatus','transFatStatus','confidence','warnings',...nutrientKeys],
   properties:{
     kind:{type:'string',enum:['label']},
     name:{type:'string'},
@@ -43,6 +43,8 @@ const labelSchema={
     unitName:{type:'string'},
     unitWeight:nullableNumber(),
     unitWeightUnit:{type:'string',enum:['g','ml','']},
+    addedSugarStatus:{type:'string',enum:['not_stated','declared_zero','declared_value','ingredients_indicate_added']},
+    transFatStatus:{type:'string',enum:['not_stated','declared_zero','declared_value']},
     confidence:{type:'number',minimum:0,maximum:1},
     warnings:{type:'array',items:{type:'string'}},
     ...nutrientProperties()
@@ -70,7 +72,7 @@ function outputText(data){
   return ''
 }
 function labelPrompt(){
-  return `Extract the nutrition facts visible in this product photo. Prefer values per 100 g or per 100 ml when shown. If only serving values are visible, use referenceBasis="serving". Do not infer missing nutrients as zero. Return null when saturated fat, trans fat, added sugars, fiber, salt, sodium, mono- or polyunsaturated fat are not explicitly declared. If a serving or unit such as a slice is shown with its weight, return unitName and unitWeight. If the unit is mentioned but its weight is not visible, return the unit name and null weight. Energy is secondary; preserve it when visible. For added sugars, only return a numeric value when explicitly quantified. Warnings should be short and only mention ambiguity or missing critical data. Respond in Spanish for names and warnings.`
+  return `Extract the nutrition facts visible in this product photo. Prefer values per 100 g or per 100 ml when shown. If only serving values are visible, use referenceBasis="serving". Do not infer missing nutrients as zero. Return null when saturated fat, trans fat, added sugars, fiber, salt, sodium, mono- or polyunsaturated fat are not explicitly declared. If a serving or unit such as a slice is shown with its weight, return unitName and unitWeight. If the unit is mentioned but its weight is not visible, return the unit name and null weight. Energy is secondary; preserve it when visible. For added sugars, only return a numeric value when explicitly quantified. Use addedSugarStatus to distinguish not stated, explicitly zero, quantified, or visible ingredients that clearly indicate added sugar. Use transFatStatus similarly and never treat an omitted trans-fat line as zero. Warnings should be short and only mention ambiguity or missing critical data. Respond in Spanish for names and warnings.`
 }
 function mealPrompt(){
   return `Estimate the nutrition of the entire food or drink visible in this photo as one consumed serving. This is a one-off diary estimate, not a reusable food label. Estimate protein, carbohydrates, fat and energy. Only estimate saturated fat, trans fat, sugars, added sugars, fiber, salt, sodium or unsaturated fats when visually defensible; otherwise return null. Be conservative and list the main portion-size assumptions. Do not claim exactness. Respond in Spanish.`
