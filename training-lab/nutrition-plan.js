@@ -43,7 +43,7 @@
   const OPTIONS={
     'Desayuno':[
       {id:'breakfast_oats',name:'Avena con leche, whey y plátano',fixed:[['milk',250],['banana',1]],vars:[['whey',10,55,5],['oats',30,120,5]]},
-      {id:'breakfast_toast',name:'Tostadas con huevos y jamón cocido',fixed:[['egg',2],['tomato',100]],vars:[['ham_york_90',30,130,10],['whole_bread',1,5,1]]},
+      {id:'breakfast_toast',name:'Tostadas con huevos y jamón cocido',fixed:[['tomato',100]],vars:[['egg',1,4,1],['ham_york_90',30,130,10],['whole_bread',1,5,1]]},
       {id:'breakfast_yogurt',name:'Yogur con avena, whey y fresas',fixed:[['greek_yogurt_0',250],['strawberries',150]],vars:[['whey',0,45,5],['oats',30,110,5]]}
     ],
     'Media mañana':[
@@ -249,8 +249,64 @@
       return sum
     },{kcal:0,p:0,c:0,f:0})
   }
+  function tupperReferenceDate(){
+    const today=todayISO();
+    if(today<PLAN_START)return PLAN_START;
+    if(today>PLAN_END)return PLAN_END;
+    return today
+  }
+  function median(values){
+    const rows=values.filter(Number.isFinite).sort((a,b)=>a-b);
+    if(!rows.length)return null;
+    const mid=Math.floor(rows.length/2);
+    return rows.length%2?rows[mid]:(rows[mid-1]+rows[mid])/2
+  }
+  function optionFitSuggestions(option,targetKcal,targetProtein){
+    const fixed=(option.fixed||[]).map(([key,amount])=>[planFoodKey(key),amount]);
+    const vars=option.vars||[];
+    if(!vars.length)return {};
+    const choices=vars.map(v=>range(v[1],v[2],v[3]));
+    let best=null;
+    const visit=(index,values)=>{
+      if(index<vars.length){choices[index].forEach(value=>visit(index+1,[...values,value]));return}
+      const items=[...fixed,...vars.map((v,i)=>[planFoodKey(v[0]),values[i]])].filter(([,amount])=>amount>0);
+      const n=sumNutrition(items);
+      const kcalError=Math.abs(n.kcal-targetKcal)/Math.max(100,targetKcal);
+      const pDiff=n.p-targetProtein;
+      const proteinError=Math.abs(pDiff)/Math.max(15,targetProtein)*(pDiff<0?2.6:1.4);
+      const score=kcalError*1.6+proteinError;
+      if(!best||score<best.score)best={values:[...values],score}
+    };
+    visit(0,[]);
+    const out={};if(!best)return out;
+    vars.forEach((v,i)=>{out[v[0]]=best.values[i]});
+    return out
+  }
+  function autoTupperPortions(){
+    const target=targetFor(tupperReferenceDate());
+    if(!target.complete)return {...TUPPER_PORTIONS};
+    const targetKcal=target.kcal*BASE_SHARES.Almuerzo.kcal;
+    const targetProtein=target.protein*BASE_SHARES.Almuerzo.protein;
+    const suggestions={};
+    [...OPTIONS.Almuerzo,...OPTIONS.Cena].forEach(option=>{
+      const fit=optionFitSuggestions(option,targetKcal,targetProtein);
+      Object.entries(fit).forEach(([key,value])=>{
+        if(!Object.prototype.hasOwnProperty.call(TUPPER_PORTIONS,key))return;
+        if(key==='veg'||key==='oil')return;
+        (suggestions[key]||(suggestions[key]=[])).push(value)
+      })
+    });
+    const result={...TUPPER_PORTIONS};
+    Object.entries(suggestions).forEach(([key,values])=>{
+      const m=median(values);if(m==null)return;
+      const defs=[...OPTIONS.Almuerzo,...OPTIONS.Cena].flatMap(o=>o.vars||[]).filter(v=>v[0]===key);
+      const step=Math.min(...defs.map(v=>v[3]).filter(Number.isFinite));
+      result[key]=step?Math.round(m/step)*step:m
+    });
+    return result
+  }
   function tupperPortions(){
-    return {...TUPPER_PORTIONS,...(planState().tupperPortions||{})}
+    return {...autoTupperPortions(),...(planState().tupperPortions||{})}
   }
   function standardTupperItems(option){
     const portions=tupperPortions(),seen=new Set(),items=[];
@@ -364,9 +420,11 @@
       const score=kcalError*1.6+proteinError;
       if(!best||score<best.score)best={items,nutrition:n,score};
     };
-    if(!vars.length)test([]);
-    else if(vars.length===1)choices[0].forEach(a=>test([a]));
-    else choices[0].forEach(a=>choices[1].forEach(b=>test([a,b])));
+    const visit=(index,values)=>{
+      if(index>=vars.length){test(values);return}
+      choices[index].forEach(value=>visit(index+1,[...values,value]))
+    };
+    if(!vars.length)test([]);else visit(0,[]);
     return best||{items:[...fixed],nutrition:sumNutrition(fixed)}
   }
   function mealPlan(date,meal){
