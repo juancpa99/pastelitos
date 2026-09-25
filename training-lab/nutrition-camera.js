@@ -87,6 +87,12 @@
   function categoryOptions(selected){
     return ['Carbohidrato','Proteína','Verdura','Fruta','Lácteo','Suplemento','Extra'].map(v=>`<option ${v===selected?'selected':''}>${v}</option>`).join('')
   }
+  function habitualPlanOptions(category){
+    const rows=Object.entries(FOOD_DB).filter(([,food])=>food&&food.cat===category).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'es'));
+    const other=Object.entries(FOOD_DB).filter(([,food])=>food&&food.cat!==category).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'es'));
+    const options=[['','Solo guardar']].concat(rows,other);
+    return options.map(([key,food])=>key?`<option value="${esc(key)}">${esc(food.name)}</option>`:`<option value="">${food}</option>`).join('')
+  }
   function openLabelReview(data,meal){
     const basis=data.referenceBasis||'100g',unitName=data.unitName||'',unitWeight=data.unitWeight??'';
     const missingUnit=unitName&&!unitWeight;
@@ -98,6 +104,7 @@
         <div class="field"><label>Marca</label><input id="scanBrand" value="${esc(data.brand||'')}"></div>
         <div class="field"><label>Categoría</label><select id="scanCategory">${categoryOptions(data.category)}</select></div>
         <div class="field"><label>Valores por</label><select id="scanBasis"><option value="100g" ${basis==='100g'?'selected':''}>100 g</option><option value="100ml" ${basis==='100ml'?'selected':''}>100 ml</option><option value="serving" ${basis==='serving'?'selected':''}>Ración / unidad</option></select></div>
+        <div class="field wide"><label>Usar en el plan como</label><select id="scanPlanFood">${habitualPlanOptions(data.category)}</select></div>
       </div>
       <div class="eyebrow nutrition-scan-section">Macros y etiqueta</div>
       ${nutrientInputs(data,'scan')}
@@ -127,7 +134,7 @@
     }
   }
   window.saveScannedNutritionLabel=function(){
-    const meal=val('scanMeal')||'Desayuno',name=val('scanName').trim(),brand=val('scanBrand').trim(),basis=val('scanBasis'),cat=val('scanCategory')||'Extra';
+    const meal=val('scanMeal')||'Desayuno',name=val('scanName').trim(),brand=val('scanBrand').trim(),basis=val('scanBasis'),cat=val('scanCategory')||'Extra',planFood=val('scanPlanFood');
     const values=scanNutrients();if(!name||[values.p,values.c,values.f].some(v=>v==null)){toast('Revisa proteína, hidratos y grasas');return}
     if(values.kcal==null)values.kcal=derivedKcal(values.p,values.c,values.f);
     const unitName=val('scanUnitName').trim(),unitWeight=n(val('scanUnitWeight')),unitWeightUnit=val('scanUnitWeightUnit')||'g';
@@ -143,9 +150,22 @@
     }else if(perUnit){
       inputMeta={inputUnit:pluralUnit(unitName||'unidad'),singular:unitName||'unidad',perUnitDirect:true,presets:[1,2,3,4],reference:'valor por unidad de la etiqueta'};
     }
+    if(planFood){
+      const genericMeta=foodInputMeta(planFood);
+      const needsUnitWeight=!!genericMeta.gramsPerInput;
+      if(needsUnitWeight&&!perUnit&&!unitWeight){toast(`Indica cuánto pesa una ${genericMeta.singular||'unidad'}`);return}
+      if(!unitName&&genericMeta.singular&&unitWeight&&!perUnit){
+        inputMeta={inputUnit:genericMeta.inputUnit,singular:genericMeta.singular,gramsPerInput:unitWeight,presets:genericMeta.presets,reference:`1 ${genericMeta.singular} ≈ ${unitWeight} ${unitWeightUnit}`}
+      }
+    }
     const key=`custom_scan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
     state.customFoods.push({key,name:brand?`${name} · ${brand}`:name,cat,unit,ref:basis==='100ml'?'etiqueta por 100 ml':perUnit?'etiqueta por unidad':'etiqueta por 100 g',perUnit,custom:true,source:'label_scan',inputMeta,addedSugarStatus:val('scanAddedSugarStatus')||'not_stated',transFatStatus:val('scanTransFatStatus')||'not_stated',...scaled});
-    saveState(true);openFoodModal(meal);const input=document.getElementById('fdKey');if(input){input.value=key;setFoodSelection(key)}toast('Alimento guardado')
+    if(planFood){
+      if(!state.nutritionPlan||typeof state.nutritionPlan!=='object')state.nutritionPlan={};
+      if(!state.nutritionPlan.preferredFoods||typeof state.nutritionPlan.preferredFoods!=='object')state.nutritionPlan.preferredFoods={};
+      state.nutritionPlan.preferredFoods[planFood]=key
+    }
+    saveState(true);openFoodModal(meal);const input=document.getElementById('fdKey');if(input){input.value=key;setFoodSelection(key)}toast(planFood?'Alimento guardado y plan recalculado':'Alimento guardado')
   };
 
   function openMealPhotoReview(data,meal){
