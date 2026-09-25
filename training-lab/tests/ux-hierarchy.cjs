@@ -61,6 +61,19 @@ try{
  // Food logging exposes a broad library and editable multi-ingredient dishes.
  run(`showView('Food');openFoodModal('Almuerzo')`);
  assert.ok(doc.querySelector('.nutrition-scan-label-btn'),'food modal exposes nutrition-label camera scan');
+ run(`scanNutritionLabel('Desayuno')`);
+ assert.match(doc.getElementById('modalRoot').textContent,/Código de barras/,'product scanner offers free barcode lookup');
+ assert.match(doc.getElementById('modalRoot').textContent,/Foto de etiqueta/,'product scanner offers local label OCR');
+ const offScan=run(`marevoOpenFoodFactsData({status:1,product:{product_name:'Pan integral',brands:'Marca',serving_size:'2 rebanadas (50 g)',ingredients_text:'harina, azúcar, agua',categories_tags:['en:sliced-breads'],nutriments:{'energy-kcal_100g':260,'proteins_100g':9,'carbohydrates_100g':48,'fat_100g':3.5,'saturated-fat_100g':0.7,'fiber_100g':6,'salt_100g':1.1}}})`);
+ assert.equal(offScan.unitName,'rebanada','Open Food Facts serving is converted to a natural unit');
+ assert.equal(offScan.unitWeight,25,'multi-unit serving weight is converted to grams per unit');
+ assert.equal(offScan.protein,9,'Open Food Facts macros use the per-100g values');
+ assert.equal(offScan.addedSugarStatus,'ingredients_indicate_added','ingredients can flag added sugar without inventing a gram value');
+ const ocrScan=run(`marevoParseNutritionLabelText('Valores por 100 g\\nEnergía 250 kcal\\nGrasas 4,0 g\\nSaturadas 0,8 g\\nHidratos de carbono 42,0 g\\nAzúcares 3,0 g\\nFibra 6,0 g\\nProteínas 10,0 g\\nSal 1,1 g')`);
+ assert.equal(ocrScan.referenceBasis,'100g','local OCR recognises a 100 g nutrition table');
+ assert.equal(ocrScan.protein,10,'local OCR extracts protein');
+ assert.equal(ocrScan.carbs,42,'local OCR extracts carbohydrates');
+ run(`openFoodModal('Almuerzo')`);
  run(`state.customFoods.push({key:'custom_pref_bread',name:'Mi pan',cat:'Carbohidrato',unit:'g',ref:'etiqueta por 100 g',custom:true,kcal:260,p:14,c:38,f:5,inputMeta:{inputUnit:'rebanadas',singular:'rebanada',gramsPerInput:27,presets:[1,2,3,4],reference:'1 rebanada ≈ 27 g'}});state.nutritionPlan=state.nutritionPlan||{};state.nutritionPlan.preferredFoods=state.nutritionPlan.preferredFoods||{};state.nutritionPlan.preferredFoods.whole_bread='custom_pref_bread';chooseNutritionPlanMeal('2026-09-25','Desayuno','breakfast_toast')`);
  assert.ok(run(`mealPlan('2026-09-25','Desayuno').items.some(([key])=>key==='custom_pref_bread')`),'habitual scanned food replaces the generic food inside the plan');
  assert.equal(run(`foodInputMeta('custom_pref_bread').gramsPerInput`),27,'habitual scanned unit weight is used by the plan');
