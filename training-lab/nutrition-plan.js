@@ -241,7 +241,13 @@
     const preferred=planState().preferredFoods||{};
     return Object.keys(preferred).find(base=>preferred[base]===foodKey)||foodKey
   }
+  function planFoodDisplayName(foodKey){
+    const baseKey=basePlanFoodKey(foodKey);
+    return FOOD_DB[baseKey]?.name||foodRecord(foodKey)?.name||foodKey
+  }
   window.marevoPreferredFoodKey=planFoodKey;
+  window.marevoBasePlanFoodKey=basePlanFoodKey;
+  window.marevoPlanFoodDisplayName=planFoodDisplayName;
   function foodInputNutrition(foodKey,inputAmount){
     const key=planFoodKey(foodKey),amount=toStoredFoodAmount(key,inputAmount);
     return calcFood({foodKey:key,amount})
@@ -483,7 +489,7 @@
     return `${shown} ${meta.inputUnit}`
   }
   function itemSummary(items){
-    return items.map(([key,amount])=>`${foodRecord(key)?.name||key} ${amountText(key,amount)}`).join(' · ')
+    return items.map(([key,amount])=>`${planFoodDisplayName(key)} ${amountText(key,amount)}`).join(' · ')
   }
   function dateLabel(date){
     return dateObj(date).toLocaleDateString('es-ES',{weekday:'short',day:'numeric'}).replace('.','')
@@ -584,7 +590,7 @@
     const groupId=`plan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
     row.items.forEach(([foodKey,inputAmount],index)=>{
       const meta=foodInputMeta(foodKey),amount=toStoredFoodAmount(foodKey,inputAmount);
-      state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal,foodKey,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:row.option.name,planSlotId:slot});
+      state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal,foodKey,planBaseFoodKey:basePlanFoodKey(foodKey),amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:row.option.name,planSlotId:slot});
     });
     clearFlexibleOverrides(date,meal);
     saveState();renderAll();showView('Food');toast(`${row.option.name} añadido`)
@@ -613,7 +619,7 @@
   window.openNutritionPlanMealOptions=function(date,meal){
     const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal),current=mealPlan(date,meal);
     const previewTarget=meal==='Media mañana'&&!optionalMealActive(date,meal)?{kcal:(targetFor(date).kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(targetFor(date).protein||0)*MEDIA_MORNING_SHARE.protein}:null;
-    const amounts=current&&!current.skipped?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades</div>${current.items.map(([key,amount],i)=>{const db=foodRecord(key),meta=foodInputMeta(key);return `<label><span><strong>${esc(db?.name||key)}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" inputmode="decimal" value="${amount}"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
+    const amounts=current&&!current.skipped?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades</div>${current.items.map(([key,amount],i)=>{const meta=foodInputMeta(key);return `<label><span><strong>${esc(planFoodDisplayName(key))}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" inputmode="decimal" value="${amount}"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
     document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Ajustar comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>${amounts}<div class="nutrition-plan-option-title">Cambiar plato</div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option,previewTarget);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
   };
   window.saveNutritionPlanMealAmounts=function(date,meal){
@@ -681,7 +687,7 @@
     const plan=standardTupperPlan(option),groupId=`post_tupper_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
     plan.items.forEach(([foodKey,inputAmount],index)=>{
       const meta=foodInputMeta(foodKey),amount=toStoredFoodAmount(foodKey,inputAmount);
-      state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal:'Post-entreno',foodKey,amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:option.name,planSlotId:slot})
+      state.foods.push({id:`${groupId}_${index}`,created:Date.now()+index,date,meal:'Post-entreno',foodKey,planBaseFoodKey:basePlanFoodKey(foodKey),amount,displayAmount:inputAmount,displayUnit:meta.inputUnit,dishGroupId:groupId,dishName:option.name,planSlotId:slot})
     });
     saveState();renderAll();showView('Food');toast('Táper añadido al post-entreno')
   };
