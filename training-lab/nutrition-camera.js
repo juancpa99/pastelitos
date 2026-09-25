@@ -151,11 +151,17 @@
       inputMeta={inputUnit:pluralUnit(unitName||'unidad'),singular:unitName||'unidad',perUnitDirect:true,presets:[1,2,3,4],reference:'valor por unidad de la etiqueta'};
     }
     if(planFood){
-      const genericMeta=foodInputMeta(planFood);
-      const needsUnitWeight=!!genericMeta.gramsPerInput;
-      if(needsUnitWeight&&!perUnit&&!unitWeight){toast(`Indica cuánto pesa una ${genericMeta.singular||'unidad'}`);return}
-      if(!unitName&&genericMeta.singular&&unitWeight&&!perUnit){
-        inputMeta={inputUnit:genericMeta.inputUnit,singular:genericMeta.singular,gramsPerInput:unitWeight,presets:genericMeta.presets,reference:`1 ${genericMeta.singular} ≈ ${unitWeight} ${unitWeightUnit}`}
+      const genericMeta=foodInputMeta(planFood),genericFood=foodRecord(planFood);
+      const discrete=!!(genericMeta.gramsPerInput||genericMeta.perUnitDirect||genericMeta.singular);
+      const bulkByWeight=!discrete&&(genericMeta.inputUnit==='g'||genericMeta.inputUnit==='ml');
+      if(discrete&&!perUnit&&!unitWeight){toast(`Indica cuánto pesa una ${genericMeta.singular||'unidad'}`);return}
+      if(bulkByWeight&&perUnit){toast('Indica el peso de la ración para usarlo en el plan');return}
+      if(discrete&&!perUnit&&unitWeight){
+        inputMeta={inputUnit:genericMeta.inputUnit,singular:genericMeta.singular||unitName||'unidad',gramsPerInput:unitWeight,presets:genericMeta.presets||[1,2,3,4],reference:`1 ${genericMeta.singular||unitName||'unidad'} ≈ ${unitWeight} ${unitWeightUnit}`}
+      }else if(discrete&&perUnit){
+        inputMeta={inputUnit:genericMeta.inputUnit,singular:genericMeta.singular||unitName||'unidad',perUnitDirect:true,presets:genericMeta.presets||[1,2,3,4],reference:'valor por unidad de la etiqueta'}
+      }else if(bulkByWeight&&!perUnit){
+        inputMeta={inputUnit:genericMeta.inputUnit,presets:genericMeta.presets,reference:genericMeta.reference||genericFood?.ref||''}
       }
     }
     const key=`custom_scan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
