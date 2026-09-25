@@ -1689,7 +1689,7 @@ function saveFoodNutritionEditor(key,returnFoodId=""){
  const optional={};
  for(const [prop,id] of Object.entries(optionalIds)){
   const raw=val(id).trim(),parsed=raw===""?null:parseLocaleNumber(raw);
-  if(parsed!=null&&(!Number.isFinite(parsed)||parsed<0)){toast("Revisa los datos nutricionales adicionales");return}
+  if(raw!==""&&(parsed==null||!Number.isFinite(parsed)||parsed<0)){toast("Revisa los datos nutricionales adicionales");return}
   optional[prop]=parsed
  }
  Object.assign(food,{name,cat,...required,...optional});
