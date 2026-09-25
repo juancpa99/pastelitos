@@ -263,14 +263,14 @@
     const select=document.getElementById('scanPlanFood');
     if(select&&data.suggestedPlanFood)select.value=data.suggestedPlanFood
   }
-  function productNotFound(meal,code){
+  function productNotFound(meal,code,mode){
     document.getElementById('modalRoot').innerHTML=
       '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
       '<div class="row between"><div><div class="eyebrow">Producto</div><div class="hero-title">No encontrado</div></div>'+
       '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
       '<div class="callout" style="margin-top:12px">'+esc(code||'')+'</div>'+
-      '<div class="actions"><button type="button" class="btn" onclick="captureNutritionLabelOCR(\''+esc(meal)+'\')">Foto de etiqueta</button>'+
-      '<button type="button" class="btn secondary" onclick="openNutritionScanMenu(\''+esc(meal)+'\')">Volver</button></div></div></div>'
+      '<div class="actions"><button type="button" class="btn" onclick="captureNutritionLabelOCR(\''+esc(meal)+'\',\''+esc(mode||'common')+'\')">Leer etiqueta</button>'+
+      '<button type="button" class="btn secondary" onclick="'+((mode||'common')==='punctual'?'openPunctualRegistration':'openCommonFoodRegistration')+'(\''+esc(meal)+'\')">Volver</button></div></div></div>'
   }
   async function lookupBarcode(code,meal,mode){
     const clean=cleanBarcode(code);
@@ -278,18 +278,19 @@
     loading('Buscando producto','Open Food Facts');
     try{
       const payload=await fetchOpenFoodFacts(clean);
-      if(!payload||payload.status!==1||!payload.product){productNotFound(meal,clean);return}
+      if(!payload||payload.status!==1||!payload.product){productNotFound(meal,clean,mode);return}
       const data=openFoodFactsData(payload);
       if([data.protein,data.carbs,data.fat].filter(function(v){return v!=null}).length<2){
         data.warnings.push('La ficha está incompleta. Puedes completar los valores o fotografiar la etiqueta.')
       }
       reviewLabelData(data,meal,mode)
     }catch(error){
+      const back=(mode||'common')==='punctual'?'openPunctualRegistration':'openCommonFoodRegistration';
       document.getElementById('modalRoot').innerHTML=
         '<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Producto</div><div class="hero-title">No se pudo consultar</div></div>'+
         '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
-        '<div class="actions"><button type="button" class="btn" onclick="captureNutritionLabelOCR(\''+esc(meal)+'\')">Foto de etiqueta</button>'+
-        '<button type="button" class="btn secondary" onclick="openNutritionScanMenu(\''+esc(meal)+'\')">Volver</button></div></div></div>'
+        '<div class="actions"><button type="button" class="btn" onclick="captureNutritionLabelOCR(\''+esc(meal)+'\',\''+esc(mode||'common')+'\')">Leer etiqueta</button>'+
+        '<button type="button" class="btn secondary" onclick="'+back+'(\''+esc(meal)+'\')">Volver</button></div></div></div>'
     }
   }
 
@@ -301,7 +302,7 @@
       '<button type="button" class="btn ghost small" onclick="openFoodModal(\''+esc(selected)+'\')">Volver</button></div>'+
       '<div class="nutrition-scan-choice-list">'+
       '<button type="button" class="meal-choice" onclick="captureProductBarcode(\''+esc(selected)+'\')"><strong>Código de barras</strong><small>Busca el producto</small><span>›</span></button>'+
-      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\')"><strong>Foto de etiqueta</strong><small>Lectura local</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\')"><strong>Leer etiqueta</strong><small>Leer información nutricional</small><span>›</span></button>'+
       '</div>'+
       '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\')">Buscar</button></div></div>'+
       '</div></div>'
@@ -594,7 +595,7 @@
       '<button type="button" class="meal-choice" onclick="capturePunctualBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Producto envasado</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'punctual\')"><strong>Leer etiqueta</strong><small>Producto envasado</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="openManualPunctualFood(\''+esc(selected)+'\')"><strong>Añadir manualmente</strong><small>Macros o kcal conocidos</small><span>›</span></button>'+
-      '<button type="button" class="meal-choice restaurant-choice" onclick="openRestaurantFood()"><strong>Comida de restaurante</strong><small>Estimación aproximada</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice restaurant-choice" onclick="openRestaurantFood(\''+esc(selected)+'\')"><strong>Comida de restaurante</strong><small>Estimación aproximada</small><span>›</span></button>'+
       '</div>'+
       '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\',\'punctual\')">Buscar</button></div></div>'+
       '</div></div>'
@@ -667,24 +668,27 @@
     saveState();closeModal();renderAll();showView('Food');toast('Comida registrada')
   };
 
-  window.openRestaurantFood=function(){
+  window.openRestaurantFood=function(meal){
+    const selected=MEAL_TYPES.includes(meal)?meal:'Almuerzo';
     document.getElementById('modalRoot').innerHTML=
       '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
       '<div class="row between"><div><div class="eyebrow">Estimación</div><div class="hero-title">Comida de restaurante</div></div>'+
-      '<button type="button" class="btn ghost small" onclick="openPunctualRegistration()">Volver</button></div>'+
+      '<button type="button" class="btn ghost small" onclick="openPunctualRegistration(\''+esc(selected)+'\')">Volver</button></div>'+
+      '<div class="field" style="margin-top:12px"><label>Comida</label>'+mealSelect(selected,'restaurantMeal')+'</div>'+
       '<div class="restaurant-estimate-note">Valores orientativos. El tamaño, aceite, salsas y receta pueden cambiar mucho el resultado.</div>'+
       '<div class="restaurant-preset-list">'+RESTAURANT_PRESETS.map(function(row){
         return '<button type="button" class="restaurant-preset" onclick="chooseRestaurantFood(\''+row.id+'\')"><span><strong>'+esc(row.name)+'</strong><small>'+esc(row.note)+'</small></span><b>≈ '+row.kcal+' kcal</b></button>'
       }).join('')+'</div>'+
-      '<div class="actions"><button type="button" class="btn secondary" onclick="openManualPunctualFood(\'Merienda\')">Otro / manual</button></div>'+
+      '<div class="actions"><button type="button" class="btn secondary" onclick="openManualPunctualFood(\''+esc(selected)+'\')">Otro / manual</button></div>'+
       '</div></div>'
   };
   window.chooseRestaurantFood=function(id){
     const row=RESTAURANT_PRESETS.find(function(item){return item.id===id});if(!row)return;
+    const selected=MEAL_TYPES.includes(val('restaurantMeal'))?val('restaurantMeal'):'Almuerzo';
     openPunctualProductReview({
       name:row.name,referenceBasis:'serving',energyKcal:row.kcal,protein:row.p,carbs:row.c,fat:row.f,
       saturatedFat:null,transFat:null,addedSugars:null,fiber:null,salt:null
-    },'Merienda')
+    },selected)
   };
 
   // Legacy name now opens the explicit registration flow instead of photographing a meal.
