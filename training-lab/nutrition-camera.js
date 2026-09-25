@@ -109,6 +109,13 @@
         </div>
         ${missingUnit?'<small>La etiqueta no indica cuánto pesa una unidad. Puedes introducir el peso medio o dejar el alimento en gramos.</small>':''}
       </div>
+      <div class="nutrition-unit-box">
+        <div class="eyebrow">Declaraciones</div>
+        <div class="formgrid">
+          <div class="field"><label>Azúcares añadidos</label><select id="scanAddedSugarStatus"><option value="not_stated" ${data.addedSugarStatus==='not_stated'?'selected':''}>No declarado</option><option value="declared_zero" ${data.addedSugarStatus==='declared_zero'?'selected':''}>Declara 0</option><option value="declared_value" ${data.addedSugarStatus==='declared_value'?'selected':''}>Valor declarado</option><option value="ingredients_indicate_added" ${data.addedSugarStatus==='ingredients_indicate_added'?'selected':''}>Ingredientes indican añadido</option></select></div>
+          <div class="field"><label>Grasas trans</label><select id="scanTransFatStatus"><option value="not_stated" ${data.transFatStatus==='not_stated'?'selected':''}>No declarado</option><option value="declared_zero" ${data.transFatStatus==='declared_zero'?'selected':''}>Declara 0</option><option value="declared_value" ${data.transFatStatus==='declared_value'?'selected':''}>Valor declarado</option></select></div>
+        </div>
+      </div>
       ${(data.warnings||[]).length?`<div class="nutrition-scan-warnings">${data.warnings.map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:''}
       <div class="actions"><button type="button" class="btn" onclick="saveScannedNutritionLabel()">Guardar alimento</button></div>
     </div></div>`
@@ -137,7 +144,7 @@
       inputMeta={inputUnit:pluralUnit(unitName||'unidad'),singular:unitName||'unidad',perUnitDirect:true,presets:[1,2,3,4],reference:'valor por unidad de la etiqueta'};
     }
     const key=`custom_scan_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
-    state.customFoods.push({key,name:brand?`${name} · ${brand}`:name,cat,unit,ref:basis==='100ml'?'etiqueta por 100 ml':perUnit?'etiqueta por unidad':'etiqueta por 100 g',perUnit,custom:true,source:'label_scan',inputMeta,...scaled});
+    state.customFoods.push({key,name:brand?`${name} · ${brand}`:name,cat,unit,ref:basis==='100ml'?'etiqueta por 100 ml':perUnit?'etiqueta por unidad':'etiqueta por 100 g',perUnit,custom:true,source:'label_scan',inputMeta,addedSugarStatus:val('scanAddedSugarStatus')||'not_stated',transFatStatus:val('scanTransFatStatus')||'not_stated',...scaled});
     saveState(true);openFoodModal(meal);const input=document.getElementById('fdKey');if(input){input.value=key;setFoodSelection(key)}toast('Alimento guardado')
   };
 
