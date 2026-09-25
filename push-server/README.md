@@ -17,8 +17,6 @@ Create these environment variables in Vercel:
 - `MAREVO_DELIVERY_KEY` (a long random value)
 - `MAREVO_ALLOWED_ORIGIN=https://juancpa99.github.io`
 - `QSTASH_URL=https://qstash.upstash.io` (optional; this is already the default)
-- `OPENAI_API_KEY` (required for nutrition label / meal-photo analysis)
-- `OPENAI_NUTRITION_MODEL=gpt-5.6-sol` (optional override)
 
 Generate the VAPID pair once with:
 
@@ -45,6 +43,6 @@ window.MAREVO_PUSH_BACKEND = "https://your-project.vercel.app";
 MAREVO uses stable notification categories such as `marevo-rest`, `marevo-workout`, `marevo-checkin` and `marevo-body`. The Web Push `Topic` and the Notification API `tag` both use those stable categories, so a newer notification of the same type replaces the previous one instead of accumulating. Different categories remain visible together.
 
 
-## Nutrition photo analysis
+## Nutrition scanning
 
-`/api/nutrition-analyze` accepts a compressed nutrition-label or one-off meal photo from the MAREVO PWA. The server sends the image to the OpenAI Responses API and returns schema-constrained nutrient data. The API key stays server-side; the PWA never receives it.
+MAREVO's default nutrition scanner does not require a paid AI API. Product barcodes are looked up in Open Food Facts through `/api/openfoodfacts`, and nutrition-label OCR runs locally in the browser. `/api/nutrition-analyze` remains optional and is not used by the default PWA flow.
