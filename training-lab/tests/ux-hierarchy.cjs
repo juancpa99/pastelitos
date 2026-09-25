@@ -18,6 +18,19 @@ try{
   }
  }
  date('2026-09-22');run(`showView('Home')`);
+ run(`state.foods=state.foods.filter(f=>!['2026-09-22','2026-09-23'].includes(f.date));state.nutritionPlan=state.nutritionPlan||{};state.nutritionPlan.skippedMeals={};state.nutritionPlan.optionalMeals={}`);
+ assert.equal(run(`homeNutritionPrompt('2026-09-22',540).meal`),'Desayuno','Today prompts breakfast in the morning');
+ assert.equal(run(`homeNutritionPrompt('2026-09-22',1110).meal`),'Merienda','Today prompts afternoon snack around 18–19');
+ assert.equal(run(`homeNutritionPrompt('2026-09-22',1290).meal`),'Cena','non-swim days prompt dinner around 21–22');
+ assert.match(run(`homeNutritionPrompt('2026-09-22',1290).desc`),/21 y 22/);
+ assert.equal(run(`homeNutritionPrompt('2026-09-23',1200).meal`),'Cena','swim days prompt dinner earlier');
+ assert.match(run(`homeNutritionPrompt('2026-09-23',1200).title`),/antes de natación/);
+ assert.equal(run(`homeNutritionPrompt('2026-09-23',1410).meal`),'Post-entreno','swim days prompt post-workout from 23:30');
+ run(`state.foods.push({id:'home_merienda_test',created:1,date:'2026-09-22',meal:'Merienda',foodKey:'banana',amount:100})`);
+ assert.equal(run(`homeNutritionPrompt('2026-09-22',1110)`),null,'registered meals are not prompted again');
+ run(`state.foods=state.foods.filter(f=>f.id!=='home_merienda_test');state.nutritionPlan.skippedMeals['2026-09-22']={Cena:true}`);
+ assert.equal(run(`homeNutritionPrompt('2026-09-22',1290)`),null,'meals marked not done are not prompted again');
+ run(`state.nutritionPlan.skippedMeals={}`);
  assert.equal(run(`dayActivities(currentDate()).length`),2,'Tuesday has two gym sessions');
  assert.match(doc.querySelector('#viewHome .home-training-cta').textContent,/Registrar entrenamiento/);
  assert.ok(!doc.querySelector('#viewHome .home-training-cta').textContent.includes(run(`dayActivities(currentDate())[0].title`)),'Home hides the recommended workout name from the primary action');
