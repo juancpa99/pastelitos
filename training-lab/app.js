@@ -1613,15 +1613,26 @@ function quickRepeatFood(key,inputAmount,meal){
  saveState();closeModal();renderAll();showView("Food")
 }
 
+function foodNutritionBasisLabel(food){
+ if(!food)return"";
+ if(food.perUnit)return food.inputMeta?.singular?`1 ${food.inputMeta.singular}`:"1 unidad";
+ return food.unit==="ml"?"100 ml":"100 g"
+}
+function foodNutritionInputValue(value){
+ return value==null||!Number.isFinite(+value)?"":String(Math.round((+value)*100)/100)
+}
 function openEditFood(id){
  const item=state.foods.find(i=>i.id===id);if(!item)return;
  const db=foodRecord(item.foodKey),meta=foodInputMeta(item.foodKey),current=fromStoredFoodAmount(item);
+ const nutritionAction=db?.custom?`<div class="sep"></div><div class="row between settings-status-row"><div><strong>Información nutricional</strong><small>Corrige kcal y macros del alimento guardado.</small></div><button type="button" class="btn secondary small" onclick="openFoodNutritionEditor('${item.foodKey}','${id}')">Editar datos</button></div><div class="settings-help">Los cambios nutricionales se aplican a todos los registros que usan este alimento.</div>`:"";
  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
-  <div class="row between"><div><div class="eyebrow">${esc(item.meal)}</div><div class="hero-title">Editar cantidad</div><div class="subtitle">${esc(db?.name||item.foodKey)}</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
-  <div class="field" style="margin-top:12px"><label>Cantidad en ${esc(meta.inputUnit)}</label><input id="editFoodAmount" inputmode="decimal" value="${current}"></div>
+  <div class="row between"><div><div class="eyebrow">${esc(item.meal)}</div><div class="hero-title">Editar comida</div><div class="subtitle">${esc(db?.name||item.foodKey)}</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
+  <div class="eyebrow nutrition-scan-section">Cantidad de esta comida</div>
+  <div class="field" style="margin-top:8px"><label>Cantidad en ${esc(meta.inputUnit)}</label><input id="editFoodAmount" inputmode="decimal" value="${current}"></div>
   <div class="subtitle food-edit-ref"><strong>Referencia:</strong> ${esc(meta.reference)}.</div>
   <div class="quickchips">${meta.presets.map(n=>`<button type="button" class="chip" onclick="document.getElementById('editFoodAmount').value=${n}">${n} ${esc(meta.inputUnit)}</button>`).join("")}</div>
-  <div class="actions"><button type="button" class="btn" onclick="saveEditedFood('${id}')">Guardar cambios</button><button type="button" class="btn danger" onclick="deleteFood('${id}')">Eliminar alimento</button></div>
+  ${nutritionAction}
+  <div class="actions"><button type="button" class="btn" onclick="saveEditedFood('${id}')">Guardar cantidad</button><button type="button" class="btn danger" onclick="deleteFood('${id}')">Eliminar de la comida</button></div>
  </div></div>`
 }
 function saveEditedFood(id){
@@ -1632,6 +1643,59 @@ function saveEditedFood(id){
  item.displayAmount=inputAmount;
  item.displayUnit=meta.inputUnit;
  saveState();closeModal();renderAll();showView("Food")
+}
+function openFoodNutritionEditor(key,returnFoodId=""){
+ const food=(state.customFoods||[]).find(f=>f.key===key);
+ if(!food){toast("Este alimento no se puede editar");return}
+ const basis=foodNutritionBasisLabel(food),back=returnFoodId?`openEditFood('${returnFoodId}')`:"closeModal()";
+ const categories=["Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
+ document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet nutrition-scan-sheet">
+  <div class="row between"><div><div class="eyebrow">Mis alimentos</div><div class="hero-title">Editar información nutricional</div><div class="subtitle">Valores por ${esc(basis)}</div></div><button type="button" class="btn ghost small" onclick="${back}">Volver</button></div>
+  <div class="callout" style="margin-top:10px">Esta edición corrige el alimento guardado. Los registros anteriores que lo usan se recalcularán con estos valores.</div>
+  <div class="formgrid nutrition-scan-main">
+   <div class="field wide"><label>Nombre</label><input id="editNutritionName" value="${esc(food.name)}"></div>
+   <div class="field wide"><label>Categoría</label><select id="editNutritionCat">${categories.map(v=>`<option ${v===food.cat?"selected":""}>${v}</option>`).join("")}</select></div>
+  </div>
+  <div class="eyebrow nutrition-scan-section">Energía y macronutrientes</div>
+  <div class="nutrition-scan-grid">
+   <label><span>Energía</span><span class="nutrition-scan-input"><input id="editNutritionKcal" inputmode="decimal" value="${foodNutritionInputValue(food.kcal)}"><b>kcal</b></span></label>
+   <label><span>Proteína</span><span class="nutrition-scan-input"><input id="editNutritionP" inputmode="decimal" value="${foodNutritionInputValue(food.p)}"><b>g</b></span></label>
+   <label><span>Carbohidratos</span><span class="nutrition-scan-input"><input id="editNutritionC" inputmode="decimal" value="${foodNutritionInputValue(food.c)}"><b>g</b></span></label>
+   <label><span>Grasas</span><span class="nutrition-scan-input"><input id="editNutritionF" inputmode="decimal" value="${foodNutritionInputValue(food.f)}"><b>g</b></span></label>
+  </div>
+  <details class="nutrition-oneoff-details"><summary>Más datos nutricionales</summary>
+   <div class="nutrition-scan-grid" style="margin-top:10px">
+    <label><span>Saturadas</span><span class="nutrition-scan-input"><input id="editNutritionSat" inputmode="decimal" value="${foodNutritionInputValue(food.sat)}"><b>g</b></span></label>
+    <label><span>Trans</span><span class="nutrition-scan-input"><input id="editNutritionTrans" inputmode="decimal" value="${foodNutritionInputValue(food.trans)}"><b>g</b></span></label>
+    <label><span>Monoinsaturadas</span><span class="nutrition-scan-input"><input id="editNutritionMono" inputmode="decimal" value="${foodNutritionInputValue(food.mono)}"><b>g</b></span></label>
+    <label><span>Poliinsaturadas</span><span class="nutrition-scan-input"><input id="editNutritionPoly" inputmode="decimal" value="${foodNutritionInputValue(food.poly)}"><b>g</b></span></label>
+    <label><span>Azúcares</span><span class="nutrition-scan-input"><input id="editNutritionSugars" inputmode="decimal" value="${foodNutritionInputValue(food.sugars)}"><b>g</b></span></label>
+    <label><span>Azúcares añadidos</span><span class="nutrition-scan-input"><input id="editNutritionAddedSugars" inputmode="decimal" value="${foodNutritionInputValue(food.addedSugars)}"><b>g</b></span></label>
+    <label><span>Fibra</span><span class="nutrition-scan-input"><input id="editNutritionFiber" inputmode="decimal" value="${foodNutritionInputValue(food.fiber)}"><b>g</b></span></label>
+    <label><span>Sal</span><span class="nutrition-scan-input"><input id="editNutritionSalt" inputmode="decimal" value="${foodNutritionInputValue(food.salt)}"><b>g</b></span></label>
+    <label><span>Sodio</span><span class="nutrition-scan-input"><input id="editNutritionSodium" inputmode="decimal" value="${foodNutritionInputValue(food.sodiumMg)}"><b>mg</b></span></label>
+   </div>
+  </details>
+  <div class="actions"><button type="button" class="btn" onclick="saveFoodNutritionEditor('${key}','${returnFoodId}')">Guardar información</button><button type="button" class="btn secondary" onclick="${back}">Cancelar</button></div>
+ </div></div>`
+}
+function saveFoodNutritionEditor(key,returnFoodId=""){
+ const food=(state.customFoods||[]).find(f=>f.key===key);if(!food)return;
+ const name=val("editNutritionName").trim(),cat=val("editNutritionCat")||"Extra";
+ const required={kcal:parseLocaleNumber(val("editNutritionKcal")),p:parseLocaleNumber(val("editNutritionP")),c:parseLocaleNumber(val("editNutritionC")),f:parseLocaleNumber(val("editNutritionF"))};
+ if(!name){toast("Escribe el nombre del alimento");return}
+ if(Object.values(required).some(v=>v==null||!Number.isFinite(v)||v<0)){toast("Revisa energía, proteína, hidratos y grasas");return}
+ const optionalIds={sat:"editNutritionSat",trans:"editNutritionTrans",mono:"editNutritionMono",poly:"editNutritionPoly",sugars:"editNutritionSugars",addedSugars:"editNutritionAddedSugars",fiber:"editNutritionFiber",salt:"editNutritionSalt",sodiumMg:"editNutritionSodium"};
+ const optional={};
+ for(const [prop,id] of Object.entries(optionalIds)){
+  const raw=val(id).trim(),parsed=raw===""?null:parseLocaleNumber(raw);
+  if(parsed!=null&&(!Number.isFinite(parsed)||parsed<0)){toast("Revisa los datos nutricionales adicionales");return}
+  optional[prop]=parsed
+ }
+ Object.assign(food,{name,cat,...required,...optional});
+ saveState(true);renderAll();
+ if(returnFoodId){openEditFood(returnFoodId)}else{closeModal();showView("Settings");openViewSection("nutritionSettings")}
+ toast("Información nutricional actualizada")
 }
 
 function deleteFood(id){
@@ -2074,8 +2138,8 @@ function planSettingsHTML(){
  return `<div class="section" id="planSection">Plan de entrenamiento</div><div class="card"><div class="callout">${state.customPlans?`Plan personalizado activo: ${esc(state.settings.planName||"creado en la app")}.`:"Estás usando el plan base incluido en Training Lab."}</div><div class="plan-action-grid"><button type="button" class="btn" onclick="openPlanManager()">Montar / editar en la app</button><label class="btn secondary">Importar CSV<input type="file" accept=".csv,text/csv" onchange="importPlanCSV(event)"></label><button type="button" class="btn secondary" onclick="downloadPlanTemplate()">Descargar plantilla CSV</button><button type="button" class="btn ghost" onclick="downloadCurrentPlan()">Exportar mi plan</button>${state.customPlans?'<button type="button" class="btn danger" onclick="resetImportedPlan()">Volver al plan base</button>':""}</div><div class="settings-help">Puedes construir la semana aquí o importar la plantilla CSV. Los entrenamientos ya guardados no cambian al editar el plan.</div></div>`
 }
 function customFoodsSettingsHTML(){
- const rows=(state.customFoods||[]).filter(f=>!f.transient).map(f=>`<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${f.perUnit?"unidad":`100 ${f.unit}`}</small></div><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div>`).join("");
- return `<div class="custom-food-card"><div class="row between settings-status-row"><div><strong>Mis alimentos</strong><small>Crea productos con los valores exactos de su etiqueta.</small></div><button type="button" class="btn secondary small" onclick="openCustomFoodModal('Desayuno')">Crear</button></div>${rows?`<div class="custom-food-list">${rows}</div>`:'<div class="settings-help">Todavía no has creado alimentos propios.</div>'}</div>`
+ const rows=(state.customFoods||[]).filter(f=>!f.transient).map(f=>`<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${esc(foodNutritionBasisLabel(f))} · ${Math.round(+f.kcal||0)} kcal</small></div><div class="row" style="gap:6px"><button type="button" class="btn secondary small" onclick="openFoodNutritionEditor('${f.key}')">Editar</button><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div></div>`).join("");
+ return `<div class="custom-food-card"><div class="row between settings-status-row"><div><strong>Mis alimentos</strong><small>Crea productos con los valores exactos de su etiqueta y corrígelos cuando lo necesites.</small></div><button type="button" class="btn secondary small" onclick="openCustomFoodModal('Desayuno')">Crear</button></div>${rows?`<div class="custom-food-list">${rows}</div>`:'<div class="settings-help">Todavía no has creado alimentos propios.</div>'}</div>`
 }
 function installationSettingsHTML(){
  const installed=appIsStandalone();
