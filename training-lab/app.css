@@ -1026,3 +1026,30 @@ body[data-view="Home"] .today-btn{
 @media(max-width:350px){
  .cooking-summary{grid-template-columns:1fr}
 }
+
+
+/* v6.59 - nutrition camera */
+.nutrition-scan-loading{display:flex;align-items:center;justify-content:center;gap:12px;min-height:180px}
+.nutrition-scan-loading .spinner{width:20px;height:20px;border:2px solid #294658;border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.nutrition-scan-sheet{overflow-x:hidden}
+.nutrition-scan-main{margin-top:14px}
+.nutrition-scan-section{margin-top:16px}
+.nutrition-scan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.nutrition-scan-grid>label{display:grid;gap:5px;color:var(--muted);font-size:10px;font-weight:800}
+.nutrition-scan-input{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;overflow:hidden;border:1px solid #29435f;border-radius:10px;background:#081525}
+.nutrition-scan-input input{min-width:0;width:100%;border:0!important;background:transparent!important;margin:0!important;padding:10px!important;color:var(--text)!important}
+.nutrition-scan-input b{padding-right:10px;color:var(--muted);font-size:10px}
+.nutrition-unit-box{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#091824}
+.nutrition-unit-box.needs-input{border-color:#8a6d2f}
+.nutrition-unit-box small{display:block;margin-top:8px;color:var(--muted);font-size:10px;line-height:1.4}
+.nutrition-scan-warnings{display:grid;gap:6px;margin-top:12px}
+.nutrition-scan-warnings span{padding:8px 10px;border-radius:9px;background:#2b2111;color:#f3d58a;font-size:10px;line-height:1.35}
+.nutrition-quality-card{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#091824}
+.nutrition-quality-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:9px}
+.nutrition-quality-metric{padding:9px;border-radius:9px;background:#081522}
+.nutrition-quality-metric span,.nutrition-quality-metric strong{display:block}
+.nutrition-quality-metric span{color:var(--muted);font-size:9px}
+.nutrition-quality-metric strong{margin-top:3px;font-size:13px}
+.meal-photo-choice{border-color:#245d52!important}
+@media(max-width:380px){.nutrition-scan-grid,.nutrition-quality-grid{grid-template-columns:1fr}}
