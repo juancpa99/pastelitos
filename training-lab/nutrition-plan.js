@@ -432,7 +432,7 @@
     }
     return `<div class="nutrition-plan-meal ${post?'nutrition-plan-post':''}">
       <div class="nutrition-plan-meal-main"><span>${esc(row.meal)}${optional?' · opcional':''}</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div>
-      <div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button>${!logged?`<button type="button" class="btn ghost small" onclick="toggleNutritionPlanMealSkipped('${date}','${row.meal}')">No hecha</button>`:''}</div>
+      <div class="nutrition-plan-meal-actions">${logged?`<button type="button" class="btn secondary small" onclick="removeNutritionPlanMeal('${date}','${row.meal}')">Deshacer registro</button>`:`<button type="button" class="btn small" onclick="addNutritionPlanMeal('${date}','${row.meal}')">Añadir</button>`}<button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','${row.meal}')">Ajustar</button><button type="button" class="btn ghost small" onclick="markNutritionPlanMealNotDone('${date}','${row.meal}')">No hecha</button></div>
     </div>`
   }
   function signedKcal(value){
@@ -509,6 +509,27 @@
     clearFlexibleOverrides(date,meal);
     saveState();renderAll();showView('Food');toast(`${row.option.name} añadido`)
   };
+  window.removeNutritionPlanMeal=function(date,meal){
+    const slot=planSlotId(date,meal);
+    const before=state.foods.length;
+    state.foods=state.foods.filter(item=>item.planSlotId!==slot);
+    if(state.foods.length===before){toast('No había ningún registro que eliminar');return}
+    clearFlexibleOverrides(date);
+    saveState();renderAll();showView('Food');toast('Registro deshecho')
+  };
+  window.markNutritionPlanMealNotDone=function(date,meal){
+    const slot=planSlotId(date,meal);
+    state.foods=state.foods.filter(item=>item.planSlotId!==slot);
+    const ps=planState();if(!ps.skippedMeals[date])ps.skippedMeals[date]={};
+    ps.skippedMeals[date][meal]=true;
+    if(meal==='Desayuno'){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
+      ps.optionalMeals[date]['Media mañana']=true
+    }
+    if(meal==='Desayuno'||FLEXIBLE_MEALS.includes(meal))clearFlexibleOverrides(date,meal);
+    saveState();renderAll();showView('Food')
+  };
+
   window.openNutritionPlanMealOptions=function(date,meal){
     const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal),current=mealPlan(date,meal);
     const previewTarget=meal==='Media mañana'&&!optionalMealActive(date,meal)?{kcal:(targetFor(date).kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(targetFor(date).protein||0)*MEDIA_MORNING_SHARE.protein}:null;
