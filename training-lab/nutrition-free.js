@@ -210,7 +210,7 @@
     const trans=offValue(nutr,'trans-fat',suffix);
     let addedStatus='not_stated';
     if(added!=null)addedStatus=added===0?'declared_zero':'declared_value';
-    else if(/ingredientes|ingredients/i.test(String(product.ingredients_text||''))&&/(az[uú]car|sugar|jarabe|syrup|glucosa|glucose|dextrosa|dextrose|miel|honey)/i.test(String(product.ingredients_text||'')))addedStatus='ingredients_indicate_added';
+    else if(/(az[uú]car|sugar|jarabe|syrup|glucosa|glucose|dextrosa|dextrose|miel|honey)/i.test(String(product.ingredients_text||'')))addedStatus='ingredients_indicate_added';
     return {
       kind:'label',
       name:String(product.product_name||'').trim(),
