@@ -614,8 +614,9 @@
     }
     const weekHTML=`<div class="nutrition-plan-week">${days.map(d=>`<button type="button" class="${d===date?'active':''} ${inPlan(d)?'':'outside'}" onclick="selectNutritionPlanDate('${d}')"><span>${esc(dateLabel(d))}</span><b>${inPlan(d)?'•':'—'}</b></button>`).join('')}</div>`;
     const totals=active&&target.complete?dayPlanNutrition(date):null;
+    const totalKcal=Math.round(totals?.kcal||0),totalPrefix=totalKcal===target.kcal?'':'≈ ';
     const body=active&&target.complete
-      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}${postTupperExtraRowsHTML(date)}</div>`
+      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">${totalPrefix}${totalKcal} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}${postTupperExtraRowsHTML(date)}</div>`
       :active
         ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
         :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
