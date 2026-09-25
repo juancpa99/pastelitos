@@ -133,6 +133,8 @@
       ...qualityProps('scan')
     }
   }
+  window.marevoOpenLabelReview=openLabelReview;
+
   window.saveScannedNutritionLabel=function(){
     const meal=val('scanMeal')||'Desayuno',name=val('scanName').trim(),brand=val('scanBrand').trim(),basis=val('scanBasis'),cat=val('scanCategory')||'Extra',planFood=val('scanPlanFood');
     const values=scanNutrients();if(!name||[values.p,values.c,values.f].some(v=>v==null)){toast('Revisa proteína, hidratos y grasas');return}
