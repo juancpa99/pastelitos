@@ -96,6 +96,7 @@
     if(!state.nutritionPlan.optionalMeals||typeof state.nutritionPlan.optionalMeals!=='object')state.nutritionPlan.optionalMeals={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
     if(!state.nutritionPlan.tupperPortions||typeof state.nutritionPlan.tupperPortions!=='object')state.nutritionPlan.tupperPortions={};
+    if(!state.nutritionPlan.preferredFoods||typeof state.nutritionPlan.preferredFoods!=='object')state.nutritionPlan.preferredFoods={};
     if(!state.nutritionPlan.postTupperExtras||typeof state.nutritionPlan.postTupperExtras!=='object')state.nutritionPlan.postTupperExtras={};
     if(state.nutritionPlan.movedTuppers&&typeof state.nutritionPlan.movedTuppers==='object'){
       state.nutritionPlan.movedTuppers={};
@@ -230,9 +231,16 @@
     if(meal!=='Media mañana')return true;
     return !!planState().optionalMeals?.[date]?.[meal]||slotLogged(date,meal)
   }
+  function planFoodKey(foodKey){
+    const mapped=planState().preferredFoods?.[foodKey];
+    if(!mapped||mapped===foodKey)return foodKey;
+    const custom=(state.customFoods||[]).find(f=>f.key===mapped&&!f.transient);
+    return custom?mapped:foodKey
+  }
+  window.marevoPreferredFoodKey=planFoodKey;
   function foodInputNutrition(foodKey,inputAmount){
-    const amount=toStoredFoodAmount(foodKey,inputAmount);
-    return calcFood({foodKey,amount})
+    const key=planFoodKey(foodKey),amount=toStoredFoodAmount(key,inputAmount);
+    return calcFood({foodKey:key,amount})
   }
   function sumNutrition(items){
     return items.reduce((sum,[key,inputAmount])=>{
@@ -249,7 +257,7 @@
     [...(option.fixed||[]),...(option.vars||[]).map(v=>[v[0],v[1]])].forEach(([key,amount])=>{
       if(seen.has(key))return;seen.add(key);
       const standard=Number(portions[key]);
-      items.push([key,Number.isFinite(standard)?standard:amount])
+      items.push([planFoodKey(key),Number.isFinite(standard)?standard:amount])
     });
     return items.filter(([,amount])=>Number(amount)>0)
   }
@@ -343,7 +351,8 @@
     const target=targetFor(date),mealTarget=targetOverride||mealTargetMap(date)[meal]||{kcal:0,protein:0};
     if(!target.complete)return {items:[...(option.fixed||[])],nutrition:sumNutrition(option.fixed||[])};
     const targetKcal=mealTarget.kcal,targetProtein=mealTarget.protein;
-    const fixed=option.fixed||[],vars=option.vars||[];
+    const fixed=(option.fixed||[]).map(([key,amount])=>[planFoodKey(key),amount]);
+    const vars=(option.vars||[]).map(v=>[planFoodKey(v[0]),v[1],v[2],v[3]]);
     const choices=vars.map(v=>range(v[1],v[2],v[3]));
     let best=null;
     const test=values=>{
