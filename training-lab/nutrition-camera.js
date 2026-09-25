@@ -15,7 +15,7 @@
   function backend(){
     return String(window.MAREVO_PUSH_BACKEND||'').replace(/\/$/,'')
   }
-  function n(value){const x=Number(value);return Number.isFinite(x)&&x>=0?x:null}
+  function n(value){const x=typeof parseLocaleNumber==='function'?parseLocaleNumber(value):Number(String(value).replace(',','.'));return Number.isFinite(x)&&x>=0?x:null}
   function shown(value){return value==null?'':Number(value.toFixed?.(2)??value)}
   function pluralUnit(name){
     const value=String(name||'unidad').trim().toLowerCase();
