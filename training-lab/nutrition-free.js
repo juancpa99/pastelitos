@@ -564,6 +564,7 @@
       '<div class="row between"><div><div class="eyebrow">Uso común</div><div class="hero-title">Registrar alimento</div></div>'+
       '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
       '<div class="nutrition-scan-choice-list">'+
+      '<button type="button" class="meal-choice" onclick="openSavedFoodManager(\''+esc(selected)+'\')"><strong>Mis alimentos</strong><small>Ver y editar alimentos guardados</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="captureProductBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Buscar producto</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'common\')"><strong>Leer etiqueta</strong><small>Extraer valores nutricionales</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="openManualCommonFood(\''+esc(selected)+'\')"><strong>Añadir manualmente</strong><small>Introducir valores de la etiqueta</small><span>›</span></button>'+
