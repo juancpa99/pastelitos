@@ -562,7 +562,7 @@
     document.getElementById('modalRoot').innerHTML=
       '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
       '<div class="row between"><div><div class="eyebrow">Uso común</div><div class="hero-title">Registrar alimento</div></div>'+
-      '<button type="button" class="btn ghost small" onclick="openFoodRegistrationHub()">Volver</button></div>'+
+      '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
       '<div class="nutrition-scan-choice-list">'+
       '<button type="button" class="meal-choice" onclick="captureProductBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Buscar producto</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'common\')"><strong>Leer etiqueta</strong><small>Extraer valores nutricionales</small><span>›</span></button>'+
@@ -573,29 +573,19 @@
   }
   window.openManualCommonFood=function(meal){reviewLabelData(blankLabelData(),meal||'Desayuno','common')};
 
-  window.openFoodRegistrationHub=function(){
-    document.getElementById('modalRoot').innerHTML=
-      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
-      '<div class="row between"><div><div class="eyebrow">Comidas</div><div class="hero-title">Registrar comida</div></div>'+
-      '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
-      '<div class="nutrition-scan-choice-list">'+
-      '<button type="button" class="meal-choice" onclick="openPunctualRegistration()"><strong>Comida puntual</strong><small>Solo se registra hoy</small><span>›</span></button>'+
-      '<button type="button" class="meal-choice" onclick="openCommonFoodRegistration()"><strong>Alimento de uso común</strong><small>Guardar y reutilizar</small><span>›</span></button>'+
-      '</div></div></div>'
-  };
+  window.openFoodRegistrationHub=function(){window.openCommonFoodRegistration()};
   window.openCommonFoodRegistration=function(meal){commonRegistrationMenu(meal||'Desayuno')};
 
   window.openPunctualRegistration=function(meal){
     const selected=MEAL_TYPES.includes(meal)?meal:'Merienda';
     document.getElementById('modalRoot').innerHTML=
       '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
-      '<div class="row between"><div><div class="eyebrow">Solo hoy</div><div class="hero-title">Comida puntual</div></div>'+
-      '<button type="button" class="btn ghost small" onclick="openFoodRegistrationHub()">Volver</button></div>'+
+      '<div class="row between"><div><div class="eyebrow">Solo hoy</div><div class="hero-title">Producto puntual</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="openAddFoodHub()">Volver</button></div>'+
       '<div class="nutrition-scan-choice-list">'+
       '<button type="button" class="meal-choice" onclick="capturePunctualBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Producto envasado</small><span>›</span></button>'+
-      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'punctual\')"><strong>Leer etiqueta</strong><small>Producto envasado</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'punctual\')"><strong>Leer etiqueta</strong><small>Información nutricional</small><span>›</span></button>'+
       '<button type="button" class="meal-choice" onclick="openManualPunctualFood(\''+esc(selected)+'\')"><strong>Añadir manualmente</strong><small>Macros o kcal conocidos</small><span>›</span></button>'+
-      '<button type="button" class="meal-choice restaurant-choice" onclick="openRestaurantFood(\''+esc(selected)+'\')"><strong>Comida de restaurante</strong><small>Estimación aproximada</small><span>›</span></button>'+
       '</div>'+
       '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\',\'punctual\')">Buscar</button></div></div>'+
       '</div></div>'
