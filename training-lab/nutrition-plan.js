@@ -94,6 +94,13 @@
     if(!state.nutritionPlan.skippedMeals||typeof state.nutritionPlan.skippedMeals!=='object')state.nutritionPlan.skippedMeals={};
     if(!state.nutritionPlan.optionalMeals||typeof state.nutritionPlan.optionalMeals!=='object')state.nutritionPlan.optionalMeals={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
+    if(!state.nutritionPlan.tupperPortions||typeof state.nutritionPlan.tupperPortions!=='object')state.nutritionPlan.tupperPortions={};
+    if(!state.nutritionPlan.tupperStandardV1){
+      Object.values(state.nutritionPlan.amountOverrides).forEach(day=>{
+        if(day&&typeof day==='object'){delete day.Almuerzo;delete day.Cena}
+      });
+      state.nutritionPlan.tupperStandardV1=true
+    }
     if(!state.nutritionPlan.mealStatusMigrated){
       Object.keys(state.nutritionPlan.postSkipped).forEach(date=>{
         if(state.nutritionPlan.postSkipped[date]){
@@ -220,6 +227,22 @@
       return sum
     },{kcal:0,p:0,c:0,f:0})
   }
+  function tupperPortions(){
+    return {...TUPPER_PORTIONS,...(planState().tupperPortions||{})}
+  }
+  function standardTupperItems(option){
+    const portions=tupperPortions(),seen=new Set(),items=[];
+    [...(option.fixed||[]),...(option.vars||[]).map(v=>[v[0],v[1]])].forEach(([key,amount])=>{
+      if(seen.has(key))return;seen.add(key);
+      const standard=Number(portions[key]);
+      items.push([key,Number.isFinite(standard)?standard:amount])
+    });
+    return items.filter(([,amount])=>Number(amount)>0)
+  }
+  function standardTupperPlan(option){
+    const items=standardTupperItems(option);
+    return {items,nutrition:sumNutrition(items),score:0}
+  }
   function redistributeTarget(targets,sourceMeal,recipients){
     const freed={...targets[sourceMeal]};
     targets[sourceMeal]={kcal:0,protein:0};
@@ -253,7 +276,7 @@
     if(optionalMealActive(date,'Media mañana')&&!isMealSkipped(date,'Media mañana')){
       const desired={kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein};
       targets['Media mañana']={...desired};
-      const donors=['Merienda','Cena','Post-entreno'].filter(meal=>!isMealSkipped(date,meal)&&!slotLogged(date,meal));
+      const donors=['Merienda','Post-entreno'].filter(meal=>!isMealSkipped(date,meal)&&!slotLogged(date,meal));
       subtractOptionalTarget(targets,desired,donors)
     }
     MEALS.forEach((meal,index)=>{
@@ -272,6 +295,7 @@
     const out=[];for(let n=min;n<=max+1e-9;n+=step)out.push(Number(n.toFixed(4)));return out
   }
   function fitOption(date,meal,option,targetOverride=null){
+    if(TUPPER_MEALS.includes(meal))return standardTupperPlan(option);
     const target=targetFor(date),mealTarget=targetOverride||mealTargetMap(date)[meal]||{kcal:0,protein:0};
     if(!target.complete)return {items:[...(option.fixed||[])],nutrition:sumNutrition(option.fixed||[])};
     const targetKcal=mealTarget.kcal,targetProtein=mealTarget.protein;
@@ -300,7 +324,7 @@
     const target=targetFor(date);
     const previewTarget=optionalInactive?{kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein}:null;
     const fitted=fitOption(date,meal,option,previewTarget),custom=planState().amountOverrides?.[date]?.[meal];
-    if(custom?.optionId===option.id&&custom.amounts){
+    if(!TUPPER_MEALS.includes(meal)&&custom?.optionId===option.id&&custom.amounts){
       fitted.items=fitted.items.map(([key,amount])=>[key,Number.isFinite(+custom.amounts[key])?+custom.amounts[key]:amount]).filter(([,amount])=>amount>0);
       fitted.nutrition=sumNutrition(fitted.items)
     }
