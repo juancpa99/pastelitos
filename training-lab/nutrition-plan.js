@@ -7,7 +7,13 @@
   const PLAN_END='2026-10-30';
   const PROTEIN_PER_KG=2.2;
   const MEALS=['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Post-entreno'];
-  const FLEXIBLE_MEALS=['Media mañana','Merienda','Cena','Post-entreno'];
+  const TUPPER_MEALS=['Almuerzo','Cena'];
+  const FLEXIBLE_MEALS=['Media mañana','Merienda','Post-entreno'];
+  const TUPPER_PORTIONS={
+    chicken:180,turkey:180,beef:180,hake:180,whitefish:180,salmon:180,pork_loin:180,
+    rice:75,pasta:75,potato:350,quinoa:75,couscous:75,
+    veg:200,oil:5
+  };
   const NUTRITION_MODES={
     cut:{label:'Definición',defaultOffset:-200,min:-300,max:-100,step:50},
     maintain:{label:'Mantener',defaultOffset:0,min:-100,max:100,step:50},
@@ -17,9 +23,9 @@
   const BASE_SHARES={
     'Desayuno':{kcal:.23,protein:.22},
     'Media mañana':{kcal:0,protein:0},
-    'Almuerzo':{kcal:.31,protein:.30},
+    'Almuerzo':{kcal:.265,protein:.25},
     'Merienda':{kcal:.14,protein:.18},
-    'Cena':{kcal:.22,protein:.20},
+    'Cena':{kcal:.265,protein:.25},
     'Post-entreno':{kcal:.10,protein:.10}
   };
   const MEDIA_MORNING_SHARE={kcal:.08,protein:.08};
