@@ -79,6 +79,12 @@ try{
  assert.match(foodText,/Más opciones/,'secondary food tools stay out of the daily flow');
  assert.match(foodText,/Registrar alimento/,'reusable-food registration lives in secondary tools');
  assert.ok(doc.querySelector('.food-diary-head'),'daily add action is placed after the nutrition plan');
+ assert.equal(run(`parseLocaleNumber('27,5')`),27.5,'comma decimal is accepted');
+ assert.equal(run(`parseLocaleNumber('0,8')`),0.8,'small comma decimal is accepted');
+ assert.equal(run(`parseLocaleNumber('1.234,5')`),1234.5,'Spanish thousands and decimal separators are accepted');
+ run(`openFoodModal('Almuerzo');setFoodSelection('rice');document.getElementById('fdAmount').value='73,5';saveFood()`);
+ assert.equal(run(`state.foods.at(-1).amount`),73.5,'manual food weights accept comma decimals');
+ run(`const id=state.foods.at(-1).id;state.foods=state.foods.filter(f=>f.id!==id);renderAll();showView('Food')`);
  run(`openAddFoodHub()`);
  assert.match(doc.getElementById('modalRoot').textContent,/Alimento o plato/);
  assert.match(doc.getElementById('modalRoot').textContent,/Producto puntual/);
@@ -88,6 +94,9 @@ try{
  assert.match(doc.getElementById('modalRoot').textContent,/Leer código de barras/,'common food supports barcode');
  assert.match(doc.getElementById('modalRoot').textContent,/Leer etiqueta/,'common food supports label reading');
  assert.match(doc.getElementById('modalRoot').textContent,/Añadir manualmente/,'common food supports manual entry');
+ run(`openManualCommonFood('Desayuno');document.getElementById('scanName').value='Decimal test';document.getElementById('scanEnergyKcal').value='250,5';document.getElementById('scanProtein').value='10,5';document.getElementById('scanCarbs').value='40,2';document.getElementById('scanFat').value='5,7';saveScannedNutritionLabel()`);
+ assert.equal(run(`state.customFoods.find(f=>f.name==='Decimal test').p`),10.5,'manual label macros accept comma decimals');
+ run(`state.customFoods=state.customFoods.filter(f=>f.name!=='Decimal test');renderAll();showView('Food')`);
  run(`openPunctualRegistration('Cena')`);
  assert.match(doc.getElementById('modalRoot').textContent,/Producto puntual/);
  assert.match(doc.getElementById('modalRoot').textContent,/Leer código de barras/,'punctual food supports barcode');
