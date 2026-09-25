@@ -1644,6 +1644,41 @@ function saveEditedFood(id){
  item.displayUnit=meta.inputUnit;
  saveState();closeModal();renderAll();showView("Food")
 }
+function preferredBaseFoodForCustom(key){
+ const preferred=state.nutritionPlan?.preferredFoods||{};
+ return Object.keys(preferred).find(base=>preferred[base]===key)||""
+}
+function baseFoodAssociationOptions(selected=""){
+ const categories=["Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"],keys=Object.keys(FOOD_DB).filter(key=>FOOD_DB[key]&&!FOOD_DB[key].custom);
+ const groups=categories.map(cat=>{
+  const rows=keys.filter(key=>FOOD_DB[key].cat===cat).sort((a,b)=>String(FOOD_DB[a].name).localeCompare(String(FOOD_DB[b].name),"es"));
+  return rows.length?`<optgroup label="${cat}">${rows.map(key=>`<option value="${esc(key)}" ${key===selected?"selected":""}>${esc(FOOD_DB[key].name)}</option>`).join("")}</optgroup>`:""
+ }).join("");
+ return `<option value="">Sin asociar al plan</option>${groups}`
+}
+function nutritionUnitFieldsHTML(food,association,useCustom=true){
+ const baseMeta=association?foodInputMeta(association):{},customMeta=useCustom?(food?.inputMeta||{}):{};
+ const meta={...baseMeta,...customMeta},singular=meta.singular||"",grams=meta.gramsPerInput;
+ const needsWeight=!!(singular||grams||(association&&baseMeta.perUnitDirect&&!food?.perUnit));
+ if(!needsWeight)return '<div id="editNutritionUnitBox"><div class="settings-help">Este alimento se registra directamente en '+esc(meta.inputUnit||food?.unit||"g")+'.</div></div>';
+ const unitName=singular||"unidad";
+ return `<div id="editNutritionUnitBox" class="nutrition-unit-box">
+  <div class="eyebrow">Unidad habitual</div>
+  <div class="formgrid">
+   <div class="field"><label>Nombre de la unidad</label><input id="editNutritionUnitName" value="${esc(unitName)}" placeholder="rebanada, unidad…"></div>
+   <div class="field"><label>Peso de 1 ${esc(unitName)}</label><div class="nutrition-scan-input"><input id="editNutritionUnitWeight" inputmode="decimal" value="${foodNutritionInputValue(grams)}" placeholder="Ej. 30"><b>${food?.unit==="ml"?"ml":"g"}</b></div></div>
+  </div>
+  <div class="settings-help">Esto permite registrar cantidades como “2 ${esc(meta.inputUnit||unitName+"s")}” y convertirlas al peso real.</div>
+ </div>`
+}
+function updateFoodNutritionUnitEditor(key){
+ const food=(state.customFoods||[]).find(f=>f.key===key),root=document.getElementById("editNutritionUnitBox");if(!food||!root)return;
+ const association=val("editNutritionPlanFood"),current=preferredBaseFoodForCustom(key);
+ const wrapper=document.createElement("div");
+ wrapper.innerHTML=nutritionUnitFieldsHTML(food,association,association===current);
+ const next=wrapper.firstElementChild;
+ if(next)root.replaceWith(next)
+}
 function openSavedFoodManager(returnMeal="Desayuno"){
  const meal=MEAL_TYPES.includes(returnMeal)?returnMeal:"Desayuno";
  const foods=(state.customFoods||[]).filter(f=>!f.transient);
@@ -1657,14 +1692,17 @@ function openFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
  const food=(state.customFoods||[]).find(f=>f.key===key);
  if(!food){toast("Este alimento no se puede editar");return}
  const basis=foodNutritionBasisLabel(food),back=returnFoodId?`openEditFood('${returnFoodId}')`:returnMeal?`openSavedFoodManager('${returnMeal}')`:"closeModal()";
- const categories=["Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
+ const categories=["Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"],association=preferredBaseFoodForCustom(key);
  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet nutrition-scan-sheet">
   <div class="row between"><div><div class="eyebrow">Mis alimentos</div><div class="hero-title">Editar información nutricional</div><div class="subtitle">Valores por ${esc(basis)}</div></div><button type="button" class="btn ghost small" onclick="${back}">Volver</button></div>
   <div class="callout" style="margin-top:10px">Esta edición corrige el alimento guardado. Los registros anteriores que lo usan se recalcularán con estos valores.</div>
   <div class="formgrid nutrition-scan-main">
    <div class="field wide"><label>Nombre</label><input id="editNutritionName" value="${esc(food.name)}"></div>
-   <div class="field wide"><label>Categoría</label><select id="editNutritionCat">${categories.map(v=>`<option ${v===food.cat?"selected":""}>${v}</option>`).join("")}</select></div>
+   <div class="field"><label>Categoría</label><select id="editNutritionCat">${categories.map(v=>`<option ${v===food.cat?"selected":""}>${v}</option>`).join("")}</select></div>
+   <div class="field"><label>Usar en el plan como</label><select id="editNutritionPlanFood" onchange="updateFoodNutritionUnitEditor('${key}')">${baseFoodAssociationOptions(association)}</select></div>
   </div>
+  <div class="settings-help">La asociación permite que el plan use este producto en lugar del alimento genérico. Por ejemplo: tu pan de marca → Pan integral.</div>
+  ${nutritionUnitFieldsHTML(food,association,true)}
   <div class="eyebrow nutrition-scan-section">Energía y macronutrientes</div>
   <div class="nutrition-scan-grid">
    <label><span>Energía</span><span class="nutrition-scan-input"><input id="editNutritionKcal" inputmode="decimal" value="${foodNutritionInputValue(food.kcal)}"><b>kcal</b></span></label>
@@ -1690,7 +1728,7 @@ function openFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
 }
 function saveFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
  const food=(state.customFoods||[]).find(f=>f.key===key);if(!food)return;
- const name=val("editNutritionName").trim(),cat=val("editNutritionCat")||"Extra";
+ const name=val("editNutritionName").trim(),cat=val("editNutritionCat")||"Extra",association=val("editNutritionPlanFood");
  const required={kcal:parseLocaleNumber(val("editNutritionKcal")),p:parseLocaleNumber(val("editNutritionP")),c:parseLocaleNumber(val("editNutritionC")),f:parseLocaleNumber(val("editNutritionF"))};
  if(!name){toast("Escribe el nombre del alimento");return}
  if(Object.values(required).some(v=>v==null||!Number.isFinite(v)||v<0)){toast("Revisa energía, proteína, hidratos y grasas");return}
@@ -1701,7 +1739,25 @@ function saveFoodNutritionEditor(key,returnFoodId="",returnMeal=""){
   if(raw!==""&&(parsed==null||!Number.isFinite(parsed)||parsed<0)){toast("Revisa los datos nutricionales adicionales");return}
   optional[prop]=parsed
  }
- Object.assign(food,{name,cat,...required,...optional});
+ let inputMeta=food.inputMeta?{...food.inputMeta}:null;
+ const unitWeightInput=document.getElementById("editNutritionUnitWeight"),unitNameInput=document.getElementById("editNutritionUnitName"),baseMeta=association?foodInputMeta(association):{};
+ if(unitWeightInput){
+  const unitName=(unitNameInput?.value||baseMeta.singular||"unidad").trim(),rawWeight=unitWeightInput.value.trim(),grams=rawWeight===""?null:parseLocaleNumber(rawWeight);
+  if(!food.perUnit&&(grams==null||!Number.isFinite(grams)||grams<=0)){toast("Indica cuántos gramos pesa una unidad");return}
+  if(grams!=null&&(!Number.isFinite(grams)||grams<=0)){toast("Revisa el peso por unidad");return}
+  if(food.perUnit&&grams==null){
+   inputMeta={...baseMeta,...(food.inputMeta||{}),inputUnit:baseMeta.inputUnit||food.inputMeta?.inputUnit||"unidades",singular:unitName,perUnitDirect:true,gramsPerInput:null,presets:food.inputMeta?.presets||baseMeta.presets||[1,2,3],reference:`valor por ${unitName}`}
+  }else{
+   inputMeta={...baseMeta,...(food.inputMeta||{}),inputUnit:baseMeta.inputUnit||food.inputMeta?.inputUnit||(unitName.endsWith("s")?unitName:unitName+"s"),singular:unitName,gramsPerInput:grams,perUnitDirect:false,presets:food.inputMeta?.presets||baseMeta.presets||[1,2,3,4],reference:`1 ${unitName} ≈ ${grams} ${food.unit==="ml"?"ml":"g"}`}
+  }
+ }else if(association){
+  inputMeta={inputUnit:baseMeta.inputUnit||food.unit||"g",singular:baseMeta.singular||null,gramsPerInput:baseMeta.gramsPerInput||null,perUnitDirect:!!baseMeta.perUnitDirect,presets:baseMeta.presets||[100,150,200,250],reference:baseMeta.reference||food.ref||""}
+ }
+ Object.assign(food,{name,cat,...required,...optional,inputMeta});
+ if(!state.nutritionPlan||typeof state.nutritionPlan!=="object")state.nutritionPlan={};
+ if(!state.nutritionPlan.preferredFoods||typeof state.nutritionPlan.preferredFoods!=="object")state.nutritionPlan.preferredFoods={};
+ Object.keys(state.nutritionPlan.preferredFoods).forEach(base=>{if(state.nutritionPlan.preferredFoods[base]===key)delete state.nutritionPlan.preferredFoods[base]});
+ if(association)state.nutritionPlan.preferredFoods[association]=key;
  saveState(true);renderAll();
  if(returnFoodId){openEditFood(returnFoodId)}
  else if(returnMeal){showView("Food");openSavedFoodManager(returnMeal)}
@@ -2148,10 +2204,28 @@ function saveSettings(){
 function planSettingsHTML(){
  return `<div class="section" id="planSection">Plan de entrenamiento</div><div class="card"><div class="callout">${state.customPlans?`Plan personalizado activo: ${esc(state.settings.planName||"creado en la app")}.`:"Estás usando el plan base incluido en Training Lab."}</div><div class="plan-action-grid"><button type="button" class="btn" onclick="openPlanManager()">Montar / editar en la app</button><label class="btn secondary">Importar CSV<input type="file" accept=".csv,text/csv" onchange="importPlanCSV(event)"></label><button type="button" class="btn secondary" onclick="downloadPlanTemplate()">Descargar plantilla CSV</button><button type="button" class="btn ghost" onclick="downloadCurrentPlan()">Exportar mi plan</button>${state.customPlans?'<button type="button" class="btn danger" onclick="resetImportedPlan()">Volver al plan base</button>':""}</div><div class="settings-help">Puedes construir la semana aquí o importar la plantilla CSV. Los entrenamientos ya guardados no cambian al editar el plan.</div></div>`
 }
-function customFoodsSettingsHTML(){
- const rows=(state.customFoods||[]).filter(f=>!f.transient).map(f=>`<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${esc(foodNutritionBasisLabel(f))} · ${Math.round(+f.kcal||0)} kcal</small></div><div class="row" style="gap:6px"><button type="button" class="btn secondary small" onclick="openFoodNutritionEditor('${f.key}')">Editar</button><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div></div>`).join("");
- return `<div class="custom-food-card"><div class="row between settings-status-row"><div><strong>Mis alimentos</strong><small>Crea productos con los valores exactos de su etiqueta y corrígelos cuando lo necesites.</small></div><button type="button" class="btn secondary small" onclick="openCustomFoodModal('Desayuno')">Crear</button></div>${rows?`<div class="custom-food-list">${rows}</div>`:'<div class="settings-help">Todavía no has creado alimentos propios.</div>'}</div>`
+function renderCustomFoodSettingsSearch(){
+ const root=document.getElementById("customFoodSearchResults"),input=document.getElementById("customFoodSearch");if(!root||!input)return;
+ const query=input.value.trim().toLocaleLowerCase("es");
+ if(!query){root.innerHTML='<div class="settings-help">Escribe el nombre de un alimento para buscarlo.</div>';return}
+ const foods=(state.customFoods||[]).filter(f=>!f.transient).filter(f=>{
+  const base=preferredBaseFoodForCustom(f.key),baseName=base&&FOOD_DB[base]?.name||"";
+  return `${f.name} ${f.cat} ${baseName}`.toLocaleLowerCase("es").includes(query)
+ }).sort((a,b)=>String(a.name).localeCompare(String(b.name),"es"));
+ root.innerHTML=foods.length?foods.map(f=>{
+  const base=preferredBaseFoodForCustom(f.key),baseName=base&&FOOD_DB[base]?.name;
+  const meta=foodInputMeta(f.key),unitInfo=meta.gramsPerInput?` · 1 ${meta.singular||"unidad"} ≈ ${foodNutritionInputValue(meta.gramsPerInput)} ${f.unit==="ml"?"ml":"g"}`:"";
+  return `<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${esc(foodNutritionBasisLabel(f))}${unitInfo}${baseName?` · plan: ${esc(baseName)}`:""}</small></div><div class="row" style="gap:6px"><button type="button" class="btn secondary small" onclick="openFoodNutritionEditor('${f.key}')">Editar</button><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div></div>`
+ }).join(""):'<div class="empty">No hay alimentos que coincidan con la búsqueda.</div>'
 }
+function customFoodsSettingsHTML(){
+ const count=(state.customFoods||[]).filter(f=>!f.transient).length;
+ return `<div class="custom-food-card"><div class="row between settings-status-row"><div><strong>Mis alimentos</strong><small>${count?count+" alimentos guardados. Busca uno para editarlo.":"Todavía no has creado alimentos propios."}</small></div><button type="button" class="btn secondary small" onclick="openCustomFoodModal('Desayuno')">Crear</button></div>
+  <div class="field" style="margin-top:12px"><label for="customFoodSearch">Buscar alimento</label><input id="customFoodSearch" type="search" autocomplete="off" placeholder="Ej. pan, yogur, arroz…" oninput="renderCustomFoodSettingsSearch()"></div>
+  <div id="customFoodSearchResults" class="custom-food-list"><div class="settings-help">Escribe el nombre de un alimento para buscarlo.</div></div>
+ </div>`
+}
+
 function installationSettingsHTML(){
  const installed=appIsStandalone();
  return `<div class="section">Instalación</div><div class="card"><div class="row between settings-status-row"><div><strong>${installed?"Training Lab está instalada":"Añadir Training Lab al móvil"}</strong><small>${installed?"Se está ejecutando como una app independiente.":"Acceso rápido, pantalla completa y mejor soporte de notificaciones según el dispositivo."}</small></div><span class="pill ${installed?"good":""}">${installed?"Instalada":"Opcional"}</span></div>${installed?"":'<div class="install-mini-steps"><span>Compartir</span><b>›</b><span>Añadir a pantalla de inicio</span><b>›</b><span>Añadir</span></div><div class="settings-help">En iPhone usa Safari. En Android u ordenador, busca “Instalar aplicación” o “Añadir a pantalla de inicio” en el menú del navegador.</div>'}</div>`
