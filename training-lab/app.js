@@ -1367,12 +1367,13 @@ function saveCardioMobility(){
 function renderFood(){
  const x=currentDate(),items=foodsFor(x),nut=dayNutrition(x);
  rememberDisclosures(document.getElementById('viewFood'));
- let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="food-primary-actions"><button class="btn" onclick="openMealChooser()">Añadir comida</button><button class="btn secondary" onclick="openFoodRegistrationHub()">Registrar comida</button></div><div class="actions"><details class="inline-menu"><summary>Más opciones</summary><div class="actions"><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
+ let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="actions"><details class="inline-menu"><summary>Más opciones</summary><div class="actions"><button class="btn ghost" onclick="openCommonFoodRegistration()">Registrar alimento</button><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
  if(typeof nutritionPlanHTML==="function")html+=nutritionPlanHTML(x);
+ html+=`<section class="food-diary-head"><div><div class="eyebrow">Diario</div><strong>${esc(pretty(x))}</strong></div><button type="button" class="btn" onclick="openAddFoodHub()">Añadir comida</button></section>`;
 
  const activeMeals=MEAL_TYPES.filter(mt=>items.some(i=>i.meal===mt));
  if(!activeMeals.length){
-  html+=`<div class="empty food-empty-state"><strong>Aún no has añadido ninguna comida.</strong><br>Pulsa “Añadir comida”.</div>`
+  html+=`<div class="empty food-empty-state"><strong>Aún no has añadido ninguna comida.</strong></div>`
  }else{
   activeMeals.forEach(mt=>{
    const group=items.filter(i=>i.meal===mt),total=group.reduce((a,i)=>{const n=calcFood(i);a.kcal+=n.kcal;a.p+=n.p;return a},{kcal:0,p:0});
@@ -1384,7 +1385,6 @@ function renderFood(){
    }});
    html+=`</div>`
   });
-  html+=`<div class="actions food-add-another"><button type="button" class="btn secondary" onclick="openMealChooser()">Añadir otra comida</button></div>`
  }
  html+=disclosureHTML("food-detail","Objetivos y balance energético",nutritionDashboardHTML(nut)+(typeof foodMetabolismCardHTML==="function"?foodMetabolismCardHTML(x):""),false,"Estimaciones y detalle de macronutrientes");
  document.getElementById("viewFood").innerHTML=html
@@ -1404,6 +1404,17 @@ function recentFoodForMeal(meal){
   seen.add(i.foodKey);out.push(i)
  });
  return out
+}
+
+function openAddFoodHub(){
+ document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">
+  <div class="row between"><div><div class="eyebrow">Diario</div><div class="hero-title">Añadir comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>
+  <div class="meal-choice-list">
+   <button type="button" class="meal-choice" onclick="openMealChooser()"><strong>Alimento o plato</strong><small>Plan, platos rápidos y alimentos conocidos</small><span>›</span></button>
+   <button type="button" class="meal-choice" onclick="openPunctualRegistration()"><strong>Producto puntual</strong><small>Código de barras, etiqueta o manual</small><span>›</span></button>
+   <button type="button" class="meal-choice restaurant-choice" onclick="openRestaurantFood()"><strong>Comida de restaurante</strong><small>Estimación aproximada</small><span>›</span></button>
+  </div>
+ </div></div>`
 }
 
 function openMealChooser(){
