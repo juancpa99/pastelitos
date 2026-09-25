@@ -9,6 +9,7 @@
   const MEALS=['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Post-entreno'];
   const TUPPER_MEALS=['Almuerzo','Cena'];
   const FLEXIBLE_MEALS=['Media mañana','Merienda','Post-entreno'];
+  const REDISTRIBUTABLE_MEALS=['Desayuno','Media mañana','Merienda','Post-entreno'];
   const TUPPER_PORTIONS={
     chicken:180,turkey:180,beef:180,hake:180,whitefish:180,salmon:180,pork_loin:180,prawns:180,tofu:180,tempeh:180,
     rice:75,pasta:75,potato:350,quinoa:75,couscous:75,lentils:75,chickpeas:75,beans:75,
@@ -322,9 +323,10 @@
       const donors=['Merienda','Post-entreno'].filter(meal=>!isMealSkipped(date,meal)&&!slotLogged(date,meal));
       subtractOptionalTarget(targets,desired,donors)
     }
-    FLEXIBLE_MEALS.forEach((meal,index)=>{
+    REDISTRIBUTABLE_MEALS.forEach((meal,index)=>{
       if(!isMealSkipped(date,meal))return;
-      const recipients=FLEXIBLE_MEALS.slice(index+1).filter(next=>
+      const recipients=REDISTRIBUTABLE_MEALS.slice(index+1).filter(next=>
+        FLEXIBLE_MEALS.includes(next)&&
         optionalMealActive(date,next)&&
         !isMealSkipped(date,next)&&
         !slotLogged(date,next)
@@ -556,11 +558,15 @@
       state.foods=state.foods.filter(item=>item.planSlotId!==slot);
       if(Array.isArray(ps.postTupperExtras?.[date]))ps.postTupperExtras[date]=ps.postTupperExtras[date].filter(x=>x!==meal)
     }
+    if(meal==='Desayuno'&&next){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
+      ps.optionalMeals[date]['Media mañana']=true
+    }
     if(meal==='Media mañana'&&!optionalMealActive(date,meal)&&!next){
       if(!ps.optionalMeals[date])ps.optionalMeals[date]={};
       ps.optionalMeals[date][meal]=true
     }
-    if(FLEXIBLE_MEALS.includes(meal))clearFlexibleOverrides(date,meal);
+    if(meal==='Desayuno'||FLEXIBLE_MEALS.includes(meal))clearFlexibleOverrides(date,meal);
     saveState(true);renderAll();showView('Food')
   };
   window.addSkippedTupperToPost=function(date,meal){
