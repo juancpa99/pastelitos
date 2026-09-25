@@ -121,6 +121,15 @@ try{
  run(`removeSkippedTupperFromPost('2026-09-25','Almuerzo')`);
  assert.ok(!run(`postTupperLogged('2026-09-25','Almuerzo')`),'optional post-workout tupper can be removed');
  run(`toggleNutritionPlanMealSkipped('2026-09-25','Almuerzo')`);
+ const lunchBeforeBreakfastSkip=run(`JSON.stringify(mealPlan('2026-09-25','Almuerzo').items)`);
+ const dinnerBeforeBreakfastSkip=run(`JSON.stringify(mealPlan('2026-09-25','Cena').items)`);
+ const flexibleBeforeBreakfastSkip=run(`['Media mañana','Merienda','Post-entreno'].reduce((sum,m)=>sum+mealTargetMap('2026-09-25')[m].kcal,0)`);
+ run(`toggleNutritionPlanMealSkipped('2026-09-25','Desayuno')`);
+ assert.equal(run(`JSON.stringify(mealPlan('2026-09-25','Almuerzo').items)`),lunchBeforeBreakfastSkip,'skipping breakfast never changes lunch tupper');
+ assert.equal(run(`JSON.stringify(mealPlan('2026-09-25','Cena').items)`),dinnerBeforeBreakfastSkip,'skipping breakfast never changes dinner tupper');
+ assert.ok(run(`['Media mañana','Merienda','Post-entreno'].reduce((sum,m)=>sum+mealTargetMap('2026-09-25')[m].kcal,0)`)>flexibleBeforeBreakfastSkip,'skipped breakfast is redistributed into flexible meals');
+ assert.ok(run(`optionalMealActive('2026-09-25','Media mañana')`),'skipping breakfast activates media morning');
+ run(`toggleNutritionPlanMealSkipped('2026-09-25','Desayuno')`);
  run(`openNutritionPlanMealOptions('2026-09-25','Almuerzo')`);
  assert.ok(doc.querySelectorAll('[id^="planAmount_"]').length>=3,'planned meal amounts are editable');
  doc.querySelector('[data-food-key="chicken"]').value='210';
