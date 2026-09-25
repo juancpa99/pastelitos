@@ -1380,7 +1380,7 @@ function renderFood(){
    const shownDishGroups=new Set();
    group.forEach(i=>{const db=foodRecord(i.foodKey);if(db){
     if(i.dishGroupId&&i.dishName&&!shownDishGroups.has(i.dishGroupId)){shownDishGroups.add(i.dishGroupId);html+=`<div class="food-dish-saved"><span>Plato rápido</span><strong>${esc(i.dishName)}</strong><small>Ingredientes editables por separado</small></div>`}
-    const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions"><button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div>`
+    const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions">${i.photoId?`<button type="button" class="food-edit-btn" onclick="openOneOffFoodPhoto('${i.id}')">Foto</button>`:''}<button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div></div>`
    }});
    html+=`</div>`
   });
@@ -1578,11 +1578,11 @@ function saveEditedFood(id){
 
 function deleteFood(id){
  const item=state.foods.find(i=>i.id===id),db=item&&foodRecord(item.foodKey);if(!item)return;
- openAppConfirm("Eliminar alimento",`${db?.name||"Este alimento"} se quitará de ${item.meal.toLowerCase()}.`,"Eliminar",()=>{state.foods=state.foods.filter(i=>i.id!==id);if(db?.transient&&!state.foods.some(i=>i.foodKey===item.foodKey))state.customFoods=state.customFoods.filter(f=>f.key!==item.foodKey);saveState();renderAll();showView("Food")},()=>openEditFood(id))
+ openAppConfirm("Eliminar alimento",`${db?.name||"Este alimento"} se quitará de ${item.meal.toLowerCase()}.`,"Eliminar",async()=>{state.foods=state.foods.filter(i=>i.id!==id);if(item.photoId&&typeof deletePhoto==="function"){try{await deletePhoto(item.photoId)}catch(e){}}if(db?.transient&&!state.foods.some(i=>i.foodKey===item.foodKey))state.customFoods=state.customFoods.filter(f=>f.key!==item.foodKey);saveState();renderAll();showView("Food")},()=>openEditFood(id))
 }
 function performCopyYesterdayFood(arr){arr.forEach(i=>state.foods.push({...i,id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),created:Date.now()+Math.random(),date:currentDate(),displayAmount:i.displayAmount??fromStoredFoodAmount(i),displayUnit:i.displayUnit??foodInputMeta(i.foodKey).inputUnit}));saveState();renderAll();showView("Food");toast("Comidas de ayer copiadas")}
 function copyYesterdayFood(){
- const d=dateObj(currentDate());d.setDate(d.getDate()-1);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());const y=d.toISOString().slice(0,10),arr=foodsFor(y);if(!arr.length){toast("Ayer no hay alimentos");return}
+ const d=dateObj(currentDate());d.setDate(d.getDate()-1);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());const y=d.toISOString().slice(0,10),arr=foodsFor(y).filter(i=>!foodRecord(i.foodKey)?.transient);if(!arr.length){toast("Ayer no hay alimentos reutilizables");return}
  if(foodsFor(currentDate()).length){openAppConfirm("Copiar comidas de ayer","Ya hay alimentos hoy. Se añadirán los de ayer sin sustituir los actuales.","Añadir igualmente",()=>performCopyYesterdayFood(arr));return}
  performCopyYesterdayFood(arr)
 }
