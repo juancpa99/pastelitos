@@ -412,14 +412,18 @@
     const start=mondayOf(date);return Array.from({length:7},(_,i)=>addDaysISO(start,i))
   }
 
+  function postTupperExtraRowsHTML(date){
+    return postTupperExtras(date).filter(meal=>postTupperLogged(date,meal)).map(meal=>{
+      const option=selectedOption(date,meal);if(!option)return '';
+      const plan=standardTupperPlan(option);
+      return `<div class="nutrition-plan-meal nutrition-plan-post"><div class="nutrition-plan-meal-main"><span>Post-entreno · extra</span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(plan.items))}</small><em>${Math.round(plan.nutrition.kcal)} kcal · ${Math.round(plan.nutrition.p)} g proteína</em></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn secondary small" disabled>Registrado</button><button type="button" class="btn ghost small" onclick="removeSkippedTupperFromPost('${date}','${meal}')">Quitar</button></div></div>`
+    }).join('')
+  }
   function planMealRowHTML(date,row){
     const logged=slotLogged(date,row.meal),post=row.meal==='Post-entreno',mid=row.meal==='Media mañana',optional=post||mid,tupper=TUPPER_MEALS.includes(row.meal);
     if(row.skipped){
-      const moved=isTupperMoved(date,row.meal);
-      return `<div class="nutrition-plan-meal ${moved?'nutrition-plan-moved ':''}skipped"><div class="nutrition-plan-meal-main"><span>${esc(row.meal)}</span><strong>${moved?'Movido a post-entreno':'No hecha'}</strong></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanMealSkipped('${date}','${row.meal}')">Reactivar</button>${tupper&&!moved?`<button type="button" class="btn ghost small" onclick="moveNutritionTupperToPost('${date}','${row.meal}')">Mover táper</button>`:moved?`<button type="button" class="btn ghost small" onclick="undoNutritionTupperMove('${date}')">Deshacer</button>`:''}</div></div>`
-    }
-    if(row.movedTupper){
-      return `<div class="nutrition-plan-meal nutrition-plan-post nutrition-plan-moved"><div class="nutrition-plan-meal-main"><span>Post-entreno · táper</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ${logged?'secondary':''} small" onclick="addNutritionPlanMeal('${date}','Post-entreno')">${logged?'Actualizar':'Añadir'}</button><button type="button" class="btn ghost small" onclick="undoNutritionTupperMove('${date}')">Deshacer</button></div></div>`
+      const added=tupper&&postTupperLogged(date,row.meal);
+      return `<div class="nutrition-plan-meal skipped"><div class="nutrition-plan-meal-main"><span>${esc(row.meal)}</span><strong>No hecha</strong></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn ghost small" onclick="toggleNutritionPlanMealSkipped('${date}','${row.meal}')">Reactivar</button>${tupper?(added?`<button type="button" class="btn ghost small" onclick="removeSkippedTupperFromPost('${date}','${row.meal}')">Quitar del post-entreno</button>`:`<button type="button" class="btn ghost small" onclick="addSkippedTupperToPost('${date}','${row.meal}')">Añadir al post-entreno</button>`):''}</div></div>`
     }
     if(row.optionalInactive){
       return `<div class="nutrition-plan-meal nutrition-plan-optional"><div class="nutrition-plan-meal-main"><span>Media mañana · opcional</span><strong>${esc(row.option.name)}</strong><small>${esc(itemSummary(row.items))}</small><em>${Math.round(row.nutrition.kcal)} kcal · ${Math.round(row.nutrition.p)} g proteína</em></div><div class="nutrition-plan-meal-actions"><button type="button" class="btn small" onclick="addNutritionPlanMeal('${date}','Media mañana')">Añadir</button><button type="button" class="btn ghost small" onclick="openNutritionPlanMealOptions('${date}','Media mañana')">Ajustar</button></div></div>`
@@ -449,7 +453,7 @@
     const weekHTML=`<div class="nutrition-plan-week">${days.map(d=>`<button type="button" class="${d===date?'active':''} ${inPlan(d)?'':'outside'}" onclick="selectNutritionPlanDate('${d}')"><span>${esc(dateLabel(d))}</span><b>${inPlan(d)?'•':'—'}</b></button>`).join('')}</div>`;
     const totals=active&&target.complete?dayPlanNutrition(date):null;
     const body=active&&target.complete
-      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}</div>`
+      ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">≈ ${Math.round(totals.kcal)} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}${postTupperExtraRowsHTML(date)}</div>`
       :active
         ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
         :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
