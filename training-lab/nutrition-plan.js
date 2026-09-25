@@ -494,7 +494,17 @@
       const n=Number(input.value);if(!Number.isFinite(n)||n<0){toast('Revisa las cantidades');return}
       amounts[input.dataset.foodKey]=n
     }
-    const ps=planState();if(!ps.amountOverrides[date])ps.amountOverrides[date]={};
+    const ps=planState();
+    if(TUPPER_MEALS.includes(meal)){
+      Object.entries(amounts).forEach(([key,value])=>{
+        if(Object.prototype.hasOwnProperty.call(TUPPER_PORTIONS,key))ps.tupperPortions[key]=value
+      });
+      Object.values(ps.amountOverrides).forEach(day=>{
+        if(day&&typeof day==='object'){delete day.Almuerzo;delete day.Cena}
+      });
+      saveState(true);closeModal();renderAll();showView('Food');toast('Cantidad estándar actualizada');return
+    }
+    if(!ps.amountOverrides[date])ps.amountOverrides[date]={};
     ps.amountOverrides[date][meal]={optionId:option.id,amounts};
     saveState(true);closeModal();renderAll();showView('Food');toast('Cantidades actualizadas')
   };
