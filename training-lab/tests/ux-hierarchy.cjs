@@ -117,7 +117,7 @@ try{
  assert.equal(run(`JSON.stringify(mealPlan('2026-09-25','Post-entreno').items)`),postBeforeSkip,'adding a skipped tupper never replaces the normal post-workout meal');
  assert.ok(run(`postTupperLogged('2026-09-25','Almuerzo')`),'skipped tupper is logged separately in post-workout');
  assert.match(doc.getElementById('viewFood').textContent,/Post-entreno · extra/);
- assert.ok(run(`dayPlanNutrition('2026-09-25').kcal`)>totalBeforeSkip-50,'optional skipped tupper is counted when actually added later');
+ assert.ok(run(`dayPlanNutrition('2026-09-25').kcal`)>run(`dayPlan('2026-09-25').reduce((sum,row)=>sum+(row.skipped||row.optionalInactive?0:row.nutrition.kcal),0)`),'optional skipped tupper is counted in addition to the normal day plan');
  run(`removeSkippedTupperFromPost('2026-09-25','Almuerzo')`);
  assert.ok(!run(`postTupperLogged('2026-09-25','Almuerzo')`),'optional post-workout tupper can be removed');
  run(`toggleNutritionPlanMealSkipped('2026-09-25','Almuerzo')`);
