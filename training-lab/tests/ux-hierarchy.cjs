@@ -60,6 +60,13 @@ try{
  assert.equal(doc.getElementById('modalRoot').children.length,0);
  // Food logging exposes a broad library and editable multi-ingredient dishes.
  run(`showView('Food');openFoodModal('Almuerzo')`);
+ assert.ok(doc.querySelector('.nutrition-scan-label-btn'),'food modal exposes nutrition-label camera scan');
+ run(`openMealChooser()`);
+ assert.match(doc.getElementById('modalRoot').textContent,/Foto de comida/,'meal chooser exposes one-off meal photo logging');
+ run(`closeModal();state.customFoods.push({key:'adhoc_test',name:'Temporal foto',cat:'Extra',unit:'ud',ref:'estimación',perUnit:true,custom:true,transient:true,kcal:100,p:10,c:10,f:2,sat:1,trans:null,addedSugars:null,fiber:2,salt:.3});state.foods.push({id:'adhoc_test_row',created:Date.now(),date:'2026-09-25',meal:'Merienda',foodKey:'adhoc_test',amount:1})`);
+ assert.ok(!run(`allFoodKeys().includes('adhoc_test')`),'one-off photo meals never enter reusable food search');
+ assert.equal(run(`dayNutrition('2026-09-25').fiber>=2`),true,'declared quality nutrients are included in daily totals');
+ run(`state.foods=state.foods.filter(i=>i.id!=='adhoc_test_row');state.customFoods=state.customFoods.filter(f=>f.key!=='adhoc_test');showView('Food');openFoodModal('Almuerzo')`);
  assert.ok(run(`Object.keys(FOOD_DB).length`)>=60,'expanded food library is loaded');
  const uncookedKeys=['rice','pasta','potato','lentils','sweet_potato','quinoa','couscous','chickpeas','beans','chicken','turkey','beef','whitefish','salmon','tuna','veg'];
  assert.ok(run(`[${uncookedKeys.map(k=>`'${k}'`).join(',')}].every(k=>!/cocid|cocinad|preparado/i.test(foodInputMeta(k).reference))`),'foods cooked at home are never logged by cooked weight');
