@@ -1414,7 +1414,7 @@ function saveCardioMobility(){
 function renderFood(){
  const x=currentDate(),items=foodsFor(x),nut=dayNutrition(x);
  rememberDisclosures(document.getElementById('viewFood'));
- let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="actions"><details class="inline-menu"><summary>Más opciones</summary><div class="actions"><button class="btn ghost" onclick="openCommonFoodRegistration()">Registrar alimento</button><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
+ let html=`<div class="food-day-summary">${nutritionSummaryHTML(x)}<div class="actions"><details class="inline-menu food-more-menu"><summary class="food-more-summary"><span><strong>Más opciones</strong><small>Registrar alimentos, copiar ayer y objetivos</small></span><span class="food-more-chevron" aria-hidden="true">⌄</span></summary><div class="actions food-more-actions"><button class="btn ghost" onclick="openCommonFoodRegistration()">Registrar alimento</button><button class="btn ghost" onclick="copyYesterdayFood()">Copiar ayer</button><button class="btn ghost" onclick="goToNutritionSettings()">Objetivos nutricionales</button></div></details></div></div>`;
  if(typeof nutritionPlanHTML==="function")html+=nutritionPlanHTML(x);
  html+=`<section class="food-diary-head"><div><div class="eyebrow">Diario</div><strong>${esc(pretty(x))}</strong></div><button type="button" class="btn" onclick="openAddFoodHub()">Añadir comida</button></section>`;
 
