@@ -1070,3 +1070,21 @@ body[data-view="Home"] .today-btn{
  .nutrition-barcode-manual{grid-template-columns:1fr}
  .nutrition-barcode-manual .btn{width:100%}
 }
+
+
+/* v6.67 - explicit food registration */
+.food-primary-actions{display:grid;gap:8px;margin-top:12px}
+.food-primary-actions>.btn{width:100%}
+.restaurant-choice{border-color:#725a32!important}
+.restaurant-estimate-note{margin-top:12px;padding:10px 11px;border:1px solid #725a32;border-radius:10px;background:#20190e;color:#e8cf9a;font-size:10px;line-height:1.4}
+.restaurant-preset-list{display:grid;gap:7px;margin-top:10px}
+.restaurant-preset{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:11px;border:1px solid var(--line);border-radius:11px;background:#081522;color:var(--text);text-align:left}
+.restaurant-preset span{min-width:0}
+.restaurant-preset strong,.restaurant-preset small{display:block}
+.restaurant-preset strong{font-size:12px}
+.restaurant-preset small{margin-top:3px;color:var(--muted);font-size:9px;line-height:1.35}
+.restaurant-preset b{font-size:11px;white-space:nowrap}
+@media(max-width:380px){
+ .restaurant-preset{grid-template-columns:1fr}
+ .restaurant-preset b{white-space:normal}
+}
