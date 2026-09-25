@@ -95,6 +95,7 @@
     if(!state.nutritionPlan.optionalMeals||typeof state.nutritionPlan.optionalMeals!=='object')state.nutritionPlan.optionalMeals={};
     if(!state.nutritionPlan.amountOverrides||typeof state.nutritionPlan.amountOverrides!=='object')state.nutritionPlan.amountOverrides={};
     if(!state.nutritionPlan.tupperPortions||typeof state.nutritionPlan.tupperPortions!=='object')state.nutritionPlan.tupperPortions={};
+    if(!state.nutritionPlan.movedTuppers||typeof state.nutritionPlan.movedTuppers!=='object')state.nutritionPlan.movedTuppers={};
     if(!state.nutritionPlan.tupperStandardV1){
       Object.values(state.nutritionPlan.amountOverrides).forEach(day=>{
         if(day&&typeof day==='object'){delete day.Almuerzo;delete day.Cena}
@@ -212,6 +213,13 @@
   function isMealSkipped(date,meal){
     return !!planState().skippedMeals?.[date]?.[meal]
   }
+  function movedTupperSource(date){
+    const meal=planState().movedTuppers?.[date];
+    return TUPPER_MEALS.includes(meal)?meal:null
+  }
+  function isTupperMoved(date,meal){
+    return movedTupperSource(date)===meal
+  }
   function optionalMealActive(date,meal){
     if(meal!=='Media mañana')return true;
     return !!planState().optionalMeals?.[date]?.[meal]||slotLogged(date,meal)
@@ -298,7 +306,7 @@
       const actual=standardTupperPlan(option).nutrition;
       const planned={...targets[meal]};
       targets[meal]={kcal:actual.kcal,protein:actual.p};
-      const recipients=['Desayuno','Media mañana','Merienda','Post-entreno'].filter(next=>
+      const recipients=FLEXIBLE_MEALS.filter(next=>
         !isMealSkipped(date,next)&&!slotLogged(date,next)&&optionalMealActive(date,next)
       );
       applyTargetDifference(targets,{kcal:planned.kcal-actual.kcal,protein:planned.protein-actual.p},recipients)
