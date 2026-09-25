@@ -1380,7 +1380,7 @@ function renderFood(){
    const shownDishGroups=new Set();
    group.forEach(i=>{const db=foodRecord(i.foodKey);if(db){
     if(i.dishGroupId&&i.dishName&&!shownDishGroups.has(i.dishGroupId)){shownDishGroups.add(i.dishGroupId);html+=`<div class="food-dish-saved"><span>Plato rápido</span><strong>${esc(i.dishName)}</strong><small>Ingredientes editables por separado</small></div>`}
-    const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions">${i.photoId?`<button type="button" class="food-edit-btn" onclick="openOneOffFoodPhoto('${i.id}')">Foto</button>`:''}<button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div></div>`
+    const meta=foodInputMeta(i.foodKey);html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(db.name)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions">${i.photoId?`<button type="button" class="food-edit-btn" onclick="openOneOffFoodPhoto('${i.id}')">Foto</button>`:''}<button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div>`
    }});
    html+=`</div>`
   });
