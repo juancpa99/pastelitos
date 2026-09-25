@@ -175,7 +175,7 @@ function val(id){return document.getElementById(id)?.value??""}
 function num(id){const x=val(id);return x===""?null:+x}
 function latest(arr,key){return arr.filter(x=>x[key]!=null&&x[key]!=="").sort((a,b)=>b.date.localeCompare(a.date))[0]?.[key]??"—"}
 function foodRecord(key){return FOOD_DB[key]||(state.customFoods||[]).find(f=>f.key===key)||null}
-function allFoodKeys(){return [...Object.keys(FOOD_DB),...(state.customFoods||[]).map(f=>f.key)]}
+function allFoodKeys(){return [...Object.keys(FOOD_DB),...(state.customFoods||[]).filter(f=>!f.transient).map(f=>f.key)]}
 function autoMode(){ /* selección manual de modo */ }
 function isSunday(x){return weekday(x)===0}
 function afterCheckHour(x){return x!==todayISO()||new Date().getHours()>=state.settings.checkHour}
@@ -206,8 +206,17 @@ function sessionDone(x,p){
 }
 function extraForDate(x){return state.extraSessions.filter(s=>s.date===x)}
 function foodsFor(x){return state.foods.filter(f=>f.date===x)}
-function calcFood(f){const db=foodRecord(f.foodKey);if(!db)return{kcal:0,p:0,c:0,f:0};const factor=db.perUnit?(+f.amount||0):(+f.amount||0)/100;return{kcal:db.kcal*factor,p:db.p*factor,c:db.c*factor,f:db.f*factor}}
-function dayNutrition(x){const out={kcal:0,p:0,c:0,f:0,fruit:0,veg:0};foodsFor(x).forEach(item=>{const n=calcFood(item);out.kcal+=n.kcal;out.p+=n.p;out.c+=n.c;out.f+=n.f;const db=foodRecord(item.foodKey);if(db?.cat==="Fruta")out.fruit+=+item.amount||0;if(db?.cat==="Verdura")out.veg+=+item.amount||0});return out}
+function calcFood(f){
+ const db=foodRecord(f.foodKey);if(!db)return{kcal:0,p:0,c:0,f:0};
+ const factor=db.perUnit?(+f.amount||0):(+f.amount||0)/100;
+ const out={kcal:(+db.kcal||0)*factor,p:(+db.p||0)*factor,c:(+db.c||0)*factor,f:(+db.f||0)*factor};
+ [["sat","sat"],["trans","trans"],["sugars","sugars"],["addedSugars","addedSugars"],["fiber","fiber"],["salt","salt"],["sodiumMg","sodiumMg"],["mono","mono"],["poly","poly"]].forEach(([src,dst])=>{out[dst]=db[src]==null?null:(+db[src]||0)*factor});
+ return out
+}
+function dayNutrition(x){
+ const out={kcal:0,p:0,c:0,f:0,fruit:0,veg:0,sat:0,trans:0,sugars:0,addedSugars:0,fiber:0,salt:0,sodiumMg:0,mono:0,poly:0,qualityKnown:{sat:0,trans:0,sugars:0,addedSugars:0,fiber:0,salt:0,sodiumMg:0,mono:0,poly:0},qualityItems:0};
+ foodsFor(x).forEach(item=>{const n=calcFood(item);out.kcal+=n.kcal;out.p+=n.p;out.c+=n.c;out.f+=n.f;out.qualityItems++;["sat","trans","sugars","addedSugars","fiber","salt","sodiumMg","mono","poly"].forEach(k=>{if(n[k]!=null){out[k]+=n[k];out.qualityKnown[k]++}});const db=foodRecord(item.foodKey);if(db?.cat==="Fruta")out.fruit+=+item.amount||0;if(db?.cat==="Verdura")out.veg+=+item.amount||0});return out
+}
 function addDaysISO(x,days){
  const d=dateObj(x);d.setDate(d.getDate()+days);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)
 }
@@ -1382,7 +1391,7 @@ function renderFood(){
 }
 function formatAmount(a,u){return `${Number(a)%1===0?Number(a):Number(a).toFixed(1)} ${u}`}
 function foodOptions(meal){
- const allowed=[...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).map(f=>f.key)],cats=["Mis alimentos","Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
+ const allowed=[...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).filter(f=>!f.transient).map(f=>f.key)],cats=["Mis alimentos","Carbohidrato","Proteína","Verdura","Fruta","Lácteo","Suplemento","Extra"];
  return cats.map(cat=>{
   const opts=allowed.map(k=>[k,foodRecord(k)]).filter(([k,v])=>v&&(v.custom?(cat==="Mis alimentos"):v.cat===cat));
   return opts.length?`<optgroup label="${cat}">${opts.map(([k,v])=>`<option value="${k}">${esc(v.name)}</option>`).join("")}</optgroup>`:""
@@ -1438,7 +1447,7 @@ function updateFoodMealUI(){
  const first=foodKeysForMeal(meal)[0];if(first)setFoodSelection(first)
 }
 function foodKeysForMeal(meal){
- return [...new Set([...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).map(f=>f.key)])].filter(k=>foodRecord(k))
+ return [...new Set([...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).filter(f=>!f.transient).map(f=>f.key)])].filter(k=>foodRecord(k))
 }
 function renderFoodPicker(){
  const root=document.getElementById("fdPicker");if(!root)return;
@@ -1569,7 +1578,7 @@ function saveEditedFood(id){
 
 function deleteFood(id){
  const item=state.foods.find(i=>i.id===id),db=item&&foodRecord(item.foodKey);if(!item)return;
- openAppConfirm("Eliminar alimento",`${db?.name||"Este alimento"} se quitará de ${item.meal.toLowerCase()}.`,"Eliminar",()=>{state.foods=state.foods.filter(i=>i.id!==id);saveState();renderAll();showView("Food")},()=>openEditFood(id))
+ openAppConfirm("Eliminar alimento",`${db?.name||"Este alimento"} se quitará de ${item.meal.toLowerCase()}.`,"Eliminar",()=>{state.foods=state.foods.filter(i=>i.id!==id);if(db?.transient&&!state.foods.some(i=>i.foodKey===item.foodKey))state.customFoods=state.customFoods.filter(f=>f.key!==item.foodKey);saveState();renderAll();showView("Food")},()=>openEditFood(id))
 }
 function performCopyYesterdayFood(arr){arr.forEach(i=>state.foods.push({...i,id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),created:Date.now()+Math.random(),date:currentDate(),displayAmount:i.displayAmount??fromStoredFoodAmount(i),displayUnit:i.displayUnit??foodInputMeta(i.foodKey).inputUnit}));saveState();renderAll();showView("Food");toast("Comidas de ayer copiadas")}
 function copyYesterdayFood(){
@@ -2007,7 +2016,7 @@ function planSettingsHTML(){
  return `<div class="section" id="planSection">Plan de entrenamiento</div><div class="card"><div class="callout">${state.customPlans?`Plan personalizado activo: ${esc(state.settings.planName||"creado en la app")}.`:"Estás usando el plan base incluido en Training Lab."}</div><div class="plan-action-grid"><button type="button" class="btn" onclick="openPlanManager()">Montar / editar en la app</button><label class="btn secondary">Importar CSV<input type="file" accept=".csv,text/csv" onchange="importPlanCSV(event)"></label><button type="button" class="btn secondary" onclick="downloadPlanTemplate()">Descargar plantilla CSV</button><button type="button" class="btn ghost" onclick="downloadCurrentPlan()">Exportar mi plan</button>${state.customPlans?'<button type="button" class="btn danger" onclick="resetImportedPlan()">Volver al plan base</button>':""}</div><div class="settings-help">Puedes construir la semana aquí o importar la plantilla CSV. Los entrenamientos ya guardados no cambian al editar el plan.</div></div>`
 }
 function customFoodsSettingsHTML(){
- const rows=(state.customFoods||[]).map(f=>`<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${f.perUnit?"unidad":`100 ${f.unit}`}</small></div><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div>`).join("");
+ const rows=(state.customFoods||[]).filter(f=>!f.transient).map(f=>`<div class="custom-food-row"><div><strong>${esc(f.name)}</strong><small>${esc(f.cat)} · valores por ${f.perUnit?"unidad":`100 ${f.unit}`}</small></div><button type="button" class="btn danger small" onclick="removeCustomFood('${f.key}')">Eliminar</button></div>`).join("");
  return `<div class="custom-food-card"><div class="row between settings-status-row"><div><strong>Mis alimentos</strong><small>Crea productos con los valores exactos de su etiqueta.</small></div><button type="button" class="btn secondary small" onclick="openCustomFoodModal('Desayuno')">Crear</button></div>${rows?`<div class="custom-food-list">${rows}</div>`:'<div class="settings-help">Todavía no has creado alimentos propios.</div>'}</div>`
 }
 function installationSettingsHTML(){
