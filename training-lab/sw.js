@@ -1,5 +1,5 @@
-const CACHE='training-lab-pages-v6-78';
-const ASSETS=["./","./index.html","./manifest.webmanifest","./marevo-home-v618.svg","./marevo-mark.svg","./marevo-home-192-v618.png","./marevo-home-512-v618.png","./marevo-home-180-v618.png","./plantilla_plan.csv","./app.css?v=669","./marevo-brand.css?v=616","./workout-flow.js?v=643","./progress-charts.js?v=636","./view-helpers.js?v=636","./app.js?v=675","./food-options.js?v=655","./usability.js?v=636","./season-complements.js?v=636","./phase-sep2026.js?v=636","./phase-sep2026-integrity.js?v=606","./phase-sep2026-tracking.js?v=636","./phase-sep2026-report.js?v=608","./phase-sep2026-report-fix.js?v=609","./home-day-overview.js?v=636","./marevo-brand.js?v=616","./persistence.js?v=636","./push-config.js?v=620","./nutrition-camera.js?v=671","./nutrition-free.js?v=672","./push-client.js?v=621","./ui-fixes.js?v=629","./metabolism.js?v=648","./nutrition-plan.js?v=675","./workout-resume.js?v=625","./push-diagnostics.js?v=623","./phase-oct2026-pplul.js?v=636","./oct26-flex-week.js?v=636","./oct26-v2-plan.js?v=636"];
+const CACHE='training-lab-pages-v6-79';
+const ASSETS=["./","./index.html","./manifest.webmanifest","./marevo-home-v618.svg","./marevo-mark.svg","./marevo-home-192-v618.png","./marevo-home-512-v618.png","./marevo-home-180-v618.png","./plantilla_plan.csv","./app.css?v=670","./marevo-brand.css?v=616","./workout-flow.js?v=643","./progress-charts.js?v=636","./view-helpers.js?v=636","./app.js?v=676","./food-options.js?v=655","./usability.js?v=636","./season-complements.js?v=636","./phase-sep2026.js?v=636","./phase-sep2026-integrity.js?v=606","./phase-sep2026-tracking.js?v=636","./phase-sep2026-report.js?v=608","./phase-sep2026-report-fix.js?v=609","./home-day-overview.js?v=636","./marevo-brand.js?v=616","./persistence.js?v=636","./push-config.js?v=620","./nutrition-camera.js?v=671","./nutrition-free.js?v=672","./push-client.js?v=622","./ui-fixes.js?v=629","./metabolism.js?v=648","./nutrition-plan.js?v=675","./workout-resume.js?v=625","./push-diagnostics.js?v=623","./phase-oct2026-pplul.js?v=636","./oct26-flex-week.js?v=636","./oct26-v2-plan.js?v=636"];
 
 function canonicalNotificationTag(tag){
   const raw=String(tag||'').toLowerCase();
@@ -17,13 +17,33 @@ function canonicalNotificationTag(tag){
   return raw?`marevo-${raw.replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)}`:'marevo-general';
 }
 
+let notificationQueue=Promise.resolve();
 async function replaceNotification(title,options={}){
-  const tag=canonicalNotificationTag(options.tag);
-  try{
-    const existing=await self.registration.getNotifications({tag});
-    existing.forEach(notification=>notification.close());
-  }catch(error){}
-  return self.registration.showNotification(title,{...options,tag,renotify:false});
+  // Cache Storage survives service worker restarts and page reloads on iOS.
+  const reminderId=String(options.data?.reminderId||'').slice(0,120);
+  const task=async()=>{
+    if(reminderId){
+      const cache=await caches.open('marevo-delivered-notifications-v1');
+      const key=new Request(new URL('./__marevo_notice__/'+encodeURIComponent(reminderId),self.registration.scope));
+      if(await cache.match(key))return false;
+      await cache.put(key,new Response(String(Date.now())));
+      const entries=await cache.keys();
+      if(entries.length>120){
+        const old=entries.slice(0,entries.length-100);
+        await Promise.all(old.map(entry=>cache.delete(entry)));
+      }
+    }
+    const tag=canonicalNotificationTag(options.tag);
+    try{
+      const existing=await self.registration.getNotifications({tag});
+      existing.forEach(notification=>notification.close());
+    }catch(error){}
+    await self.registration.showNotification(title,{...options,tag,renotify:false});
+    return true;
+  };
+  const result=notificationQueue.then(task);
+  notificationQueue=result.catch(()=>{});
+  return result;
 }
 
 self.addEventListener('install',event=>{
@@ -41,14 +61,23 @@ self.addEventListener('activate',event=>{
 
 self.addEventListener('message',event=>{
   if(event.data?.type==='SKIP_WAITING')self.skipWaiting();
+  if(event.data?.type==='DISPLAY_REMINDER'){
+    const item=event.data;
+    event.waitUntil(replaceNotification(item.title||'MAREVO',{
+      body:item.body||'Tienes algo pendiente.',
+      tag:item.tag||'marevo-general',
+      data:{url:item.url||'./',reminderId:item.reminderId||null}
+    }));
+  }
 });
 
 self.addEventListener('push',event=>{
   let payload={};
   try{payload=event.data?event.data.json():{}}catch(error){payload={body:event.data?event.data.text():''};}
-  const title=payload.title||'MAREVO';
+  const title=payload.type==='workout'?'Falta entreno':payload.title||'MAREVO';
+  const body=payload.type==='workout'?'Tienes una sesión por hacer o registrar.':payload.body||'Tienes algo pendiente.';
   event.waitUntil(replaceNotification(title,{
-    body:payload.body||'Tienes una tarea pendiente.',
+    body,
     tag:payload.tag||payload.type||'marevo-general',
     data:{url:payload.url||'./',type:payload.type||null,reminderId:payload.id||null}
   }));

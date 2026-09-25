@@ -130,7 +130,7 @@ const FOOD_QUICK_COMBOS={
 function defaultState(){return{settings:{
  mode:"summer",seasonStart:"",checkHour:20,bodyPeriod:"6m",progressPeriod:"week",historyExpanded:false,photosExpanded:false,keepAwake:true,
  nutritionGoals:{kcal:null,p:null,c:null,f:null},
- notifications:{enabled:false,rest:true,workout:true,checkin:true,weeklyBody:true,monthlyReview:true,workoutTime:"18:00",weeklyBodyTime:"10:00",monthlyReviewTime:"10:15"}
+ notifications:{enabled:false,rest:true,workout:true,meals:true,checkin:true,weeklyBody:true,monthlyReview:true,workoutTime:"18:00",weeklyBodyTime:"10:00",monthlyReviewTime:"10:15"}
 },customPlans:null,customFoods:[],sessions:[],extraSessions:[],swim:[],cardio:[],mobility:[],body:[],daily:[],foods:[],photoMonths:[],notificationLog:{},restTimer:null,cardioRuntime:null}}
 function normalizeState(input){
  const base=defaultState(),raw=input&&typeof input==="object"?input:{};
@@ -388,7 +388,7 @@ async function requestAppNotifications(){
   state.settings.notifications.enabled=permission==="granted";
   saveState(true);if(activeView==="Settings")renderSettings();
   if(permission==="granted"){
-   await showAppNotification("Training Lab","Notificaciones activadas correctamente.","training-lab-test");
+   await showAppNotification("MAREVO","Notificaciones activadas correctamente.","marevo-test");
    toast("Notificaciones activadas")
   }else if(permission==="denied")toast("Notificaciones bloqueadas en el sistema");
   else toast("Permiso de notificaciones no concedido")
@@ -409,7 +409,7 @@ async function showAppNotification(title,body,tag="training-lab",data={}){
 }
 async function testAppNotification(){
  if(notificationPermission()!=="granted"){await requestAppNotifications();return}
- await showAppNotification("Training Lab","Prueba de notificación correcta.","training-lab-manual-test")
+ await showAppNotification("MAREVO","Prueba de notificación correcta.","marevo-manual-test")
 }
 function notificationTimeReached(time){
  const [h,m]=String(time||"00:00").split(":").map(Number),now=new Date();
@@ -418,7 +418,7 @@ function notificationTimeReached(time){
 function notificationOnce(key,title,body){
  if(state.notificationLog[key])return;
  state.notificationLog[key]=Date.now();saveState(true);
- showAppNotification(title,body,key).catch(()=>{})
+ showAppNotification(title,body,key,{reminderId:key}).catch(()=>{})
 }
 function trimNotificationLog(){
  const entries=Object.entries(state.notificationLog||{}).sort((a,b)=>(+b[1]||0)-(+a[1]||0));
@@ -426,13 +426,19 @@ function trimNotificationLog(){
  state.notificationLog=Object.fromEntries(entries.slice(0,90));saveState(true)
 }
 function checkDueNotifications(){
- if(!state.settings.notifications.enabled||notificationPermission()!=="granted")return;
- const x=todayISO(),p=planFor(x),n=state.settings.notifications||{},todayPlanDone=sessionDone(x,p);
- if(n.workout&&p.type!=="rest"&&!todayPlanDone&&notificationTimeReached(n.workoutTime)){
-  notificationOnce(`workout:${x}`,"Entrenamiento pendiente",`${p.title}${p.subtitle?` · ${p.subtitle}`:""}`)
+ if(!state.settings.notifications.enabled||notificationPermission()!=="granted"||window.marevoRemotePushManaged)return;
+ const x=todayISO(),n=state.settings.notifications||{};
+ if(n.workout){
+  const pending=dayActivities(x).filter(item=>!item.done);
+  if(pending.some(item=>item.kind!=="Natación")&&notificationTimeReached(n.workoutTime))notificationOnce(`workout:${x}`,"Falta entreno","Tienes una sesión por hacer o registrar.");
+  if(pending.some(item=>item.kind==="Natación")&&notificationTimeReached("23:30"))notificationOnce(`swim:${x}`,"Registro de natación pendiente","¿Ya nadaste? Registra la sesión.");
+ }
+ if(n.meals){
+  const meal=homeNutritionPrompt(x);
+  if(meal&&(["Desayuno","Merienda","Cena"].includes(meal.meal)))notificationOnce(`meal:${meal.meal}:${x}`,meal.title,meal.desc);
  }
  if(n.checkin&&!dailyDone(x)&&notificationTimeReached(`${String(state.settings.checkHour).padStart(2,"0")}:00`)){
-  notificationOnce(`checkin:${x}`,"Check-in pendiente","Cierra el día en Training Lab.")
+  notificationOnce(`checkin:${x}`,"Check-in pendiente","Cierra el día en MAREVO.")
  }
  if(n.weeklyBody&&isSunday(x)&&!measurementDone(x)&&notificationTimeReached(n.weeklyBodyTime)){
   notificationOnce(`body:${x}`,"Peso y cintura","Toca registrar las mediciones semanales.")
@@ -451,7 +457,7 @@ function notificationStatusHTML(){
 }
 function saveNotificationSettings(){
  const n=state.settings.notifications;
- ["rest","workout","checkin","weeklyBody","monthlyReview"].forEach(k=>{const el=document.getElementById(`nt_${k}`);if(el)n[k]=!!el.checked});
+ ["rest","workout","meals","checkin","weeklyBody","monthlyReview"].forEach(k=>{const el=document.getElementById(`nt_${k}`);if(el)n[k]=!!el.checked});
  n.workoutTime=val("nt_workoutTime")||n.workoutTime;
  n.weeklyBodyTime=val("nt_weeklyBodyTime")||n.weeklyBodyTime;
  n.monthlyReviewTime=val("nt_monthlyReviewTime")||n.monthlyReviewTime;
@@ -461,16 +467,17 @@ function notificationSettingsHTML(){
  const n=state.settings.notifications;
  const check=(k)=>n[k]?"checked":"";
  return `<div class="section">Notificaciones</div><div class="card">
-  <div class="row between notif-status"><div><strong>Training Lab en el móvil</strong><small>${appIsStandalone()?"App instalada en el dispositivo.":"En iPhone, añade Training Lab a la pantalla de inicio para usarla como app."}</small></div>${notificationStatusHTML()}</div>
+  <div class="row between notif-status"><div><strong>MAREVO en el móvil</strong><small>${appIsStandalone()?"App instalada en el dispositivo.":"En iPhone, añade MAREVO a la pantalla de inicio para usarla como app."}</small></div>${notificationStatusHTML()}</div>
   <div class="actions" style="margin-top:10px"><button type="button" class="btn" onclick="requestAppNotifications()">Activar notificaciones</button><button type="button" class="btn secondary" onclick="testAppNotification()">Probar</button></div>
   <div class="notif-grid">
    <label class="notif-row"><input id="nt_rest" type="checkbox" ${check("rest")} onchange="saveNotificationSettings()"><span><strong>Fin del descanso</strong><small>Avisa cuando termina un descanso si Training Lab sigue activa o cuando vuelves a abrirla.</small></span></label>
-   <label class="notif-row"><input id="nt_workout" type="checkbox" ${check("workout")} onchange="saveNotificationSettings()"><span><strong>Entrenamiento del día</strong><small>Avisa cuando Training Lab detecta que el entrenamiento sigue pendiente.</small></span><input id="nt_workoutTime" type="time" value="${esc(n.workoutTime)}" onchange="saveNotificationSettings()"></label>
-   <label class="notif-row"><input id="nt_checkin" type="checkbox" ${check("checkin")} onchange="saveNotificationSettings()"><span><strong>Check-in final</strong><small>Hora configurada: ${state.settings.checkHour}:00.</small></span></label>
+   <label class="notif-row"><input id="nt_workout" type="checkbox" ${check("workout")} onchange="saveNotificationSettings()"><span><strong>Entrenamiento y natación</strong><small>Un aviso de fuerza y, al terminar la natación, otro si falta registrarla.</small></span><input id="nt_workoutTime" type="time" value="${esc(n.workoutTime)}" onchange="saveNotificationSettings()"></label>
+   <label class="notif-row"><input id="nt_meals" type="checkbox" ${check("meals")} onchange="saveNotificationSettings()"><span><strong>Comidas pendientes</strong><small>Un aviso por comida, solo si aún falta registrar desayuno, merienda o cena.</small></span></label>
+    <label class="notif-row"><input id="nt_checkin" type="checkbox" ${check("checkin")} onchange="saveNotificationSettings()"><span><strong>Check-in final</strong><small>Hora configurada: ${state.settings.checkHour}:00.</small></span></label>
    <label class="notif-row"><input id="nt_weeklyBody" type="checkbox" ${check("weeklyBody")} onchange="saveNotificationSettings()"><span><strong>Peso y cintura del domingo</strong><small>Recordatorio semanal.</small></span><input id="nt_weeklyBodyTime" type="time" value="${esc(n.weeklyBodyTime)}" onchange="saveNotificationSettings()"></label>
    <label class="notif-row"><input id="nt_monthlyReview" type="checkbox" ${check("monthlyReview")} onchange="saveNotificationSettings()"><span><strong>Revisión corporal mensual</strong><small>Perímetros y fotos.</small></span><input id="nt_monthlyReviewTime" type="time" value="${esc(n.monthlyReviewTime)}" onchange="saveNotificationSettings()"></label>
   </div>
-  <div class="callout" style="margin-top:10px"><strong>Compatibilidad:</strong> si tu navegador o sistema no admite notificaciones para Training Lab, no podrás activarlas. Con la app completamente cerrada, los recordatorios programados tampoco están garantizados todavía; para esos casos puedes instalar los recordatorios en Calendario.</div>
+  <div class="callout" style="margin-top:10px"><strong>Compatibilidad:</strong> los avisos dependen de los permisos del dispositivo. Si no llegan, revisa el estado de las notificaciones aquí o usa los recordatorios de Calendario.</div>
   <div class="actions" style="margin-top:10px"><button type="button" class="btn secondary" onclick="downloadNotificationCalendar()">Instalar recordatorios en Calendario</button></div>
  </div>`
 }
@@ -499,7 +506,7 @@ function downloadNotificationCalendar(){
  }
  if(n.checkin){
   const d=new Date(),time=`${pad2(state.settings.checkHour)}:00`;
-  events.push(icsEvent("training-lab-checkin@local","Training Lab · Check-in final","Cierra el día en Training Lab.",icsLocalDateTime(d,time),"FREQ=DAILY"))
+  events.push(icsEvent("training-lab-checkin@local","Training Lab · Check-in final","Cierra el día en MAREVO.",icsLocalDateTime(d,time),"FREQ=DAILY"))
  }
  if(n.weeklyBody){
   const d=nextWeekdayDate(0);
@@ -587,31 +594,27 @@ function homePendingItemHTML(item){
 function renderHome(){
  const x=currentDate(),activities=dayActivities(x),trainingPending=activities.filter(a=>!a.done),active=trainingPending.some(a=>a.active),allDone=activities.length>0&&!trainingPending.length,inPast=x<todayISO();
  const weekly=homeWeekSnapshot(x),nut=dayNutrition(x),goals=state.settings.nutritionGoals||{},pendingItems=homePendingItems(x);
+ const pendingCount=trainingPending.length+pendingItems.length;
  const trainingStatus=active?'Sesión en curso':trainingPending.length===1?'1 sesión pendiente':trainingPending.length>1?`${trainingPending.length} sesiones pendientes`:allDone?'Entrenamiento registrado':'Sin sesión pendiente';
- const heroTitle=active?'Sesión en marcha.':trainingPending.length?(inPast?'Completa el registro.':'Hoy cuenta.'):allDone?'Trabajo hecho.':'Recuperar también cuenta.';
- const heroText=active?'Continúa la sesión y conserva el registro.':trainingPending.length?(inPast?'Deja registrado lo que hiciste para mantener el seguimiento al día.':'Entrena, registra y deja una referencia útil para seguir progresando.'):allDone?'El entrenamiento del día ya forma parte de tu progreso.':'No hay una sesión obligatoria. Revisa recuperación, comida y progreso.';
+ const heroTitle=active?'Sesión en marcha.':pendingCount?'Lo pendiente de hoy.':allDone?'Trabajo hecho.':'Todo al día.';
+ const heroText=active?'Continúa tu sesión y deja el registro al día.':pendingCount?(inPast?'Completa los registros de este día.':'Aquí tienes lo que falta por hacer o registrar.'):allDone?'El entrenamiento de hoy ya está registrado.':'No hay tareas pendientes por ahora.';
  const buttonLabel=active?'Continuar entrenamiento':trainingPending.length?'Registrar entrenamiento':allDone?'Revisar entrenamiento':'Ir a Entreno';
  const kcal=Math.round(nut.kcal||0),protein=Math.round(nut.p||0),kcalGoal=Math.round(+goals.kcal||0),proteinGoal=Math.round(+goals.p||0),kcalPct=kcalGoal?Math.min(100,Math.max(0,kcal/kcalGoal*100)):0;
  const root=document.getElementById('viewHome');rememberDisclosures(root);
  let html=`<section class="home-command">
    <div class="home-command-orb home-command-orb-a" aria-hidden="true"></div><div class="home-command-orb home-command-orb-b" aria-hidden="true"></div>
    <div class="home-command-content">
-    <div class="home-command-kicker"><span>HOY EN MAREVO</span><span class="home-command-status">${esc(trainingStatus)}</span></div>
+    <div class="home-command-kicker"><span>HOY EN MAREVO</span><span class="home-command-status">${pendingCount?`${pendingCount} ${pendingCount===1?"pendiente":"pendientes"}`:"Al día"}</span></div>
     <h2>${esc(heroTitle)}</h2>
     <p>${esc(heroText)}</p>
-    <button type="button" class="home-training-cta" onclick="showView('Workout')">
+    ${trainingPending.length||active?`<button type="button" class="home-training-cta" onclick="showView('Workout')">
       <span class="home-cta-icon">${homeIconSVG('training')}</span>
       <span class="home-cta-copy"><small>ENTRENAMIENTO</small><strong>${esc(buttonLabel)}</strong><span>${esc(trainingStatus)}</span></span>
       <span class="home-cta-arrow" aria-hidden="true">›</span>
-    </button>
-    <div class="home-week-strip" aria-label="Resumen de entrenamiento semanal">
-      <div><strong>${weekly.strength}</strong><span>Fuerza</span></div>
-      <div><strong>${weekly.swim}</strong><span>Natación</span></div>
-      <div><strong>${weekly.minutes}</strong><span>Minutos</span></div>
-    </div>
-   </div>
+    </button>`:""}
+     ${pendingItems.length?`<div class="home-command-pending" aria-label="Otros pendientes de hoy">${pendingItems.map(homePendingItemHTML).join("")}</div>`:""}
+        </div>
   </section>`;
- if(pendingItems.length)html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">AHORA</span><h2>Pendiente</h2></div><span class="home-count">${pendingItems.length}</span></div><div class="home-pending-list">${pendingItems.map(homePendingItemHTML).join('')}</div></section>`;
  html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">DE UN VISTAZO</span><h2>Tu MAREVO</h2></div></div>
    <div class="home-destination-grid">
     <button type="button" class="home-destination home-food-card" onclick="showView('Food')">
@@ -908,7 +911,7 @@ function updateRestTimerPanel(){
  const remaining=t.paused?(t.pausedRemaining||0):Math.max(0,Math.ceil((t.endAt-Date.now())/1000));
  if(!t.paused&&remaining<=0&&!t.done){
   t.done=true;
-  if(state.settings.notifications?.rest&&!t.notificationSent){t.notificationSent=true;showAppNotification("Descanso terminado",`${t.exercise||"Siguiente serie"} lista.`,"training-lab-rest")}
+  if(state.settings.notifications?.rest&&!t.notificationSent){t.notificationSent=true;showAppNotification("Descanso terminado",`${t.exercise||"Siguiente serie"} lista.`,"training-lab-rest",{reminderId:`rest:${t.endAt}`})}
   saveState(true);try{if(navigator.vibrate)navigator.vibrate([120,80,120])}catch(e){}
  }
  const status=t.done?'Descanso terminado':t.paused?'Descanso en pausa':'Descanso';
@@ -923,7 +926,7 @@ function startRuntimeTicker(){
 function syncRuntimeTimers(){
  if(state.restTimer&&!state.restTimer.paused&&!state.restTimer.done&&state.restTimer.endAt<=Date.now()){
   state.restTimer.done=true;
-  if(state.settings.notifications?.rest&&!state.restTimer.notificationSent){state.restTimer.notificationSent=true;showAppNotification("Descanso terminado",`${state.restTimer.exercise||"Siguiente serie"} lista.`,"training-lab-rest")}
+  if(state.settings.notifications?.rest&&!state.restTimer.notificationSent){state.restTimer.notificationSent=true;showAppNotification("Descanso terminado",`${state.restTimer.exercise||"Siguiente serie"} lista.`,"training-lab-rest",{reminderId:`rest:${state.restTimer.endAt}`})}
  }
  const r=state.cardioRuntime;
  if(r&&!r.paused&&!r.completed&&r.phaseEndAt&&r.phaseEndAt<=Date.now()){

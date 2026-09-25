@@ -4,7 +4,7 @@
   const BACKEND=(window.MAREVO_PUSH_BACKEND||localStorage.getItem('marevo_push_backend')||'').replace(/\/$/,'');
   const SCHEDULE_STORAGE_KEY='marevo_push_schedule_v1';
   const STATUS_STORAGE_KEY='marevo_push_status_v1';
-  const HORIZON_DAYS=8;
+  const HORIZON_DAYS=7;
   const SYNC_DEBOUNCE_MS=900;
   let syncTimer=null;
   let syncInFlight=false;
@@ -36,21 +36,22 @@
       const stableTag=canonicalNotificationTag(tag);
       try{
         const reg=await navigator.serviceWorker.ready;
-        if(reg.getNotifications){
-          const existing=await reg.getNotifications({tag:stableTag});
-          existing.forEach(notification=>notification.close());
+        if(reg.active){
+          reg.active.postMessage({
+            type:'DISPLAY_REMINDER',title,body,tag:stableTag,
+            reminderId:data.reminderId||null,url:data.url||'./'
+          });
+          return true;
         }
-        await reg.showNotification(title,{body,tag:stableTag,renotify:false,data:{url:'./',...data}});
-        return true;
-      }catch(error){
-        return fallbackShow(title,body,stableTag,data);
-      }
+      }catch(error){}
+      return fallbackShow(title,body,stableTag,data);
     };
   }
 
   function backendReady(){
     return !!BACKEND&&/^https:\/\//i.test(BACKEND);
   }
+  window.marevoRemotePushManaged=backendReady();
 
   function setPushStatus(next){
     try{
@@ -157,15 +158,27 @@
     const start=typeof todayISO==='function'?todayISO():addDays(new Date().toISOString().slice(0,10),0);
     for(let offset=0;offset<HORIZON_DAYS;offset+=1){
       const date=addDays(start,offset);
-      let plan=null;
-      try{plan=planFor(date);}catch(error){plan=null;}
-
-      if(notifications.workout&&plan&&plan.type!=='rest'){
-        let done=false;
-        try{done=sessionDone(date,plan);}catch(error){done=false;}
-        const at=localDateAt(date,notifications.workoutTime||'18:00');
-        if(!done&&at>now+1000){
-          reminders.push(reminder(`workout:${date}`,'workout',at,'Entrenamiento pendiente',`${plan.title}${plan.subtitle?` · ${plan.subtitle}`:''}`));
+      const pending=typeof dayActivities==='function'?dayActivities(date).filter(item=>!item.done):[];
+      if(notifications.workout){
+        const strength=pending.some(item=>item.kind!=='Natación');
+        const swim=pending.some(item=>item.kind==='Natación');
+        const workoutAt=localDateAt(date,notifications.workoutTime||'18:00');
+        if(strength&&workoutAt>now+1000)reminders.push(reminder(`workout:${date}`,'workout',workoutAt,'Falta entreno','Tienes una sesión por hacer o registrar.'));
+        const swimAt=localDateAt(date,'23:30');
+        if(swim&&swimAt>now+1000)reminders.push(reminder(`swim:${date}`,'swim',swimAt,'Registro de natación pendiente','¿Ya nadaste? Registra la sesión.'));
+      }
+      if(notifications.meals){
+        const meals=[
+          {meal:'Desayuno',time:'09:30',type:'breakfast',title:'¿Ya desayunaste?',body:'Registra el desayuno si ya lo hiciste.'},
+          {meal:'Merienda',time:'18:30',type:'snack',title:'¿Ya merendaste?',body:'Registra la merienda si ya la hiciste.'},
+          {meal:'Cena',time:pending.some(item=>item.kind==='Natación')?'20:00':'21:30',type:'dinner',title:'¿Ya cenaste?',body:'Registra la cena si ya la hiciste.'}
+        ];
+        for(const meal of meals){
+          const at=localDateAt(date,meal.time);
+          if(at<=now+1000)continue;
+          if(typeof homeMealRegistered==='function'&&homeMealRegistered(date,meal.meal))continue;
+          if(typeof homeMealSkipped==='function'&&homeMealSkipped(date,meal.meal))continue;
+          reminders.push(reminder(`meal:${meal.meal}:${date}`,meal.type,at,meal.title,meal.body));
         }
       }
 
@@ -246,10 +259,13 @@
     try{
       await postRemoteSchedule(reminders);
       lastReminderFingerprint=fingerprint;
+      window.marevoRemotePushManaged=true;
       return true;
     }catch(error){
       console.warn('[MAREVO push] Remote sync failed:',error);
       setPushStatus({lastError:String(error?.message||error),lastErrorAt:Date.now()});
+      window.marevoRemotePushManaged=false;
+      if(typeof checkDueNotifications==='function')checkDueNotifications();
       return false;
     }finally{
       syncInFlight=false;

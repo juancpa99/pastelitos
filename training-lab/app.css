@@ -671,6 +671,10 @@ body[data-view="Home"] .today-btn{
 .home-cta-copy>strong{display:block;margin-top:3px;font-size:18px;line-height:1.2}
 .home-cta-copy>span{display:block;margin-top:4px;color:#9eb2c2;font-size:11px}
 .home-cta-arrow,.home-chevron{font-size:27px;line-height:1;color:#8fa7b8}
+.home-command-pending{margin-top:14px;padding-top:3px;border-top:1px solid rgba(109,145,167,.22)}
+.home-command-pending .home-pending-item{padding:12px 3px;border-bottom:1px solid rgba(109,145,167,.18);border-radius:0}
+.home-command-pending .home-pending-item:last-child{border-bottom:0}
+.home-command-pending .home-pending-item:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:8px}
 .home-week-strip{
   display:grid;grid-template-columns:repeat(3,1fr);
   margin-top:15px;padding-top:14px;border-top:1px solid rgba(109,145,167,.22)
