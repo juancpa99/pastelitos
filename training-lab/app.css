@@ -1088,3 +1088,25 @@ body[data-view="Home"] .today-btn{
  .restaurant-preset{grid-template-columns:1fr}
  .restaurant-preset b{white-space:normal}
 }
+
+
+/* v6.68 - food hierarchy */
+.food-primary-actions{display:none}
+.food-diary-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:18px 0 0;
+  padding:14px 0 12px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.food-diary-head>div{min-width:0}
+.food-diary-head .eyebrow{margin-bottom:3px}
+.food-diary-head strong{display:block;font-size:16px}
+.food-diary-head>.btn{flex:0 0 auto}
+@media(max-width:380px){
+ .food-diary-head{align-items:stretch;flex-direction:column}
+ .food-diary-head>.btn{width:100%}
+}
