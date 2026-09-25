@@ -1398,7 +1398,7 @@ function foodOptions(meal){
  }).join("")
 }
 function recentFoodForMeal(meal){
- const allowed=new Set([...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).map(f=>f.key)]),seen=new Set(),out=[];
+ const allowed=new Set([...(MEAL_FOOD_KEYS[meal]||Object.keys(FOOD_DB)),...(state.customFoods||[]).filter(f=>!f.transient).map(f=>f.key)]),seen=new Set(),out=[];
  [...state.foods].sort((a,b)=>b.created-a.created).forEach(i=>{
   if(out.length>=6||!allowed.has(i.foodKey)||seen.has(i.foodKey))return;
   seen.add(i.foodKey);out.push(i)
