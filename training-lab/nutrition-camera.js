@@ -207,34 +207,6 @@
   window.scanNutritionLabel=function(meal){choosePhoto('label',meal||'Desayuno')};
   window.scanOneOffMeal=function(meal){choosePhoto('meal',meal||'Merienda')};
 
-  const originalFoodModal=window.openFoodModal;
-  if(typeof originalFoodModal==='function')window.openFoodModal=function(meal){
-    originalFoodModal(meal);
-    const actions=document.querySelector('.food-modal-actions');
-    if(actions&&!actions.querySelector('.nutrition-scan-label-btn')){
-      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear producto';button.onclick=()=>scanNutritionLabel(val('fdMeal')||meal);
-      actions.insertBefore(button,actions.children[1]||null)
-    }
-  };
-  const originalMealChooser=window.openMealChooser;
-  if(typeof originalMealChooser==='function')window.openMealChooser=function(){
-    originalMealChooser();
-    const list=document.querySelector('.meal-choice-list');
-    if(list&&!document.querySelector('.meal-photo-choice')){
-      const button=document.createElement('button');button.type='button';button.className='meal-choice meal-photo-choice';button.onclick=()=>scanOneOffMeal('Merienda');
-      button.innerHTML='<strong>Foto de comida</strong><small>Registro puntual</small><span>›</span>';list.prepend(button)
-    }
-  };
-  const originalCustom=window.openCustomFoodModal;
-  if(typeof originalCustom==='function')window.openCustomFoodModal=function(meal){
-    originalCustom(meal);
-    const actions=document.querySelector('#modalRoot .actions');
-    if(actions&&!actions.querySelector('.nutrition-scan-label-btn')){
-      const button=document.createElement('button');button.type='button';button.className='btn secondary nutrition-scan-label-btn';button.textContent='Escanear producto';button.onclick=()=>scanNutritionLabel(meal);
-      actions.prepend(button)
-    }
-  };
-
   const originalDashboard=window.nutritionDashboardHTML;
   if(typeof originalDashboard==='function')window.nutritionDashboardHTML=function(nut){
     const base=originalDashboard(nut),items=Math.max(0,+nut.qualityItems||0);
