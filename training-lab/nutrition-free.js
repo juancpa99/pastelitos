@@ -256,7 +256,8 @@
     if(!response.ok)throw new Error('lookup_failed');
     return await response.json()
   }
-  function reviewLabelData(data,meal){
+  function reviewLabelData(data,meal,mode){
+    if(mode==='punctual'){openPunctualProductReview(data,meal);return}
     if(typeof window.marevoOpenLabelReview!=='function')throw new Error('review_missing');
     window.marevoOpenLabelReview(data,meal);
     const select=document.getElementById('scanPlanFood');
@@ -271,7 +272,7 @@
       '<div class="actions"><button type="button" class="btn" onclick="captureNutritionLabelOCR(\''+esc(meal)+'\')">Foto de etiqueta</button>'+
       '<button type="button" class="btn secondary" onclick="openNutritionScanMenu(\''+esc(meal)+'\')">Volver</button></div></div></div>'
   }
-  async function lookupBarcode(code,meal){
+  async function lookupBarcode(code,meal,mode){
     const clean=cleanBarcode(code);
     if(!clean){toast('Código no válido');return}
     loading('Buscando producto','Open Food Facts');
@@ -282,7 +283,7 @@
       if([data.protein,data.carbs,data.fat].filter(function(v){return v!=null}).length<2){
         data.warnings.push('La ficha está incompleta. Puedes completar los valores o fotografiar la etiqueta.')
       }
-      reviewLabelData(data,meal)
+      reviewLabelData(data,meal,mode)
     }catch(error){
       document.getElementById('modalRoot').innerHTML=
         '<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Producto</div><div class="hero-title">No se pudo consultar</div></div>'+
@@ -305,7 +306,7 @@
       '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\')">Buscar</button></div></div>'+
       '</div></div>'
   };
-  window.lookupManualBarcode=function(meal){lookupBarcode(val('manualBarcode'),meal)};
+  window.lookupManualBarcode=function(meal,mode){lookupBarcode(val('manualBarcode'),meal,mode||'common')};
   window.captureProductBarcode=function(meal){
     chooseCamera(async function(file){
       loading('Leyendo código','Enfoca el código de barras');
@@ -319,7 +320,7 @@
             '<button type="button" class="btn secondary" onclick="openNutritionScanMenu(\''+esc(meal)+'\')">Introducir código</button></div></div></div>';
           return
         }
-        await lookupBarcode(code,meal)
+        await lookupBarcode(code,meal,'common')
       }catch(error){
         toast('No se pudo leer el código');
         window.openNutritionScanMenu(meal)
@@ -400,7 +401,7 @@
   }
   window.marevoParseNutritionLabelText=parseNutritionLabelText;
 
-  async function runLocalOCR(file,meal){
+  async function runLocalOCR(file,meal,mode){
     loading('Leyendo etiqueta','La primera vez puede tardar unos segundos');
     let worker=null;
     try{
@@ -414,7 +415,7 @@
       }});
       const result=await worker.recognize(blob);
       const data=parseNutritionLabelText(result&&result.data&&result.data.text);
-      reviewLabelData(data,meal)
+      reviewLabelData(data,meal,mode)
     }catch(error){
       const data={
         kind:'label',name:'',brand:'',category:'Extra',referenceBasis:'100g',
@@ -424,13 +425,13 @@
         fiber:null,salt:null,sodiumMg:null,addedSugarStatus:'not_stated',transFatStatus:'not_stated',
         warnings:['No se pudo leer automáticamente. Introduce los valores visibles en la etiqueta.']
       };
-      reviewLabelData(data,meal)
+      reviewLabelData(data,meal,mode)
     }finally{
       if(worker)try{await worker.terminate()}catch(error){}
     }
   }
-  window.captureNutritionLabelOCR=function(meal){
-    chooseCamera(function(file){runLocalOCR(file,meal||'Desayuno')})
+  window.captureNutritionLabelOCR=function(meal,mode){
+    chooseCamera(function(file){runLocalOCR(file,meal||'Desayuno',mode||'common')})
   };
 
   function clearPendingMealPhotoUrl(){
@@ -526,5 +527,167 @@
   };
 
   window.scanNutritionLabel=function(meal){window.openNutritionScanMenu(meal||'Desayuno')};
+
+
+  const RESTAURANT_PRESETS=[
+    {id:'burger',name:'Hamburguesa completa',kcal:850,p:40,c:70,f:45,note:'Hamburguesa con pan, queso y salsa'},
+    {id:'burger_fries',name:'Hamburguesa + patatas',kcal:1200,p:45,c:125,f:55,note:'Ración estándar de restaurante'},
+    {id:'pizza',name:'Pizza individual',kcal:1000,p:40,c:120,f:40,note:'Pizza mediana de masa estándar'},
+    {id:'kebab',name:'Kebab / dürüm',kcal:850,p:35,c:80,f:40,note:'Con salsa y verduras'},
+    {id:'burrito',name:'Burrito grande',kcal:900,p:40,c:110,f:32,note:'Arroz, proteína, legumbre y salsa'},
+    {id:'sushi',name:'Sushi · 12 piezas',kcal:650,p:30,c:95,f:18,note:'Combinación variada'},
+    {id:'carbonara',name:'Pasta carbonara',kcal:950,p:30,c:100,f:45,note:'Plato principal de restaurante'},
+    {id:'paella',name:'Paella · plato',kcal:700,p:30,c:90,f:22,note:'Ración abundante'},
+    {id:'sandwich',name:'Bocadillo / sándwich completo',kcal:700,p:35,c:80,f:25,note:'Pan, proteína, queso o salsa'}
+  ];
+
+  function blankLabelData(){
+    return {
+      kind:'label',name:'',brand:'',category:'Extra',referenceBasis:'100g',
+      unitName:'',unitWeight:null,unitWeightUnit:'g',
+      energyKcal:null,protein:null,carbs:null,fat:null,saturatedFat:null,transFat:null,
+      monounsaturatedFat:null,polyunsaturatedFat:null,sugars:null,addedSugars:null,
+      fiber:null,salt:null,sodiumMg:null,addedSugarStatus:'not_stated',transFatStatus:'not_stated',
+      warnings:[]
+    }
+  }
+  function mealSelect(selected,id){
+    return '<select id="'+id+'">'+MEAL_TYPES.map(function(meal){
+      return '<option '+(meal===selected?'selected':'')+'>'+esc(meal)+'</option>'
+    }).join('')+'</select>'
+  }
+  function commonRegistrationMenu(meal){
+    const selected=MEAL_TYPES.includes(meal)?meal:'Desayuno';
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
+      '<div class="row between"><div><div class="eyebrow">Uso común</div><div class="hero-title">Registrar alimento</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="openFoodRegistrationHub()">Volver</button></div>'+
+      '<div class="nutrition-scan-choice-list">'+
+      '<button type="button" class="meal-choice" onclick="captureProductBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Buscar producto</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'common\')"><strong>Leer etiqueta</strong><small>Extraer valores nutricionales</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="openManualCommonFood(\''+esc(selected)+'\')"><strong>Añadir manualmente</strong><small>Introducir valores de la etiqueta</small><span>›</span></button>'+
+      '</div>'+
+      '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\',\'common\')">Buscar</button></div></div>'+
+      '</div></div>'
+  }
+  window.openManualCommonFood=function(meal){reviewLabelData(blankLabelData(),meal||'Desayuno','common')};
+
+  window.openFoodRegistrationHub=function(){
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
+      '<div class="row between"><div><div class="eyebrow">Comidas</div><div class="hero-title">Registrar comida</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>'+
+      '<div class="nutrition-scan-choice-list">'+
+      '<button type="button" class="meal-choice" onclick="openPunctualRegistration()"><strong>Comida puntual</strong><small>Solo se registra hoy</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="openCommonFoodRegistration()"><strong>Alimento de uso común</strong><small>Guardar y reutilizar</small><span>›</span></button>'+
+      '</div></div></div>'
+  };
+  window.openCommonFoodRegistration=function(meal){commonRegistrationMenu(meal||'Desayuno')};
+
+  window.openPunctualRegistration=function(meal){
+    const selected=MEAL_TYPES.includes(meal)?meal:'Merienda';
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
+      '<div class="row between"><div><div class="eyebrow">Solo hoy</div><div class="hero-title">Comida puntual</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="openFoodRegistrationHub()">Volver</button></div>'+
+      '<div class="nutrition-scan-choice-list">'+
+      '<button type="button" class="meal-choice" onclick="capturePunctualBarcode(\''+esc(selected)+'\')"><strong>Leer código de barras</strong><small>Producto envasado</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="captureNutritionLabelOCR(\''+esc(selected)+'\',\'punctual\')"><strong>Leer etiqueta</strong><small>Producto envasado</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice" onclick="openManualPunctualFood(\''+esc(selected)+'\')"><strong>Añadir manualmente</strong><small>Macros o kcal conocidos</small><span>›</span></button>'+
+      '<button type="button" class="meal-choice restaurant-choice" onclick="openRestaurantFood()"><strong>Comida de restaurante</strong><small>Estimación aproximada</small><span>›</span></button>'+
+      '</div>'+
+      '<div class="field" style="margin-top:12px"><label>Código manual</label><div class="nutrition-barcode-manual"><input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="EAN / UPC"><button type="button" class="btn secondary" onclick="lookupManualBarcode(\''+esc(selected)+'\',\'punctual\')">Buscar</button></div></div>'+
+      '</div></div>'
+  };
+
+  window.capturePunctualBarcode=function(meal){
+    chooseCamera(async function(file){
+      loading('Leyendo código','Enfoca el código de barras');
+      try{
+        const code=await decodeBarcode(file);
+        if(!code){toast('No se pudo leer el código');window.openPunctualRegistration(meal);return}
+        await lookupBarcode(code,meal,'punctual')
+      }catch(error){toast('No se pudo leer el código');window.openPunctualRegistration(meal)}
+    })
+  };
+
+  function punctualQualityInputs(data){
+    return '<details class="nutrition-oneoff-details"><summary>Más datos nutricionales</summary>'+
+      '<div class="nutrition-scan-grid" style="margin-top:10px">'+
+      '<label><span>Saturadas</span><span class="nutrition-scan-input"><input id="punSat" inputmode="decimal" value="'+(data.saturatedFat??'')+'"><b>g</b></span></label>'+
+      '<label><span>Trans</span><span class="nutrition-scan-input"><input id="punTrans" inputmode="decimal" value="'+(data.transFat??'')+'"><b>g</b></span></label>'+
+      '<label><span>Azúcares añadidos</span><span class="nutrition-scan-input"><input id="punAdded" inputmode="decimal" value="'+(data.addedSugars??'')+'"><b>g</b></span></label>'+
+      '<label><span>Fibra</span><span class="nutrition-scan-input"><input id="punFiber" inputmode="decimal" value="'+(data.fiber??'')+'"><b>g</b></span></label>'+
+      '<label><span>Sal</span><span class="nutrition-scan-input"><input id="punSalt" inputmode="decimal" value="'+(data.salt??'')+'"><b>g</b></span></label>'+
+      '</div></details>'
+  }
+  function openPunctualProductReview(data,meal){
+    const selected=MEAL_TYPES.includes(meal)?meal:'Merienda';
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet nutrition-scan-sheet">'+
+      '<div class="row between"><div><div class="eyebrow">Comida puntual</div><div class="hero-title">Confirmar registro</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="openPunctualRegistration(\''+esc(selected)+'\')">Volver</button></div>'+
+      '<div class="formgrid nutrition-scan-main">'+
+      '<div class="field wide"><label>Nombre</label><input id="punName" value="'+esc(data.name||'')+'"></div>'+
+      '<div class="field wide"><label>Comida</label>'+mealSelect(selected,'punMeal')+'</div>'+
+      '<div class="field"><label>Valores por</label><select id="punBasis"><option value="100g" '+(data.referenceBasis==='100g'?'selected':'')+'>100 g</option><option value="100ml" '+(data.referenceBasis==='100ml'?'selected':'')+'>100 ml</option><option value="serving" '+(data.referenceBasis==='serving'?'selected':'')+'>Ración / unidad</option></select></div>'+
+      '<div class="field"><label>Cantidad consumida</label><input id="punAmount" inputmode="decimal" value="'+(data.referenceBasis==='serving'?'1':'100')+'"></div>'+
+      '</div>'+
+      '<div class="eyebrow nutrition-scan-section">Macros</div>'+
+      '<div class="nutrition-scan-grid">'+
+      '<label><span>Proteína</span><span class="nutrition-scan-input"><input id="punProtein" inputmode="decimal" value="'+(data.protein??'')+'"><b>g</b></span></label>'+
+      '<label><span>Carbohidratos</span><span class="nutrition-scan-input"><input id="punCarbs" inputmode="decimal" value="'+(data.carbs??'')+'"><b>g</b></span></label>'+
+      '<label><span>Grasas</span><span class="nutrition-scan-input"><input id="punFat" inputmode="decimal" value="'+(data.fat??'')+'"><b>g</b></span></label>'+
+      '<label><span>Energía</span><span class="nutrition-scan-input"><input id="punKcal" inputmode="decimal" value="'+(data.energyKcal??'')+'"><b>kcal</b></span></label>'+
+      '</div>'+punctualQualityInputs(data)+
+      '<div class="actions"><button type="button" class="btn" onclick="savePunctualProduct()">Registrar hoy</button></div>'+
+      '</div></div>'
+  }
+  window.openManualPunctualFood=function(meal){openPunctualProductReview(blankLabelData(),meal||'Merienda')};
+
+  window.savePunctualProduct=function(){
+    const name=val('punName').trim()||'Comida puntual',basis=val('punBasis'),amount=decimal(val('punAmount'));
+    const p=decimal(val('punProtein')),carbs=decimal(val('punCarbs')),fat=decimal(val('punFat'));
+    let kcal=decimal(val('punKcal'));
+    if(amount==null||amount<=0){toast('Introduce la cantidad consumida');return}
+    if(kcal==null&&[p,carbs,fat].every(function(v){return v!=null}))kcal=derivedEnergy(p,carbs,fat);
+    if(kcal==null){toast('Introduce las kcal o los macros');return}
+    const factor=basis==='serving'?amount:amount/100;
+    const safe=function(v){return v==null?null:v*factor};
+    const key='adhoc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+    const id='food_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+    const perUnit=true;
+    state.customFoods.push({
+      key:key,name:name,cat:'Extra',unit:'ud',ref:'registro puntual',perUnit:perUnit,custom:true,transient:true,source:'punctual',
+      kcal:kcal*factor,p:safe(p)||0,c:safe(carbs)||0,f:safe(fat)||0,
+      sat:safe(decimal(val('punSat'))),trans:safe(decimal(val('punTrans'))),
+      addedSugars:safe(decimal(val('punAdded'))),fiber:safe(decimal(val('punFiber'))),salt:safe(decimal(val('punSalt')))
+    });
+    state.foods.push({id:id,created:Date.now(),date:currentDate(),meal:MEAL_TYPES.includes(val('punMeal'))?val('punMeal'):'Merienda',foodKey:key,amount:1,displayAmount:1,displayUnit:'ración'});
+    saveState();closeModal();renderAll();showView('Food');toast('Comida registrada')
+  };
+
+  window.openRestaurantFood=function(){
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">'+
+      '<div class="row between"><div><div class="eyebrow">Estimación</div><div class="hero-title">Comida de restaurante</div></div>'+
+      '<button type="button" class="btn ghost small" onclick="openPunctualRegistration()">Volver</button></div>'+
+      '<div class="restaurant-estimate-note">Valores orientativos. El tamaño, aceite, salsas y receta pueden cambiar mucho el resultado.</div>'+
+      '<div class="restaurant-preset-list">'+RESTAURANT_PRESETS.map(function(row){
+        return '<button type="button" class="restaurant-preset" onclick="chooseRestaurantFood(\''+row.id+'\')"><span><strong>'+esc(row.name)+'</strong><small>'+esc(row.note)+'</small></span><b>≈ '+row.kcal+' kcal</b></button>'
+      }).join('')+'</div>'+
+      '<div class="actions"><button type="button" class="btn secondary" onclick="openManualPunctualFood(\'Merienda\')">Otro / manual</button></div>'+
+      '</div></div>'
+  };
+  window.chooseRestaurantFood=function(id){
+    const row=RESTAURANT_PRESETS.find(function(item){return item.id===id});if(!row)return;
+    openPunctualProductReview({
+      name:row.name,referenceBasis:'serving',energyKcal:row.kcal,protein:row.p,carbs:row.c,fat:row.f,
+      saturatedFat:null,transFat:null,addedSugars:null,fiber:null,salt:null
+    },'Merienda')
+  };
+
+  // Legacy name now opens the explicit registration flow instead of photographing a meal.
+  window.scanOneOffMeal=function(meal){window.openPunctualRegistration(meal||'Merienda')};
 
 })();
