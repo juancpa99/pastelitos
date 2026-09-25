@@ -266,12 +266,42 @@
       })
     })
   }
+  function applyTargetDifference(targets,difference,recipients){
+    if(!recipients.length)return;
+    ['kcal','protein'].forEach(key=>{
+      const delta=Number(difference[key])||0;if(Math.abs(delta)<.01)return;
+      const weight=recipients.reduce((sum,meal)=>sum+Math.max(0,targets[meal][key]),0);
+      if(delta>0){
+        recipients.forEach(meal=>{
+          const share=weight>0?Math.max(0,targets[meal][key])/weight:1/recipients.length;
+          targets[meal][key]+=delta*share
+        })
+      }else{
+        const remove=Math.min(-delta,weight);
+        recipients.forEach(meal=>{
+          const share=weight>0?Math.max(0,targets[meal][key])/weight:0;
+          targets[meal][key]=Math.max(0,targets[meal][key]-remove*share)
+        })
+      }
+    })
+  }
   function mealTargetMap(date){
     const target=targetFor(date);
     const targets={};
     MEALS.forEach(meal=>{
       const share=BASE_SHARES[meal]||{kcal:0,protein:0};
       targets[meal]={kcal:(target.kcal||0)*share.kcal,protein:(target.protein||0)*share.protein}
+    });
+    TUPPER_MEALS.forEach(meal=>{
+      if(isMealSkipped(date,meal))return;
+      const option=selectedOption(date,meal);if(!option)return;
+      const actual=standardTupperPlan(option).nutrition;
+      const planned={...targets[meal]};
+      targets[meal]={kcal:actual.kcal,protein:actual.p};
+      const recipients=['Desayuno','Media mañana','Merienda','Post-entreno'].filter(next=>
+        !isMealSkipped(date,next)&&!slotLogged(date,next)&&optionalMealActive(date,next)
+      );
+      applyTargetDifference(targets,{kcal:planned.kcal-actual.kcal,protein:planned.protein-actual.p},recipients)
     });
     if(optionalMealActive(date,'Media mañana')&&!isMealSkipped(date,'Media mañana')){
       const desired={kcal:(target.kcal||0)*MEDIA_MORNING_SHARE.kcal,protein:(target.protein||0)*MEDIA_MORNING_SHARE.protein};
