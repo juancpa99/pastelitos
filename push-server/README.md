@@ -18,7 +18,7 @@ Create these environment variables in Vercel:
 - `MAREVO_ALLOWED_ORIGIN=https://juancpa99.github.io`
 - `QSTASH_URL=https://qstash.upstash.io` (optional; this is already the default)
 - `OPENAI_API_KEY` (required for nutrition label / meal-photo analysis)
-- `OPENAI_NUTRITION_MODEL=gpt-6-astra` (optional override)
+- `OPENAI_NUTRITION_MODEL=gpt-5.6-sol` (optional override)
 
 Generate the VAPID pair once with:
 
