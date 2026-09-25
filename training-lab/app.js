@@ -1964,7 +1964,7 @@ function nutritionPeriodSummary(ref,period){
 }
 function nutritionProgressHTML(ref,period){
  const n=nutritionPeriodSummary(ref,period),hasGoals=Object.values(state.settings.nutritionGoals||{}).some(v=>+v>0);
- if(!n.days)return `<div class="card"><div class="empty">Aún no hay comidas registradas en este periodo.</div><div class="actions"><button type="button" class="btn secondary" onclick="showView('Food')">Registrar comida</button></div></div>`;
+ if(!n.days)return `<div class="card"><div class="empty">Aún no hay comidas registradas en este periodo.</div><div class="actions"><button type="button" class="btn secondary" onclick="showView('Food')">Ir a Comidas</button></div></div>`;
  return `<div class="card"><div class="row between settings-status-row"><div><strong>Media de los días registrados</strong><small>${n.days} ${n.days===1?"día con registro":"días con registro"}${hasGoals?` · ${n.adherent} dentro del rango configurado`:""}</small></div><button type="button" class="btn ghost small" onclick="goToNutritionSettings()">Objetivos</button></div>${nutritionDashboardHTML(n.avg)}<div class="nutrition-note">La media usa solo días con al menos un alimento. Un día parcial puede infravalorar la ingesta real.</div></div>`
 }
 function strengthProgressHTML(ref,period){
