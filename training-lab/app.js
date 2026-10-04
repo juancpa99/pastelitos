@@ -2189,7 +2189,7 @@ function renderProgress(){
  html+=disclosureHTML('progress-history','Carga e historial',`<p>${(periodMinutes(sessions)/60).toFixed(1)} h · ${strengthSeriesCount(sessions)} series · RPE ${rpe==null?'—':rpe.toFixed(1)}</p>${kcal?`<p class="subtitle">${Math.round(kcal)} kcal activas registradas manualmente</p>`:''}<div class="history-list">${historyHTML(ref,period)}</div>`,false,'Revisar entrenamientos guardados');
  let reports='';
  if(typeof sep26ReportHTML==='function')reports+=sep26ReportHTML();
- if(typeof oct26ReportHTML==='function'&&todayISO()>='2026-09-21')reports+=oct26ReportHTML();
+ if(typeof oct26ReportHTML==='function'&&todayISO()>='2026-10-05')reports+=oct26ReportHTML();
  html+=disclosureHTML('progress-reports','Informes y exportación',reports,false,'Descargar los informes de tus bloques');
  root.innerHTML=html;
  if(state.settings.photosExpanded)setTimeout(renderPhotoGallery,0);
