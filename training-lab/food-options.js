@@ -170,8 +170,9 @@
   window.MAREVO_DISH_TEMPLATES={
     Desayuno:[
       {name:'Avena, leche y plátano',items:[['oats',60],['milk',250],['banana',1]]},
+      {name:'3 huevos + 1 rebanada de pan integral',items:[['egg',3],['whole_bread',1]]},
+      {name:'6 lonchas de jamón York 90% + 1 rebanada de pan integral',items:[['ham_york_90',90],['whole_bread',1]]},
       {name:'Yogur, avena y frutos rojos',items:[['greek_yogurt_0',250],['oats',50],['strawberries',150]]},
-      {name:'Huevos, pan y fruta',items:[['egg',2],['bread',2],['banana',1]]},
       {name:'Pan, pavo y queso fresco',items:[['whole_bread',2],['ham_york_90',60],['fresh_cheese',75]]}
     ],
     'Media mañana':[
