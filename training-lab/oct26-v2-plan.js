@@ -125,7 +125,7 @@ OCT26_DEFAULT_ORDER.splice(0,OCT26_DEFAULT_ORDER.length,"oct26_legs_a","oct26_pu
 OCT26_SLOT_DEFS[0].note="Natación 22–23 h · preferencia por pierna";
 OCT26_SLOT_DEFS[1].note="Push o Pull · primera sesión del doble";
 OCT26_SLOT_DEFS[2].note="Pull o Push · segunda sesión; separar varias horas";
-OCT26_SLOT_DEFS[3].note="Upper a RIR 2 · natación al día siguiente";
+OCT26_SLOT_DEFS[3].note="Upper conservador · natación al día siguiente";
 OCT26_SLOT_DEFS[4].note="Natación 22–23 h · preferencia por pierna";
 
 oct26WeekFocus=function(date=currentDate()){
@@ -169,13 +169,14 @@ oct26RulesHTML=function(date=currentDate()){
   const shoulder=oct26V2ShoulderWeekStatus(date),warn=shoulder.max!=null&&shoulder.max>3;
   return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 5 oct–29 nov</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
     (warn?'<div class="callout warn" style="margin-top:8px"><strong>Hombro >3/10 esta semana.</strong> No progreses presses/overhead a ciegas; aplica la regla de dolor del plan.</div>':'')+
+    '<details style="margin-top:10px"><summary>Etapas del bloque · 8 semanas</summary><div class="subtitle" style="margin-top:8px"><strong>5–11 oct · Reentrada:</strong> volumen −30–40%, técnica y tolerancia.<br><br><strong>12–18 oct · Base:</strong> reconstrucción del volumen y cargas reproducibles.<br><br><strong>19 oct–1 nov · Acumulación:</strong> dos semanas a volumen completo sumando repeticiones.<br><br><strong>2–8 nov · Sobrecarga:</strong> progresión de reps/carga con RIR menor.<br><br><strong>9–15 nov · Intensificación:</strong> más proximidad al fallo donde sea seguro.<br><br><strong>16–22 nov · Pico:</strong> PR limpios de reps o carga, sin grindear.<br><br><strong>23–29 nov · Descarga y evaluación:</strong> menos series y comparación del bloque.</div></details>'+
     '<details style="margin-top:10px"><summary>Reglas de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper se mantiene deliberadamente conservador durante todo el bloque por la natación del día siguiente.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
 };
 
 const oct26V2OldPoolHTML=oct26WeeklyPoolHTML;
 oct26WeeklyPoolHTML=function(date=currentDate()){
   return oct26V2OldPoolHTML(date)
-    .replace("Recomendación inicial: Push lunes; Pull + Pierna A el martes; miércoles solo natación; Upper jueves; Pierna B viernes.","Distribución recomendada: Pierna A lunes; Push + Pull el martes (orden intercambiable); miércoles solo natación; Upper jueves a RIR 2; Pierna B viernes.")
+    .replace("Recomendación inicial: Push lunes; Pull + Pierna A el martes; miércoles solo natación; Upper jueves; Pierna B viernes.","Distribución recomendada: Pierna A lunes; Push + Pull el martes (orden intercambiable); miércoles solo natación; Upper jueves conservador; Pierna B viernes.")
     .replace("Dobles sesiones:</strong> el martes puedes decidir cuál haces primero.","Dobles sesiones:</strong> el martes puedes decidir si haces Push o Pull primero.");
 };
 
@@ -234,7 +235,7 @@ buildOct26Report=function(){
   r.reportType="pplul-v2-2026-10-05-to-2026-11-29";
   r.program.version="v2";
   r.program.reviewNotes={
-    recommendedOrder:["Pierna A + natación","Push + Pull","Natación","Upper a RIR 2","Pierna B + natación"],
+    recommendedOrder:["Pierna A + natación","Push + Pull","Natación","Upper conservador","Pierna B + natación"],
     shoulderRule:"Pain <=3/10 during gym/swim, return to usual baseline by next morning, and no week-to-week upward trend. If not met, reduce press/overhead volume while maintaining preventive work.",
     supersets:"Only planned cable pairs when both stations are immediately available; bench exercises remain separate."
   };
