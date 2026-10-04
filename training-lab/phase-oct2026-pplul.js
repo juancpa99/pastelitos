@@ -124,9 +124,12 @@ if(typeof sep26TrackingApplies==="function"){
  sep26TrackingApplies=function(date=currentDate()){return oct26InRange(date)||previousTrackingApplies(date)};
 }
 
-if(todayISO()>=OCT26_PHASE.start&&todayISO()<=OCT26_PHASE.end&&!state.settings.oct26PplulActivated){
+if(todayISO()>=OCT26_PHASE.start&&todayISO()<=OCT26_PHASE.end&&!state.settings.octNov26RestartActivated){
  state.settings.mode="season";
- state.settings.oct26PplulActivated=true;
+ state.settings.octNov26RestartActivated=true;
+ if(state.oct26WeekOrders&&typeof state.oct26WeekOrders==="object"){
+  Object.keys(state.oct26WeekOrders).forEach(week=>{if(week>=OCT26_PHASE.start)delete state.oct26WeekOrders[week]});
+ }
  saveState(true);
 }
 
