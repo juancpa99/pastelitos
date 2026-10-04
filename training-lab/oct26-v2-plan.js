@@ -8,11 +8,11 @@ function V2POWER(key,name,dose,note){
   return {key:key,name:name,type:"mobility",group:"Potencia",dose:dose,note:note,v2Power:true};
 }
 const V2_RIR={
-  compound:["2","1–2","1–2","1–2","1","2"],
-  isolation:["1–2","1","1","1","1","1–2"],
-  upper:["2","2","2","2","2","2–3"],
-  preventive:["2–3","2–3","2–3","2–3","2–3","2–3"],
-  core2:["2","2","2","2","2","2"]
+  compound:["3","2–3","2","1–2","1–2","1","1","2–3"],
+  isolation:["2–3","2","1–2","1","1","1","0–1","2"],
+  upper:["3","2–3","2","2","2","2","2","3"],
+  preventive:["3","3","2–3","2–3","2–3","2–3","2–3","3"],
+  core2:["3","2–3","2","2","2","2","2","3"]
 };
 
 const OCT26_V2_PLANS={
@@ -79,13 +79,20 @@ function oct26V2ApplyWeek(plan,date){
   const p=structuredClone(plan),week=oct26Week(date)||1;
   p.exercises=(p.exercises||[]).map(function(e){
     if(e.type!=="strength")return e;
-    e.sets=week===6?e.v2S6:e.sets;
+    const fullSets=e.sets;
+    if(week===1)e.sets=Math.max(1,Math.round(fullSets*.65));
+    else if(week===2)e.sets=Math.max(1,Math.round(fullSets*.85));
+    else if(week===8)e.sets=e.v2S6;
     e.rir=e.v2Rirs[Math.max(0,week-1)]||e.rir;
-    if(week===4&&e.v2Role==="isolation")e.note+=" Semana 4: última serie puede acercarse a RIR 0–1 con técnica limpia.";
-    if(week===5&&e.v2Role==="compound")e.note+=" Semana 5: buscar PR de reps/carga sin grindear.";
+    if(week===1)e.note+=" Reentrada: usa una carga claramente conservadora y termina cada serie con técnica fresca.";
+    if(week===4)e.note+=" Acumulación II: intenta superar reps de la exposición anterior antes de subir peso.";
+    if(week===6&&e.v2Role==="isolation")e.note+=" Intensificación: la última serie segura puede acercarse a RIR 0–1 con técnica limpia.";
+    if(week===7&&e.v2Role==="compound")e.note+=" Pico: busca PR de reps/carga limpio, sin grindear ni recortar ROM.";
     return e;
   });
-  if(week===6)p.subtitle+=" · descarga: menos series, cargas serias";
+  if(week===1)p.subtitle+=" · reentrada: volumen −30–40%";
+  if(week===2)p.subtitle+=" · reconstrucción de volumen";
+  if(week===8)p.subtitle+=" · descarga/evaluación: menos series y más margen";
   return p;
 }
 function oct26TemplateForKey(key,date=currentDate()){
@@ -94,7 +101,7 @@ function oct26TemplateForKey(key,date=currentDate()){
 }
 oct26ReducedPlan=function(base){
   const key=base&&base.key;
-  return key&&OCT26_V2_PLANS[key]?oct26V2ApplyWeek(OCT26_V2_PLANS[key],"2026-10-26"):structuredClone(base);
+  return key&&OCT26_V2_PLANS[key]?oct26V2ApplyWeek(OCT26_V2_PLANS[key],"2026-11-23"):structuredClone(base);
 };
 oct26PlanForDate=function(date){
   const map={1:"oct26_legs_a",2:"oct26_push",4:"oct26_upper",5:"oct26_legs_b"};
@@ -124,12 +131,14 @@ OCT26_SLOT_DEFS[4].note="Natación 22–23 h · preferencia por pierna";
 oct26WeekFocus=function(date=currentDate()){
   const w=oct26Week(date);
   return ({
-    1:"Cargas de referencia: compuestos RIR 2; aislamientos RIR 1–2; preventivos RIR 2–3. Trabaja en el extremo bajo del rango y registra dolor de hombro.",
-    2:"Acumula repeticiones con la misma carga: compuestos RIR 1–2; aislamientos RIR 1. Upper sigue a RIR 2.",
-    3:"Sobrecarga: al completar el techo con técnica y RIR correctos, sube el menor incremento y vuelve al extremo bajo.",
-    4:"Intensificación: compuestos RIR 1–2; aislamientos RIR 1 y última serie segura ≈0–1. Upper y preventivos mantienen margen.",
-    5:"Máximo estímulo: compuestos principales RIR 1 buscando PR limpio; aislamientos RIR 1. Upper permanece a RIR 2.",
-    6:"Descarga y evaluación: mismas cargas serias que S5 con menos series. Compuestos RIR 2; Upper RIR 2–3."
+    1:"Reentrada tras dos semanas parado: volumen reducido, compuestos RIR 3, aislamientos RIR 2–3 y preventivos RIR 3. El objetivo es recuperar tolerancia, no demostrar fuerza.",
+    2:"Base: recupera casi todo el volumen. Compuestos RIR 2–3, aislamientos RIR 2 y Upper conservador. Mantén cargas que puedas repetir con técnica.",
+    3:"Acumulación I: volumen completo. Compuestos RIR 2, aislamientos RIR 1–2. Suma repeticiones antes de subir carga.",
+    4:"Acumulación II: consolida el volumen completo y supera las reps de la semana anterior; sube el menor incremento solo al completar el techo del rango.",
+    5:"Sobrecarga: compuestos RIR 1–2 y aislamientos RIR 1. Busca progresión de reps/carga sin añadir volumen improvisado.",
+    6:"Intensificación: compuestos principales RIR 1; en aislamientos seguros la última serie puede quedar en RIR 0–1. Upper se mantiene a RIR 2.",
+    7:"Pico de rendimiento: busca PR limpio de repeticiones o carga en los ejercicios principales. No fuerces fallos ni sacrifiques ROM.",
+    8:"Descarga y evaluación: menos series, compuestos RIR 2–3, Upper RIR 3 y aislamientos RIR 2. Deja que baje la fatiga y compara el bloque completo."
   })[w]||"";
 };
 
@@ -137,11 +146,12 @@ const oct26V2BaseAdvice=oct26BaseExerciseAdvice;
 exerciseAdvice=function(e){
   const base=oct26V2BaseAdvice(e),w=oct26Week(currentDate());
   if(!w||e.type==="mobility")return base;
-  if(e.preventive)return "Preventivo: RIR 2–3, nunca al fallo. Prioriza control escapular/rotador y ausencia de dolor. "+base;
+  if(e.preventive)return "Preventivo: nunca al fallo. Prioriza control escapular/rotador, RIR prescrito y ausencia de dolor. "+base;
   if(e.v2Role==="upper")return "Upper: mantén el RIR prescrito del plan; no lo intensifiques por encima del plan porque nadas al día siguiente. "+base;
-  if(w===4&&e.v2Role==="isolation")return "Semana 4: última serie segura puede quedar en RIR 0–1; las anteriores alrededor de RIR 1. "+base;
-  if(w===5&&e.v2Role==="compound")return "Semana 5: busca PR de reps o carga a RIR 1 con ROM y técnica limpios. "+base;
-  if(w===6)return "Semana 6: menos series a propósito; conserva cargas y no conviertas la descarga en una sesión al fallo. "+base;
+  if(w===1)return "Semana 1 de reentrada: no persigas marcas previas. Usa menos series, deja margen y recupera una técnica estable. "+base;
+  if(w===6&&e.v2Role==="isolation")return "Semana 6: última serie segura puede quedar en RIR 0–1; las anteriores alrededor de RIR 1. "+base;
+  if(w===7&&e.v2Role==="compound")return "Semana 7: busca PR de reps o carga a RIR 1 con ROM y técnica limpios, sin grindear. "+base;
+  if(w===8)return "Semana 8: menos series a propósito; conserva estímulo y no conviertas la descarga en una sesión al fallo. "+base;
   return base;
 };
 
@@ -157,9 +167,9 @@ function oct26V2ShoulderWeekStatus(date=currentDate()){
 oct26RulesHTML=function(date=currentDate()){
   if(!oct26InRange(date))return"";
   const shoulder=oct26V2ShoulderWeekStatus(date),warn=shoulder.max!=null&&shoulder.max>3;
-  return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
+  return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 5 oct–30 nov</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
     (warn?'<div class="callout warn" style="margin-top:8px"><strong>Hombro >3/10 esta semana.</strong> No progreses presses/overhead a ciegas; aplica la regla de dolor del plan.</div>':'')+
-    '<details style="margin-top:10px"><summary>Reglas de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper conserva RIR 2 en S1–S5; no se intensifica como los otros días.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
+    '<details style="margin-top:10px"><summary>Reglas de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper se mantiene deliberadamente conservador durante todo el bloque por la natación del día siguiente.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
 };
 
 const oct26V2OldPoolHTML=oct26WeeklyPoolHTML;
@@ -221,7 +231,7 @@ const oct26V2OldBuildReport=buildOct26Report;
 buildOct26Report=function(){
   const r=oct26V2OldBuildReport();
   r.reportVersion=2;
-  r.reportType="pplul-v2-2026-09-21-to-2026-10-30";
+  r.reportType="pplul-v2-2026-10-05-to-2026-11-30";
   r.program.version="v2";
   r.program.reviewNotes={
     recommendedOrder:["Pierna A + natación","Push + Pull","Natación","Upper a RIR 2","Pierna B + natación"],
@@ -229,8 +239,8 @@ buildOct26Report=function(){
     supersets:"Only planned cable pairs when both stations are immediately available; bench exercises remain separate."
   };
   r.program.weeklyPrescriptions={};
-  for(let w=1;w<=6;w++){
-    const date=["","2026-09-21","2026-09-28","2026-10-05","2026-10-12","2026-10-19","2026-10-26"][w];
+  for(let w=1;w<=8;w++){
+    const date=["","2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-02","2026-11-09","2026-11-16","2026-11-23"][w];
     r.program.weeklyPrescriptions["week"+w]=OCT26_WEEKLY_KEYS.map(function(key){return oct26TemplateForKey(key,date);});
   }
   return r;
