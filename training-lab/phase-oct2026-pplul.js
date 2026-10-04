@@ -1,6 +1,6 @@
-// High-volume PPL + Upper/Lower block: 21 Sep-30 Oct 2026.
-// Five gym days (Mon-Fri); swim remains Mon/Wed/Fri at night. Weekends are recovery.
-const OCT26_PHASE={start:"2026-09-21",end:"2026-10-30",tailEnd:"2026-11-01"};
+// Restarted PPL + Upper/Lower block: 5 Oct-30 Nov 2026.
+// Eight-week progression after a two-week break. Five weekly gym sessions; swim remains Mon/Wed/Fri at night.
+const OCT26_PHASE={start:"2026-10-05",end:"2026-11-30",tailEnd:"2026-12-06"};
 const O26STR=(key,name,sets,min,max,rir,rest,muscle,note)=>({key,name,type:"strength",sets,min,max,rir,rest,muscle,note});
 const O26POWER=(key,name,dose,note)=>({key,name,type:"mobility",group:"Potencia",dose,note});
 
@@ -9,24 +9,28 @@ function oct26Active(date=currentDate()){return state.settings.mode==="season"&&
 function oct26SwimDay(date){return oct26InRange(date)&&[1,3,5].includes(weekday(date))}
 function oct26Week(date=currentDate()){
  if(!oct26InRange(date))return 0;
- if(date<="2026-09-25")return 1;
- if(date<="2026-10-02")return 2;
- if(date<="2026-10-09")return 3;
- if(date<="2026-10-16")return 4;
- if(date<="2026-10-23")return 5;
- return 6;
+ if(date<="2026-10-11")return 1;
+ if(date<="2026-10-18")return 2;
+ if(date<="2026-10-25")return 3;
+ if(date<="2026-11-01")return 4;
+ if(date<="2026-11-08")return 5;
+ if(date<="2026-11-15")return 6;
+ if(date<="2026-11-22")return 7;
+ return 8;
 }
 function oct26WeekTitle(date=currentDate()){
- return ({1:"Semana 1 · Cargas de referencia",2:"Semana 2 · Acumular repeticiones",3:"Semana 3 · Sobrecarga",4:"Semana 4 · Intensificación",5:"Semana 5 · Máximo estímulo",6:"Semana 6 · Rendimiento y evaluación"})[oct26Week(date)]||"";
+ return ({1:"Semana 1 · Reentrada",2:"Semana 2 · Base",3:"Semana 3 · Acumulación I",4:"Semana 4 · Acumulación II",5:"Semana 5 · Sobrecarga",6:"Semana 6 · Intensificación",7:"Semana 7 · Pico de rendimiento",8:"Semana 8 · Descarga y evaluación"})[oct26Week(date)]||"";
 }
 function oct26WeekFocus(date=currentDate()){
  return ({
-  1:"Entrena fuerte desde el inicio: compuestos alrededor de RIR 2 y aislamientos RIR 1–2. Encuentra cargas reproducibles sin sacrificar ROM ni técnica.",
-  2:"Mantén la carga y supera el total de repeticiones de la semana anterior conservando el RIR. La progresión principal esta semana son las reps.",
-  3:"Cuando completes el techo del rango con el RIR previsto, sube el menor incremento razonable y vuelve a la parte baja del rango. Si no llegas al techo, sigue sumando reps.",
-  4:"Compuestos alrededor de RIR 1–2. En aislamientos seguros, la última serie puede ser especialmente exigente, sin perder técnica. Prioriza intensidad local, no fatiga caótica.",
-  5:"Semana más dura: busca récords de repeticiones o carga con técnica limpia. Últimas series de máquinas/aislamientos cerca de RIR 1. No añadas series por impulso.",
-  6:"Reduce aproximadamente 20–25% las series, pero conserva cargas serias. El objetivo es que aflore el rendimiento y comparar fuerza, reps, medidas, natación y recuperación."})[oct26Week(date)]||"";
+  1:"Reentrada tras dos semanas sin entrenar: menos series, compuestos alrededor de RIR 3 y aislamientos RIR 2–3. Recupera técnica y tolerancia al volumen; no busques récords.",
+  2:"Construye la base: recupera casi todo el volumen, compuestos RIR 2–3 y aislamientos alrededor de RIR 2. Prioriza repeticiones sólidas y recuperación entre sesiones.",
+  3:"Acumulación I: volumen completo. Mantén cargas reproducibles y suma repeticiones dentro del rango con compuestos RIR 2 y aislamientos RIR 1–2.",
+  4:"Acumulación II: continúa sumando repeticiones; cuando completes el techo del rango con el RIR previsto, sube el menor incremento razonable.",
+  5:"Sobrecarga: compuestos RIR 1–2 y aislamientos RIR 1. La progresión debe venir de reps o carga, no de añadir series sin control.",
+  6:"Intensificación: compuestos principales alrededor de RIR 1; en aislamientos seguros la última serie puede acercarse a RIR 0–1 con técnica limpia.",
+  7:"Pico de rendimiento: busca PR de repeticiones o carga con ROM completo y técnica estable. Mantén el volumen; no conviertas el bloque en una semana de fallos.",
+  8:"Descarga y evaluación: reduce aproximadamente 25–35% las series, conserva cargas moderadas/serias y deja más margen. Compara fuerza, medidas, natación y recuperación."})[oct26Week(date)]||"";
 }
 
 const OCT26_BASE_PLANS={
@@ -93,19 +97,19 @@ function oct26ReducedPlan(base){
  };
  const plan=structuredClone(base),map=reductions[base.key]||{};
  plan.exercises=plan.exercises.map(e=>e.type==="strength"&&map[e.key]?{...e,sets:map[e.key]}:e);
- plan.subtitle=`${plan.subtitle} · semana de evaluación: volumen −20–25%`;
+ plan.subtitle=`${plan.subtitle} · descarga/evaluación: volumen reducido`;
  return plan;
 }
 function oct26PlanForDate(date){
  const base=OCT26_BASE_PLANS[String(weekday(date))];
  if(!base)return null;
- return oct26Week(date)===6&&base.type==="gym"?oct26ReducedPlan(base):base;
+ return oct26Week(date)===8&&base.type==="gym"?oct26ReducedPlan(base):base;
 }
 
 const oct26PreviousPlanFor=planFor;
 planFor=function(date){
  if(oct26InRange(date))return oct26PlanForDate(date)||oct26PreviousPlanFor(date);
- if(date==="2026-10-31"||date==="2026-11-01")return OCT26_BASE_PLANS[String(weekday(date))];
+ if(date>OCT26_PHASE.end&&date<=OCT26_PHASE.tailEnd)return{key:"oct26_post_block_rest",title:"Descanso / transición",type:"rest",subtitle:"Bloque finalizado. Recupera mientras se define el siguiente ciclo.",exercises:[]};
  return oct26PreviousPlanFor(date);
 };
 
@@ -146,7 +150,7 @@ exerciseAdvice=function(e){
 
 function oct26RulesHTML(date=currentDate()){
  if(!oct26InRange(date))return"";
- return `<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de hipertrofia · 21 sep–30 oct</div><div class="hero-title" style="font-size:19px">${esc(oct26WeekTitle(date))}</div><div class="callout" style="margin-top:8px">${esc(oct26WeekFocus(date))}</div><details style="margin-top:10px"><summary>Cómo progresar</summary><div class="subtitle" style="margin-top:8px"><strong>Reps primero:</strong> mientras no completes el techo del rango, conserva la carga y supera el total de reps con el RIR indicado.<br><br><strong>Subir peso:</strong> al completar el techo del rango con técnica y RIR correctos, usa el menor salto razonable y vuelve a la parte baja de reps.<br><br><strong>Bajar peso:</strong> si caes por debajo del mínimo o rompes ROM/técnica para completar la serie, reduce un pequeño paso.<br><br><strong>Series:</strong> semanas 1–5 mantienen el volumen alto. Semana 6 reduce aproximadamente 20–25% para evaluar rendimiento sin tanta fatiga.<br><br><strong>Intensidad:</strong> compuestos duros pero controlados; aislamientos y máquinas pueden terminar mucho más cerca del límite técnico.</div></details></div>`;
+ return `<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de hipertrofia · 5 oct–30 nov</div><div class="hero-title" style="font-size:19px">${esc(oct26WeekTitle(date))}</div><div class="callout" style="margin-top:8px">${esc(oct26WeekFocus(date))}</div><details style="margin-top:10px"><summary>Cómo progresar</summary><div class="subtitle" style="margin-top:8px"><strong>Reps primero:</strong> mientras no completes el techo del rango, conserva la carga y supera el total de reps con el RIR indicado.<br><br><strong>Subir peso:</strong> al completar el techo del rango con técnica y RIR correctos, usa el menor salto razonable y vuelve a la parte baja de reps.<br><br><strong>Bajar peso:</strong> si caes por debajo del mínimo o rompes ROM/técnica para completar la serie, reduce un pequeño paso.<br><br><strong>Series:</strong> semana 1 reduce volumen por reentrada; semana 2 lo reconstruye; semanas 3–7 usan el volumen completo; semana 8 reduce aproximadamente 25–35% para descargar y evaluar.<br><br><strong>Intensidad:</strong> compuestos duros pero controlados; aislamientos y máquinas pueden terminar mucho más cerca del límite técnico.</div></details></div>`;
 }
 
 function oct26SwimBlockHTML(date=currentDate()){
@@ -161,7 +165,7 @@ function oct26RemoveOldCycleCard(root){
  });
 }
 function oct26WeekLabel(date){
- if(date==="2026-10-31"||date==="2026-11-01")return"Descanso";
+ if(date>OCT26_PHASE.end&&date<=OCT26_PHASE.tailEnd)return"Descanso / transición";
  if(!oct26InRange(date))return planFor(date).title;
  const p=oct26PlanForDate(date);
  if(!p)return"";
@@ -193,12 +197,12 @@ weeklyPlannedMuscleSets=function(){
 
 function oct26AssessmentRecord(kind){return [...(state.body||[])].filter(x=>x.phaseAssessment===`oct26_${kind}`).sort((a,b)=>b.date.localeCompare(a.date))[0]||null}
 function oct26AssessmentWindow(kind,date=currentDate()){
- return kind==="baseline"?(date>=OCT26_PHASE.start&&date<="2026-09-27"):(date>="2026-10-26"&&date<=OCT26_PHASE.end);
+ return kind==="baseline"?(date>=OCT26_PHASE.start&&date<="2026-10-11"):(date>="2026-11-23"&&date<=OCT26_PHASE.end);
 }
 function openOct26Assessment(kind){
  const old=oct26AssessmentRecord(kind)||state.body.find(x=>x.date===currentDate())||[...(state.body||[])].filter(x=>x.date<=currentDate()).sort((a,b)=>b.date.localeCompare(a.date))[0]||{};
  const title=kind==="baseline"?"Referencia del nuevo bloque":"Medición final del bloque";
- document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Bloque 21 sep–30 oct</div><div class="hero-title">${title}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="callout">Mide en condiciones comparables: por la mañana, tras ir al baño y antes de desayunar. Usa los mismos puntos anatómicos.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Peso (kg)</label><input id="o26Weight" inputmode="decimal" value="${old.weight??""}"></div><div class="field"><label>Cintura (cm)</label><input id="o26Waist" inputmode="decimal" value="${old.waist??""}"></div><div class="field"><label>Pecho (cm)</label><input id="o26Chest" inputmode="decimal" value="${old.chest??""}"></div><div class="field"><label>Brazo flexionado (cm)</label><input id="o26Arm" inputmode="decimal" value="${old.arm??""}"></div><div class="field"><label>Cadera / glúteo (cm)</label><input id="o26Hips" inputmode="decimal" value="${old.hips??""}"></div><div class="field"><label>Muslo derecho (cm)</label><input id="o26Thigh" inputmode="decimal" value="${old.thigh??""}"></div><div class="field"><label>Gemelo derecho (cm)</label><input id="o26Calf" inputmode="decimal" value="${old.calf??""}"></div><div class="field wide"><label>Notas</label><textarea id="o26Notes">${esc(old.phaseAssessmentNotes??"")}</textarea></div></div><div class="actions"><button class="btn" onclick="saveOct26Assessment('${kind}')">Guardar medición</button></div></div></div>`;
+ document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Bloque 5 oct–30 nov</div><div class="hero-title">${title}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="callout">Mide en condiciones comparables: por la mañana, tras ir al baño y antes de desayunar. Usa los mismos puntos anatómicos.</div><div class="formgrid" style="margin-top:10px"><div class="field"><label>Peso (kg)</label><input id="o26Weight" inputmode="decimal" value="${old.weight??""}"></div><div class="field"><label>Cintura (cm)</label><input id="o26Waist" inputmode="decimal" value="${old.waist??""}"></div><div class="field"><label>Pecho (cm)</label><input id="o26Chest" inputmode="decimal" value="${old.chest??""}"></div><div class="field"><label>Brazo flexionado (cm)</label><input id="o26Arm" inputmode="decimal" value="${old.arm??""}"></div><div class="field"><label>Cadera / glúteo (cm)</label><input id="o26Hips" inputmode="decimal" value="${old.hips??""}"></div><div class="field"><label>Muslo derecho (cm)</label><input id="o26Thigh" inputmode="decimal" value="${old.thigh??""}"></div><div class="field"><label>Gemelo derecho (cm)</label><input id="o26Calf" inputmode="decimal" value="${old.calf??""}"></div><div class="field wide"><label>Notas</label><textarea id="o26Notes">${esc(old.phaseAssessmentNotes??"")}</textarea></div></div><div class="actions"><button class="btn" onclick="saveOct26Assessment('${kind}')">Guardar medición</button></div></div></div>`;
 }
 function saveOct26Assessment(kind){
  const values={weight:num("o26Weight"),waist:num("o26Waist"),chest:num("o26Chest"),arm:num("o26Arm"),hips:num("o26Hips"),thigh:num("o26Thigh"),calf:num("o26Calf")};
@@ -209,7 +213,7 @@ function saveOct26Assessment(kind){
 function oct26AssessmentCard(date=currentDate()){
  const kind=oct26AssessmentWindow("final",date)?"final":oct26AssessmentWindow("baseline",date)?"baseline":null;if(!kind)return"";
  const r=oct26AssessmentRecord(kind),label=kind==="baseline"?"Referencia del bloque":"Medición final del bloque";
- return `<div class="card oct26-assessment-card"><div class="row between settings-status-row"><div><div class="eyebrow">Evaluación física · 21 sep–30 oct</div><strong>${label}</strong><small>${r?`Guardada el ${esc(r.date)}.`:"Peso, cintura y perímetros completos para comparar el ciclo."}</small></div><span class="pill ${r?"good":"warn"}">${r?"Guardada":"Pendiente"}</span></div><div class="actions" style="margin-top:10px"><button class="btn ${r?"secondary":""}" onclick="openOct26Assessment('${kind}')">${r?"Revisar medición":"Registrar ahora"}</button></div></div>`;
+ return `<div class="card oct26-assessment-card"><div class="row between settings-status-row"><div><div class="eyebrow">Evaluación física · 5 oct–30 nov</div><strong>${label}</strong><small>${r?`Guardada el ${esc(r.date)}.`:"Peso, cintura y perímetros completos para comparar el ciclo."}</small></div><span class="pill ${r?"good":"warn"}">${r?"Guardada":"Pendiente"}</span></div><div class="actions" style="margin-top:10px"><button class="btn ${r?"secondary":""}" onclick="openOct26Assessment('${kind}')">${r?"Revisar medición":"Registrar ahora"}</button></div></div>`;
 }
 const oct26PreviousAssessmentCard=typeof sep26AssessmentCard==="function"?sep26AssessmentCard:null;
 if(oct26PreviousAssessmentCard){sep26AssessmentCard=function(date=currentDate()){if(oct26InRange(date))return oct26AssessmentCard(date);return oct26PreviousAssessmentCard(date)}}
@@ -238,11 +242,11 @@ function oct26Mean(values){const nums=values.filter(v=>v!==null&&v!==""&&Number.
 function oct26Delta(a,b){return Object.fromEntries(["weight","waist","chest","arm","hips","thigh","calf"].map(k=>[k,a?.[k]!=null&&b?.[k]!=null?+(+b[k]-+a[k]).toFixed(2):null]))}
 function buildOct26Report(){
  const end=oct26ReportEnd(),baseline=oct26AssessmentRecord("baseline")||[...(state.body||[])].filter(x=>x.date<=OCT26_PHASE.start).sort((a,b)=>b.date.localeCompare(a.date))[0]||null,final=oct26AssessmentRecord("final")||null,latest=final||[...(state.body||[])].filter(x=>x.date<=end).sort((a,b)=>b.date.localeCompare(a.date))[0]||null,daily=oct26Rows(state.daily),swims=oct26Rows(state.swim),foods=oct26Rows(state.foods),sessions=oct26CompletedSessions(end),nutritionDays=[...new Set(foods.map(x=>x.date))].sort().map(date=>({date,...dayNutrition(date)})),adherence=oct26Adherence(end);
- return{app:"MAREVO · Training Lab",reportVersion:1,reportType:"pplul-2026-09-21-to-2026-10-30",generatedAt:new Date().toISOString(),purpose:"Upload this JSON to ChatGPT to review the 5-day hypertrophy block and design the next cycle.",phase:{...OCT26_PHASE,availableThrough:end,currentWeek:oct26Week(end),currentStage:oct26WeekTitle(end)},program:{days:structuredClone(OCT26_BASE_PLANS),progression:Object.fromEntries([1,2,3,4,5,6].map(w=>[w,oct26WeekFocus(["","2026-09-21","2026-09-28","2026-10-05","2026-10-12","2026-10-19","2026-10-26"][w])])),week6VolumeReduction:"~20–25% fewer prescribed strength sets"},body:{baselineAssessment:baseline,finalAssessment:final,latestAvailable:latest,deltaBaselineToFinal:final?oct26Delta(baseline,final):null,deltaBaselineToLatest:oct26Delta(baseline,latest),records:oct26Rows(state.body)},adherence,recovery:{records:daily,averages:{energy:oct26Mean(daily.map(x=>x.energy)),fatigue:oct26Mean(daily.map(x=>x.fatigue)),pain:oct26Mean(daily.map(x=>x.pain)),sleepHours:oct26Mean(daily.map(x=>x.sleep)),hunger:oct26Mean(daily.map(x=>x.hunger))}},swimming:{records:swims,totalMeters:swims.reduce((n,x)=>n+(+x.meters||0),0),avgRPE:oct26Mean(swims.map(x=>x.rpe)),avgShoulderPain:oct26Mean(swims.map(x=>x.pain))},nutrition:{goals:state.settings.nutritionGoals||{},loggedDays:nutritionDays,averages:{kcal:oct26Mean(nutritionDays.map(x=>x.kcal)),proteinG:oct26Mean(nutritionDays.map(x=>x.p)),carbsG:oct26Mean(nutritionDays.map(x=>x.c)),fatG:oct26Mean(nutritionDays.map(x=>x.f))},rawEntries:foods},performance:{exerciseProgress:oct26Performance(end),completedSessions:sessions},dataCompleteness:{baselineAssessment:!!baseline,finalAssessment:!!final,dailyCheckins:daily.length,gymAdherence:adherence.summary.gym,swimAdherence:adherence.summary.swim},photos:{metadata:state.photoMonths||[],note:"Las fotos siguen almacenadas localmente y se comparten aparte."}};
+ return{app:"MAREVO · Training Lab",reportVersion:1,reportType:"pplul-2026-10-05-to-2026-11-30",generatedAt:new Date().toISOString(),purpose:"Upload this JSON to ChatGPT to review the 5-day hypertrophy block and design the next cycle.",phase:{...OCT26_PHASE,availableThrough:end,currentWeek:oct26Week(end),currentStage:oct26WeekTitle(end)},program:{days:structuredClone(OCT26_BASE_PLANS),progression:Object.fromEntries([1,2,3,4,5,6,7,8].map(w=>[w,oct26WeekFocus(["","2026-10-05","2026-10-12","2026-10-19","2026-10-26","2026-11-02","2026-11-09","2026-11-16","2026-11-23"][w])])),week1Reentry:"~30–40% fewer prescribed strength sets",week8VolumeReduction:"~25–35% fewer prescribed strength sets"},body:{baselineAssessment:baseline,finalAssessment:final,latestAvailable:latest,deltaBaselineToFinal:final?oct26Delta(baseline,final):null,deltaBaselineToLatest:oct26Delta(baseline,latest),records:oct26Rows(state.body)},adherence,recovery:{records:daily,averages:{energy:oct26Mean(daily.map(x=>x.energy)),fatigue:oct26Mean(daily.map(x=>x.fatigue)),pain:oct26Mean(daily.map(x=>x.pain)),sleepHours:oct26Mean(daily.map(x=>x.sleep)),hunger:oct26Mean(daily.map(x=>x.hunger))}},swimming:{records:swims,totalMeters:swims.reduce((n,x)=>n+(+x.meters||0),0),avgRPE:oct26Mean(swims.map(x=>x.rpe)),avgShoulderPain:oct26Mean(swims.map(x=>x.pain))},nutrition:{goals:state.settings.nutritionGoals||{},loggedDays:nutritionDays,averages:{kcal:oct26Mean(nutritionDays.map(x=>x.kcal)),proteinG:oct26Mean(nutritionDays.map(x=>x.p)),carbsG:oct26Mean(nutritionDays.map(x=>x.c)),fatG:oct26Mean(nutritionDays.map(x=>x.f))},rawEntries:foods},performance:{exerciseProgress:oct26Performance(end),completedSessions:sessions},dataCompleteness:{baselineAssessment:!!baseline,finalAssessment:!!final,dailyCheckins:daily.length,gymAdherence:adherence.summary.gym,swimAdherence:adherence.summary.swim},photos:{metadata:state.photoMonths||[],note:"Las fotos siguen almacenadas localmente y se comparten aparte."}};
 }
 function downloadOct26Report(){download(`MAREVO_informe_PPLUL_${OCT26_PHASE.start}_a_${OCT26_PHASE.end}.json`,JSON.stringify(buildOct26Report(),null,2),"application/json");toast("Informe del bloque descargado")}
 function oct26ReportHTML(){
  const r=buildOct26Report(),d=r.body.deltaBaselineToFinal||r.body.deltaBaselineToLatest||{},summary=[d.weight!=null?`peso ${d.weight>=0?"+":""}${d.weight} kg`:null,d.waist!=null?`cintura ${d.waist>=0?"+":""}${d.waist} cm`:null].filter(Boolean).join(" · ");
- return `<div class="section oct26-report-section">Informe del bloque 21 sep–30 oct</div><div class="card oct26-report-card"><div class="row between settings-status-row"><div><strong>${todayISO()>=OCT26_PHASE.end?"Listo para evaluar":"Informe en construcción"}</strong><small>Datos hasta ${esc(r.phase.availableThrough)}${summary?` · ${esc(summary)}`:""}</small></div><span class="pill ${todayISO()>=OCT26_PHASE.end?"good":""}">6 semanas</span></div><div class="subtitle" style="margin-top:10px">Incluye adherencia a los 5 días de gimnasio y natación, medidas corporales, recuperación, nutrición y evolución ejercicio por ejercicio con cargas, repeticiones y RIR.</div><div class="actions" style="margin-top:10px"><button class="btn" onclick="downloadOct26Report()">Descargar informe para analizar</button></div></div>`;
+ return `<div class="section oct26-report-section">Informe del bloque 5 oct–30 nov</div><div class="card oct26-report-card"><div class="row between settings-status-row"><div><strong>${todayISO()>=OCT26_PHASE.end?"Listo para evaluar":"Informe en construcción"}</strong><small>Datos hasta ${esc(r.phase.availableThrough)}${summary?` · ${esc(summary)}`:""}</small></div><span class="pill ${todayISO()>=OCT26_PHASE.end?"good":""}">8 semanas</span></div><div class="subtitle" style="margin-top:10px">Incluye adherencia a los 5 días de gimnasio y natación, medidas corporales, recuperación, nutrición y evolución ejercicio por ejercicio con cargas, repeticiones y RIR.</div><div class="actions" style="margin-top:10px"><button class="btn" onclick="downloadOct26Report()">Descargar informe para analizar</button></div></div>`;
 }
 renderAll();
