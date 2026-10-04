@@ -138,12 +138,14 @@ exerciseAdvice=function(e){
  if(!week||e.type==="mobility")return base;
  const compound=oct26CompoundKeys.has(e.key);
  const prefix={
-  1:compound?"Semana 1: busca una referencia dura pero limpia; alrededor de RIR 2. ":"Semana 1: trabaja cerca de RIR 1–2 y aprende una carga estable. ",
-  2:"Semana 2: mantén peso y supera las reps totales de la última exposición sin regalar técnica. ",
-  3:"Semana 3: si confirmas el techo del rango, sube el menor salto posible y vuelve abajo en reps. ",
-  4:compound?"Semana 4: intensidad alta, pero conserva 1–2 reps limpias de margen. ":"Semana 4: última serie muy exigente, alrededor de RIR 1; técnica antes que ego. ",
-  5:compound?"Semana 5: busca un PR de reps/carga sin grindear repeticiones rotas. ":"Semana 5: semana más dura; última serie cerca del límite técnico. ",
-  6:"Semana 6: hay menos series a propósito; conserva la carga y busca rendimiento de calidad. "
+  1:"Semana 1: reentrada; reduce series, deja margen y recupera técnica antes de perseguir cargas. ",
+  2:"Semana 2: reconstruye el volumen y consolida cargas reproducibles sin acercarte al fallo. ",
+  3:"Semana 3: volumen completo; suma repeticiones manteniendo el RIR prescrito. ",
+  4:"Semana 4: supera reps antes de subir el menor incremento razonable. ",
+  5:"Semana 5: sobrecarga controlada; progresa sin añadir series por impulso. ",
+  6:compound?"Semana 6: intensidad alta, alrededor de RIR 1 con técnica limpia. ":"Semana 6: aislamiento duro; la última serie segura puede acercarse al límite técnico. ",
+  7:compound?"Semana 7: busca un PR limpio de reps/carga sin grindear. ":"Semana 7: máximo estímulo local con técnica estable. ",
+  8:"Semana 8: descarga; menos series, más margen y calidad de movimiento. "
  }[week];
  return prefix+base;
 };
