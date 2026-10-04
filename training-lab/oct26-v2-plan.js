@@ -167,7 +167,7 @@ function oct26V2ShoulderWeekStatus(date=currentDate()){
 oct26RulesHTML=function(date=currentDate()){
   if(!oct26InRange(date))return"";
   const shoulder=oct26V2ShoulderWeekStatus(date),warn=shoulder.max!=null&&shoulder.max>3;
-  return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 5 oct–30 nov</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
+  return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque de entrenamiento · 5 oct–29 nov</div><div class="hero-title" style="font-size:19px">'+esc(oct26WeekTitle(date))+'</div><div class="callout" style="margin-top:8px">'+esc(oct26WeekFocus(date))+'</div>'+
     (warn?'<div class="callout warn" style="margin-top:8px"><strong>Hombro >3/10 esta semana.</strong> No progreses presses/overhead a ciegas; aplica la regla de dolor del plan.</div>':'')+
     '<details style="margin-top:10px"><summary>Reglas de progresión y dolor</summary><div class="subtitle" style="margin-top:8px"><strong>Distribución:</strong> preferencia por Pierna A lunes, Push + Pull martes, miércoles solo piscina, Upper jueves y Pierna B viernes. Evita Push/Pull/Upper en día de piscina salvo necesidad real.<br><br><strong>Reps/peso:</strong> mejora reps dentro del rango; cuando llegues al techo con técnica y RIR correctos, sube el menor incremento y vuelve abajo en reps.<br><br><strong>Jueves:</strong> Upper se mantiene deliberadamente conservador durante todo el bloque por la natación del día siguiente.<br><br><strong>Preventivos:</strong> RIR 2–3, nunca al fallo.<br><br><strong>Hombro 0–10:</strong> objetivo ≤3 durante gym/piscina, volver al nivel habitual a la mañana siguiente y no aumentar semana a semana. Si falla una condición, reduce temporalmente series de press y trabajo overhead y mantén el bloque preventivo. Si persiste 2–3 semanas pese a ajustar, valoración profesional.<br><br><strong>Superseries:</strong> solo pares de polea previstos y únicamente si comparten estación; los ejercicios de banco van aparte.</div></details></div>';
 };
@@ -231,7 +231,7 @@ const oct26V2OldBuildReport=buildOct26Report;
 buildOct26Report=function(){
   const r=oct26V2OldBuildReport();
   r.reportVersion=2;
-  r.reportType="pplul-v2-2026-10-05-to-2026-11-30";
+  r.reportType="pplul-v2-2026-10-05-to-2026-11-29";
   r.program.version="v2";
   r.program.reviewNotes={
     recommendedOrder:["Pierna A + natación","Push + Pull","Natación","Upper a RIR 2","Pierna B + natación"],
