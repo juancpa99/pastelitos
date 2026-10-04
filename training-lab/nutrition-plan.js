@@ -3,8 +3,8 @@
 
   if(typeof state==='undefined'||typeof renderFood!=='function'||typeof foodRecord!=='function')return;
 
-  const PLAN_START='2026-09-25';
-  const PLAN_END='2026-10-30';
+  const PLAN_START='2026-10-05';
+  const PLAN_END='2026-11-30';
   const PROTEIN_PER_KG=2.2;
   const MEALS=['Desayuno','Media mañana','Almuerzo','Merienda','Cena','Post-entreno'];
   const TUPPER_MEALS=['Almuerzo','Cena'];
@@ -43,7 +43,8 @@
   const OPTIONS={
     'Desayuno':[
       {id:'breakfast_oats',name:'Avena con leche, whey y plátano',fixed:[['milk',250],['banana',1]],vars:[['whey',10,55,5],['oats',30,120,5]]},
-      {id:'breakfast_toast',name:'Tostadas con huevos y jamón cocido',fixed:[['tomato',100]],vars:[['egg',1,4,1],['ham_york_90',30,130,10],['whole_bread',1,5,1]]},
+      {id:'breakfast_eggs_bread',name:'3 huevos + 1 rebanada de pan integral',fixed:[['egg',3],['whole_bread',1]],vars:[]},
+      {id:'breakfast_ham_bread',name:'6 lonchas de jamón York 90% + 1 rebanada de pan integral',fixed:[['ham_york_90',90],['whole_bread',1]],vars:[]},
       {id:'breakfast_yogurt',name:'Yogur con avena, whey y fresas',fixed:[['greek_yogurt_0',250],['strawberries',150]],vars:[['whey',0,45,5],['oats',30,110,5]]}
     ],
     'Media mañana':[
@@ -79,12 +80,12 @@
   };
 
   const WEEK_DEFAULTS={
-    0:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_potato','Merienda':'snack_yogurt','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
-    1:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
-    2:{'Desayuno':'breakfast_toast','Almuerzo':'lunch_chicken_rice','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
-    3:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_rice','Post-entreno':'post_shake'},
-    4:{'Desayuno':'breakfast_toast','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
-    5:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_toast','Cena':'dinner_chicken_rice','Post-entreno':'post_shake'},
+    0:{'Desayuno':'breakfast_ham_bread','Almuerzo':'lunch_chicken_potato','Merienda':'snack_yogurt','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
+    1:{'Desayuno':'breakfast_eggs_bread','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
+    2:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_rice','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
+    3:{'Desayuno':'breakfast_ham_bread','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_rice','Post-entreno':'post_shake'},
+    4:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
+    5:{'Desayuno':'breakfast_eggs_bread','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_toast','Cena':'dinner_chicken_rice','Post-entreno':'post_shake'},
     6:{'Desayuno':'breakfast_yogurt','Almuerzo':'lunch_turkey_rice','Merienda':'snack_shake','Cena':'dinner_salmon_potato','Post-entreno':'post_shake'}
   };
 
@@ -143,7 +144,7 @@
     if(cutoff<PLAN_START)return {ratio:null,planned:0,completed:0,extra:0};
     const start=addDaysISO(cutoff,-13);
     let planned=[];
-    if(typeof oct26PlannedItems==='function'&&cutoff<='2026-10-30'){
+    if(typeof oct26PlannedItems==='function'&&cutoff<=PLAN_END){
       planned=oct26PlannedItems(cutoff).filter(item=>item.date>=start&&item.date<=cutoff);
     }
     if(!planned.length&&typeof dayActivities==='function'){
@@ -619,9 +620,9 @@
       ?`<div class="nutrition-plan-day-head"><div><span>Plan del día</span><strong>${esc(pretty(date))}</strong></div><div class="nutrition-plan-day-tools"><div class="nutrition-plan-day-total">${totalPrefix}${totalKcal} kcal · ${Math.round(totals.p)} g proteína</div><button type="button" class="btn ghost small nutrition-rebalance-button" onclick="rebalanceNutritionPlanDay('${date}')">Reajustar resto</button></div></div><div class="nutrition-plan-meals">${dayPlan(date).map(row=>planMealRowHTML(date,row)).join('')}${postTupperExtraRowsHTML(date)}</div>`
       :active
         ?`<div class="nutrition-plan-empty">Completa peso y mantenimiento.</div>`
-        :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de octubre.</div>`;
+        :`<div class="nutrition-plan-empty">Plan activo hasta el 30 de noviembre.</div>`;
     return `<section class="nutrition-plan-card">
-      <div class="nutrition-plan-head"><div><div class="eyebrow">Plan nutricional · hasta 30 oct</div><h2>Comidas de la semana</h2></div><div class="nutrition-plan-head-actions"><button type="button" class="btn secondary small" onclick="openNutritionCookingPlan()">Cocinar</button><button type="button" class="btn secondary small" onclick="openNutritionShoppingList()">Compra</button></div></div>
+      <div class="nutrition-plan-head"><div><div class="eyebrow">Plan nutricional · 5 oct–30 nov</div><h2>Comidas de la semana</h2></div><div class="nutrition-plan-head-actions"><button type="button" class="btn secondary small" onclick="openNutritionCookingPlan()">Cocinar</button><button type="button" class="btn secondary small" onclick="openNutritionShoppingList()">Compra</button></div></div>
       ${targetHTML}${weekHTML}${body}
     </section>`
   }
