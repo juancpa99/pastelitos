@@ -44,7 +44,9 @@
     'Desayuno':[
       {id:'breakfast_oats',name:'Avena con leche, whey y plátano',fixed:[['milk',250],['banana',1]],vars:[['whey',10,55,5],['oats',30,120,5]]},
       {id:'breakfast_eggs_bread',name:'3 huevos + 1 rebanada de pan integral',fixed:[['egg',3],['whole_bread',1]],vars:[]},
+      {id:'breakfast_eggs_lentil_toast',name:'3 huevos + 4 tostadas de lentejas',fixed:[['egg',3],['lentil_crisp_toast',4]],vars:[]},
       {id:'breakfast_ham_bread',name:'6 lonchas de jamón York 90% + 1 rebanada de pan integral',fixed:[['ham_york_90',90],['whole_bread',1]],vars:[]},
+      {id:'breakfast_ham_lentil_toast',name:'6 lonchas de jamón York 90% + 4 tostadas de lentejas',fixed:[['ham_york_90',90],['lentil_crisp_toast',4]],vars:[]},
       {id:'breakfast_yogurt',name:'Yogur con avena, whey y fresas',fixed:[['greek_yogurt_0',250],['strawberries',150]],vars:[['whey',0,45,5],['oats',30,110,5]]}
     ],
     'Media mañana':[
@@ -81,9 +83,9 @@
 
   const WEEK_DEFAULTS={
     0:{'Desayuno':'breakfast_ham_bread','Almuerzo':'lunch_chicken_potato','Merienda':'snack_yogurt','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
-    1:{'Desayuno':'breakfast_eggs_bread','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
+    1:{'Desayuno':'breakfast_eggs_lentil_toast','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_potato','Post-entreno':'post_shake'},
     2:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_rice','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
-    3:{'Desayuno':'breakfast_ham_bread','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_rice','Post-entreno':'post_shake'},
+    3:{'Desayuno':'breakfast_ham_lentil_toast','Almuerzo':'lunch_chicken_rice','Merienda':'snack_toast','Cena':'dinner_turkey_rice','Post-entreno':'post_shake'},
     4:{'Desayuno':'breakfast_oats','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_yogurt','Cena':'dinner_hake_potato','Post-entreno':'post_shake'},
     5:{'Desayuno':'breakfast_eggs_bread','Almuerzo':'lunch_chicken_pasta','Merienda':'snack_toast','Cena':'dinner_chicken_rice','Post-entreno':'post_shake'},
     6:{'Desayuno':'breakfast_yogurt','Almuerzo':'lunch_turkey_rice','Merienda':'snack_shake','Cena':'dinner_salmon_potato','Post-entreno':'post_shake'}
