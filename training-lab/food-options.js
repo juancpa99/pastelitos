@@ -69,6 +69,8 @@
     {inputUnit:'g',presets:[50,60,70,80],reference:'peso directo'},['Desayuno','Almuerzo','Merienda','Cena']);
   setFood('whole_bread',{cat:'Carbohidrato',name:'Pan integral',unit:'g',ref:'peso directo',kcal:247,p:12,c:41,f:4.2},
     {inputUnit:'rebanadas',singular:'rebanada',gramsPerInput:30,presets:[1,2,3,4],reference:'1 rebanada ≈ 30 g'},['Desayuno','Almuerzo','Merienda','Cena','Post-entreno']);
+  setFood('lentil_crisp_toast',{cat:'Carbohidrato',name:'Tostadas crujientes de lentejas',unit:'g',ref:'Santiveri Bio · valores de etiqueta',kcal:367,p:18,c:70,f:1.4,sat:.3,sugars:2,fiber:1.2,salt:.5,sodiumMg:200},
+    {inputUnit:'tostadas',singular:'tostada',gramsPerInput:5,presets:[2,4,6,8],reference:'1 tostada = 5 g · 18 kcal'},['Desayuno','Media mañana','Merienda']);
 
   // Protein sources.
   setFood('chicken_thigh',{cat:'Proteína',name:'Contramuslo de pollo sin piel',unit:'g',ref:'peso crudo, antes de cocinar',kcal:144,p:19.7,c:0,f:7},
@@ -171,7 +173,9 @@
     Desayuno:[
       {name:'Avena, leche y plátano',items:[['oats',60],['milk',250],['banana',1]]},
       {name:'3 huevos + 1 rebanada de pan integral',items:[['egg',3],['whole_bread',1]]},
+      {name:'3 huevos + 4 tostadas de lentejas',items:[['egg',3],['lentil_crisp_toast',4]]},
       {name:'6 lonchas de jamón York 90% + 1 rebanada de pan integral',items:[['ham_york_90',90],['whole_bread',1]]},
+      {name:'6 lonchas de jamón York 90% + 4 tostadas de lentejas',items:[['ham_york_90',90],['lentil_crisp_toast',4]]},
       {name:'Yogur, avena y frutos rojos',items:[['greek_yogurt_0',250],['oats',50],['strawberries',150]]},
       {name:'Pan, pavo y queso fresco',items:[['whole_bread',2],['ham_york_90',60],['fresh_cheese',75]]}
     ],
