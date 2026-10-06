@@ -738,9 +738,6 @@ body[data-view="Home"] .today-btn{
 }
 .home-meter{width:100%;height:4px;margin-top:12px;background:#172c3b;border-radius:99px;overflow:hidden}
 .home-meter i{display:block;height:100%;border-radius:inherit;background:var(--home-card-accent)}
-.home-progress-dots{display:flex;gap:4px;margin-top:12px}
-.home-progress-dots i{width:15px;height:4px;border-radius:99px;background:#244257}
-.home-progress-dots i:first-child,.home-progress-dots i:nth-child(2){background:var(--home-card-accent)}
 .progress-phase-assessment{margin:14px 0}
 .progress-phase-assessment>.card{margin:0}
 

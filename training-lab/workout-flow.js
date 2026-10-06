@@ -1,17 +1,30 @@
 // The landing page never creates a workout. Only explicit selection starts one.
 let plannedWorkspaceOpen=false;
+function trainingStrengthRecords(date){
+ return [...(state.sessions||[]),...(state.extraSessions||[])].filter(s=>s.date===date&&(s.startedAt||s.completed)&&s.exercises?.some(e=>e.type==='strength'));
+}
+function trainingDoubleDay(date){return [2,4,6,0].includes(weekday(date))}
+function trainingDoubleSessionAvailable(date){
+ if(!trainingDoubleDay(date)||trainingStrengthRecords(date).length>=2)return false;
+ return typeof oct26FlexContext!=='function'||!oct26FlexContext(date)||OCT26_WEEKLY_KEYS.some(key=>oct26SessionStatus(date,key).state==='pending');
+}
+function trainingSwimAvailable(date){
+ return typeof oct26FlexContext!=='function'||!oct26FlexContext(date)||oct26SwimDay(date);
+}
 function workoutLandingHTML(date){
  const p=planFor(date),planned=p.type==='gym'?findSession(date,p.key):null;
  const activeExtra=state.extraSessions.find(s=>s.date===date&&s.startedAt&&!s.completed&&s.exercises?.some(e=>e.type==='strength'));
  const plannedActive=!!(planned?.startedAt&&!planned.completed),strengthActive=plannedActive||!!activeExtra;
  const strengthAction=plannedActive?'openPlannedWorkspace()':activeExtra?`editExtraSession('${activeExtra.id}')`:'openTrainingSelector()';
  const swimRecord=(state.swim||[]).find(s=>s.date===date&&s.completed);
+ const strengthRecords=trainingStrengthRecords(date),doubleDay=trainingDoubleDay(date);
+ const strengthLabel=strengthActive?'Sesión en curso · continuar':doubleDay&&strengthRecords.length===1?'Iniciar segunda sesión':doubleDay&&!strengthRecords.length?'Elegir e iniciar la primera sesión':'Elegir e iniciar una sesión';
  return `<div class="training-entry training-hub">
   <span class="context-label">Entrenamiento</span>
   <h2>Registrar entrenamiento</h2>
   <div class="training-mode-list">
-   <button type="button" class="training-mode-choice" onclick="${strengthAction}"><span class="training-mode-icon" aria-hidden="true">F</span><span class="training-mode-copy"><strong>Fuerza</strong><small>${strengthActive?'Sesión en curso · continuar':'Elegir e iniciar una sesión'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
-   <button type="button" class="training-mode-choice" onclick="openSwimRegistration()"><span class="training-mode-icon" aria-hidden="true">N</span><span class="training-mode-copy"><strong>Natación</strong><small>${swimRecord?'Sesión registrada · revisar o editar':'Registrar al terminar'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
+   <button type="button" class="training-mode-choice" onclick="${strengthAction}"><span class="training-mode-icon" aria-hidden="true">F</span><span class="training-mode-copy"><strong>Fuerza</strong><small>${strengthLabel}</small>${doubleDay?`<small>${strengthRecords.filter(s=>s.completed).length} sesiones guardadas hoy · puedes hacer dos</small>`:''}</span><span class="training-mode-chevron" aria-hidden="true">›</span></button>
+   ${trainingSwimAvailable(date)||swimRecord?`<button type="button" class="training-mode-choice" onclick="openSwimRegistration()"><span class="training-mode-icon" aria-hidden="true">N</span><span class="training-mode-copy"><strong>Natación</strong><small>${swimRecord?'Sesión registrada · revisar o editar':'Registrar al terminar'}</small></span><span class="training-mode-chevron" aria-hidden="true">›</span></button>`:''}
   </div>
  </div>
  ${disclosureHTML('workout-week','Semana y planificación',typeof oct26FlexContext==='function'&&oct26FlexContext(date)?oct26WeeklyPoolHTML(date):'<button class="btn secondary" onclick="openPendingWorkouts()">Ver sesiones pendientes</button>')}
