@@ -564,14 +564,16 @@ function homeNutritionPrompt(date,minuteOfDay=null){
  const done=meal=>homeMealRegistered(date,meal)||homeMealSkipped(date,meal);
  const swimDay=dayActivities(date).some(item=>item.kind==='Natación')||(state.swim||[]).some(item=>item.date===date);
  const mediaActive=!!state.nutritionPlan?.optionalMeals?.[date]?.['Media mañana']||homeMealRegistered(date,'Media mañana');
+ const snackActive=!!state.nutritionPlan?.optionalMeals?.[date]?.Merienda||homeMealRegistered(date,'Merienda');
+ const postActive=!!state.nutritionPlan?.optionalMeals?.[date]?.['Post-entreno']||homeMealRegistered(date,'Post-entreno');
  const prompt=(meal,title,desc)=>({icon:'food',title,desc,action:`openHomeNutritionMeal('${meal}')`,nutrition:true,meal});
  if(minute>=420&&minute<630&&!done('Desayuno'))return prompt('Desayuno','Registra el desayuno',minute>=570?'Si ya has desayunado, déjalo registrado.':'Desayuna antes de las 10 h.');
  if(minute>=630&&minute<750&&mediaActive&&!done('Media mañana'))return prompt('Media mañana','Media mañana pendiente','Regístrala cuando la hagas.');
  if(minute>=810&&minute<960&&!done('Almuerzo'))return prompt('Almuerzo','Registra el almuerzo','Déjalo registrado cuando termines.');
- if(minute>=1065&&minute<1170&&!done('Merienda'))return prompt('Merienda','Que no se te olvide merendar','Buena ventana: 18–19 h.');
+ if(minute>=1065&&minute<1170&&snackActive&&!done('Merienda'))return prompt('Merienda','Merienda voluntaria prevista','Regístrala si la consumes o marca «No consumido».');
  if(swimDay&&minute>=1170&&minute<1290&&!done('Cena'))return prompt('Cena','Cena antes de natación','Hoy, alrededor de las 20 h.');
  if(!swimDay&&minute>=1245&&minute<1350&&!done('Cena'))return prompt('Cena','Hora de cenar','Hoy, entre las 21 y 22 h.');
- if(swimDay&&minute>=1410&&minute<=1439&&!done('Post-entreno'))return prompt('Post-entreno','Post-entreno pendiente','Al volver de natación · 23:30–00:00.');
+ if(swimDay&&minute>=1410&&minute<=1439&&postActive&&!done('Post-entreno'))return prompt('Post-entreno','Postentreno voluntario previsto','Al volver de natación · registra el consumo o marca «No consumido».');
  return null
 }
 function openHomeNutritionMeal(meal){
@@ -1430,7 +1432,7 @@ function renderFood(){
    html+=`<div class="meal"><div class="mealhead"><div><strong>${mt}</strong><small>${esc(MEAL_HINTS[mt]||"")}</small><div class="meal-summary"><span class="meal-total">${Math.round(total.kcal)} kcal · ${Math.round(total.p)} g proteína</span></div></div><div class="row" style="gap:7px"><span class="pill">${group.length}</span><button type="button" class="btn ghost small" onclick="openFoodModal('${mt}')">+ Añadir</button></div></div>`;
    const shownDishGroups=new Set();
    group.forEach(i=>{const db=foodRecord(i.foodKey);if(db){
-    if(i.dishGroupId&&i.dishName&&!shownDishGroups.has(i.dishGroupId)){shownDishGroups.add(i.dishGroupId);html+=`<div class="food-dish-saved"><span>Plato rápido</span><strong>${esc(i.dishName)}</strong><small>Ingredientes editables por separado</small></div>`}
+    if(i.dishGroupId&&i.dishName&&!shownDishGroups.has(i.dishGroupId)){shownDishGroups.add(i.dishGroupId);html+=`<div class="food-dish-saved"><span>${i.workMenu?'Menú del trabajo':'Plato rápido'}</span><strong>${esc(i.dishName)}</strong><small>${i.workMenu?'Platos y complementos registrados por separado':'Ingredientes editables por separado'}</small></div>`}
     const meta=foodInputMeta(i.foodKey),baseKey=i.planBaseFoodKey||(db.custom?preferredBaseFoodForCustom(i.foodKey):""),displayName=baseKey&&FOOD_DB[baseKey]?.name||db.name;html+=`<div class="foodrow ${i.dishGroupId?'foodrow-dish':''}"><div><b>${esc(displayName)}</b><small>${Math.round(calcFood(i).kcal)} kcal · referencia: ${esc(meta.reference)}</small></div><div class="amount">${foodDisplayAmount(i)}</div><div class="food-actions">${i.photoId?`<button type="button" class="food-edit-btn" onclick="openOneOffFoodPhoto('${i.id}')">Foto</button>`:''}<button type="button" class="food-edit-btn" onclick="openEditFood('${i.id}')">Editar</button><button type="button" class="food-delete-btn" aria-label="Eliminar ${esc(db.name)}" onclick="deleteFood('${i.id}')">×</button></div></div>`
    }});
    html+=`</div>`
