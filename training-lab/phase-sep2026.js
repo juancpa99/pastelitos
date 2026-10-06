@@ -12,7 +12,7 @@ const SEP26_PLANS={
 "0":{key:"sep26_rest",title:"Descanso + recuperación",type:"rest",subtitle:"Movilidad completa y core en el complemento",exercises:[]},
 "1":{key:"sep26_swim_mon",title:"Natación",type:"swim",subtitle:"Sesión del entrenador · complemento estético 16–17 h",exercises:[]},
 "2":{key:"sep26_a",title:"Gym A",type:"gym",subtitle:"Full body · fuerza, pectoral superior, cuádriceps e isquios",exercises:[
-PMOB("med_ball_chest_pass","Lanzamiento de balón medicinal al pecho","Potencia","3 × 3 · 60–90 s","Máxima velocidad y cero fatiga acumulada. Cada repetición explosiva y limpia; aquí sí descansa 60–90 s aunque no haya cronómetro automático."),
+PMOB("power_incline_push_up","Flexiones rápidas inclinadas · potencia","Potencia","3 × 5 · 2 min","Manos apoyadas en una barra de Smith fijada o banco estable. Sube con intención rápida sin despegar las manos; frena antes de bloquear los codos y baja en 2 s. Sube la altura del apoyo para mantener velocidad y técnica. Para si cae la velocidad o molesta el hombro; no llegar al fallo. Activación de potencia, no serie efectiva de hipertrofia."),
 PSTR("hack_squat","Hack squat",3,5,8,"1–2","3 min","Cuádriceps + glúteo","Baja 2–3 s con ROM profundo y pelvis estable; desde abajo intenta acelerar sin rebotar."),
 PSTR("incline_db_press","Press inclinado con mancuernas · ~30°",3,6,8,"1–2","2–3 min","Pectoral superior + deltoide anterior","Prioridad pectoral superior. Escápulas estables, estiramiento controlado y concéntrica con intención rápida."),
 PSTR("chest_supported_row","Remo con pecho apoyado",3,6,10,"1–2","2–3 min","Espalda","Estable para no sumar fatiga inútil a la natación: pecho apoyado, sin impulso lumbar; tira fuerte y controla la vuelta."),

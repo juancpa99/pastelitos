@@ -35,7 +35,7 @@ function oct26WeekFocus(date=currentDate()){
 
 const OCT26_BASE_PLANS={
  "1":{key:"oct26_push",title:"Push + abdomen",type:"gym",subtitle:"Pecho prioritario · tríceps · deltoide lateral · natación 22–23 h",exercises:[
-  O26POWER("med_ball_chest_pass","Lanzamiento de balón medicinal al pecho","3 × 3 · 60–90 s","Primer de potencia para natación: cada repetición a máxima velocidad, cero fatiga. Para cuando pierdas explosividad."),
+  O26POWER("power_incline_push_up","Flexiones rápidas inclinadas · potencia","3 × 5 · 2 min","Manos apoyadas en una barra de Smith fijada o banco estable. Sube con intención rápida sin despegar las manos; frena antes de bloquear los codos y baja en 2 s. Sube la altura del apoyo para mantener velocidad y técnica. Para si cae la velocidad o molesta el hombro; no llegar al fallo. Activación de potencia, no serie efectiva de hipertrofia."),
   O26STR("incline_db_press","Press inclinado con mancuernas · ~30°",4,5,8,"1–2","2,5–3 min","Pectoral superior + deltoide anterior","Ejercicio principal de fuerza del torso. Baja controlado, pecho alto y concéntrica con intención explosiva sin rebotar."),
   O26STR("machine_chest_press","Press de pecho en máquina",3,6,10,"1–2","2–3 min","Pectoral + deltoide anterior","Máxima estabilidad para cargar el pectoral. No conviertas la repetición en un press de hombro; controla la excéntrica."),
   O26STR("pec_deck","Pec-deck / aperturas en polea",2,10,15,"1","90–120 s","Pectoral","Hipertrofia local: estiramiento controlado y aducción completa. Última serie dura, pero sin dolor anterior de hombro."),
