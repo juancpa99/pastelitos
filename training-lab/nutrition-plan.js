@@ -226,7 +226,13 @@
   function loggedMealFoods(date,meal){return (state.foods||[]).filter(f=>f.date===date&&f.meal===meal)}
   function loggedNutrition(rows){return rows.reduce((sum,f)=>addNutrition(sum,calcFood(f)),{kcal:0,p:0,c:0,f:0})}
   function adaptationCutoff(date){
-    return MEALS.reduce((last,meal,index)=>loggedMealFoods(date,meal).length||(meal!=='Post-entreno'&&isMealSkipped(date,meal))?Math.max(last,index):last,workLunchActive(date)?MEALS.indexOf('Almuerzo'):-1)
+    return MEALS.reduce((last,meal,index)=>loggedMealFoods(date,meal).length||(meal!=='Post-entreno'&&(isMealSkipped(date,meal)||manualMealPlan(date,meal)&&optionalMealActive(date,meal)))?Math.max(last,index):last,workLunchActive(date)?MEALS.indexOf('Almuerzo'):-1)
+  }
+  function manualMealPlan(date,meal){
+    const option=selectedOption(date,meal),custom=planState().amountOverrides?.[date]?.[meal];
+    if(!option||custom?.optionId!==option.id||!custom.amounts)return null;
+    const items=Object.entries(custom.amounts).filter(([key,amount])=>foodRecord(key)&&Number.isFinite(+amount)&&+amount>=0).map(([key,amount])=>[key,+amount]);
+    return {items,nutrition:sumNutrition(items),manualFixed:true}
   }
   function macroTargets(date){
     const target=targetFor(date),goals=state.settings.nutritionGoals||{};
@@ -437,6 +443,8 @@
         const logged=loggedMealFoods(date,meal);
         if(logged.length){addNutrition(fixed,loggedNutrition(logged));return;}
         if(isMealSkipped(date,meal)||!optionalMealActive(date,meal)){targets[meal]={kcal:0,protein:0};return;}
+        const manual=manualMealPlan(date,meal);
+        if(manual){addNutrition(fixed,manual.nutrition);targets[meal]={kcal:manual.nutrition.kcal,protein:manual.nutrition.p};return;}
         if(meal==='Post-entreno'){
           const post=reservedPostPlan(date);if(post)addNutrition(fixed,post.nutrition);
           targets[meal]={kcal:(target.kcal||0)*BASE_SHARES[meal].kcal,protein:(target.protein||0)*BASE_SHARES[meal].protein};return;
@@ -491,6 +499,8 @@
     const logged=loggedMealFoods(date,meal);
     if(logged.length)return {meal,option,skipped:false,optionalInactive:false,workFixed:true,items:logged.map(f=>[f.foodKey,fromStoredFoodAmount(f)]),nutrition:loggedNutrition(logged)};
     if(isMealSkipped(date,meal))return {meal,option,skipped:true,optionalInactive:false,items:[],nutrition:{kcal:0,p:0,c:0,f:0}};
+    const manual=manualMealPlan(date,meal);
+    if(manual)return {meal,option,skipped:false,optionalInactive:!optionalMealActive(date,meal),...manual};
     if(workLunchActive(date)){
       if(MEALS.indexOf(meal)<MEALS.indexOf('Almuerzo')){
         const previous=planState().workLunches?.[date]?.beforeLunchRows?.find(row=>row.meal===meal);
@@ -526,7 +536,7 @@
     return proteinShort*10000+Math.abs(n.kcal-(target.kcal||0))*100+proteinExcess*4+macroError
   }
   function adjustableRowItems(date,row){
-    if(!row||row.workFixed||row.reserved||row.skipped||row.optionalInactive||slotLogged(date,row.meal))return [];
+    if(!row||row.workFixed||row.manualFixed||row.reserved||row.skipped||row.optionalInactive||slotLogged(date,row.meal))return [];
     if(row.meal==='Almuerzo'||MEALS.indexOf(row.meal)<=adaptationCutoff(date))return [];
     return row.items.map(([key,amount],index)=>{
       const baseKey=basePlanFoodKey(key);
@@ -606,7 +616,7 @@
       tuned[best.b.rowIndex].nutrition=sumNutrition(tuned[best.b.rowIndex].items);
       total=best.total;bestScore=best.score;
     }
-    tuned.forEach(row=>{row.items=row.items.filter(([,amount])=>amount>0)});
+    tuned.forEach(row=>{if(!row.manualFixed)row.items=row.items.filter(([,amount])=>amount>0)});
     return tuned
   }
   const dayPlanCache=new Map();
@@ -794,8 +804,23 @@
     const options=OPTIONS[meal]||[],selected=selectedOptionId(date,meal),current=mealPlan(date,meal);
     const previewShare=meal==='Media mañana'?MEDIA_MORNING_SHARE:BASE_SHARES[meal];
     const previewTarget=OPTIONAL_MEALS.includes(meal)&&!optionalMealActive(date,meal)?{kcal:(targetFor(date).kcal||0)*previewShare.kcal,protein:(targetFor(date).protein||0)*previewShare.protein}:null;
-    const amounts=current&&!current.skipped&&!current.option.workMenu?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades</div>${current.items.map(([key,amount],i)=>{const meta=foodInputMeta(key);return `<label><span><strong>${esc(planFoodDisplayName(key))}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" inputmode="decimal" value="${amount}"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
+    const records=loggedMealFoods(date,meal);
+    const editableItems=current?(current.items||[]).map(item=>[...item]):[];
+    if(current&&!records.length){
+      [...(current.option.fixed||[]),...(current.option.vars||[])].forEach(([baseKey])=>{
+        const key=planFoodKey(baseKey);if(!editableItems.some(([existing])=>existing===key))editableItems.push([key,0])
+      })
+    }
+    const amounts=current&&!current.skipped&&!current.option.workMenu?`<div class="nutrition-plan-amount-editor"><div class="eyebrow">Cantidades ${records.length?'del consumo registrado':'previstas para este día'}</div>${editableItems.map(([key,amount],i)=>{const meta=foodInputMeta(key);return `<label><span><strong>${esc(planFoodDisplayName(key))}</strong><small>${esc(meta.reference)}</small></span><span class="nutrition-plan-amount-control"><input id="planAmount_${i}" data-food-key="${esc(key)}" data-record-id="${esc(records[i]?.id||'')}" inputmode="decimal" value="${amount}" oninput="previewNutritionPlanMealAmounts()"><b>${esc(meta.inputUnit)}</b></span></label>`}).join('')}<div id="planAmountsPreview" role="status" aria-live="polite"></div><p class="subtitle">${records.length?'Guardar corrige esta comida registrada y recalcula lo pendiente.':'Guardar mantiene estas cantidades y recalcula las comidas posteriores. «Reajustar resto» devuelve las cantidades pendientes al cálculo automático.'}</p><button type="button" class="btn secondary" onclick="saveNutritionPlanMealAmounts('${date}','${meal}')">Guardar cantidades</button></div>`:'';
     document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">${esc(meal)}</div><div class="hero-title">Ajustar comida</div></div><button type="button" class="btn ghost small" onclick="closeModal()">Cerrar</button></div>${amounts}<div class="nutrition-plan-option-title">Cambiar plato</div><div class="nutrition-plan-option-list">${options.map(option=>{const fitted=fitOption(date,meal,option,previewTarget);return `<button type="button" class="nutrition-plan-option ${option.id===selected?'active':''}" onclick="chooseNutritionPlanMeal('${date}','${meal}','${option.id}')"><span><strong>${esc(option.name)}</strong><small>${esc(itemSummary(fitted.items))}</small></span><em>${Math.round(fitted.nutrition.kcal)} kcal · ${Math.round(fitted.nutrition.p)} g proteína</em></button>`}).join('')}</div></div></div>`
+    previewNutritionPlanMealAmounts();
+  };
+  window.previewNutritionPlanMealAmounts=function(){
+    const root=document.getElementById('planAmountsPreview');if(!root)return;
+    const inputs=[...document.querySelectorAll('[id^="planAmount_"]')],items=inputs.map(input=>[input.dataset.foodKey,parseLocaleNumber(input.value)]);
+    if(items.some(([,amount])=>!Number.isFinite(amount)||amount<0)){root.textContent='Revisa las cantidades';return;}
+    const n=sumNutrition(items);
+    root.textContent=`Vista previa · ${Math.round(n.kcal)} kcal · ${Number(n.p.toFixed(1))} g proteína · ${Number(n.c.toFixed(1))} g carbohidratos · ${Number(n.f.toFixed(1))} g grasas`;
   };
   window.saveNutritionPlanMealAmounts=function(date,meal){
     const option=selectedOption(date,meal),inputs=[...document.querySelectorAll('[id^="planAmount_"]')];
@@ -806,16 +831,18 @@
       amounts[input.dataset.foodKey]=n
     }
     const ps=planState();
-    if(meal==='Almuerzo'){
-      Object.entries(amounts).forEach(([key,value])=>{
-        const baseKey=basePlanFoodKey(key);
-        if(Object.prototype.hasOwnProperty.call(TUPPER_PORTIONS,baseKey))ps.tupperPortions[baseKey]=value
-      });
-      Object.values(ps.amountOverrides).forEach(day=>{if(day&&typeof day==='object')delete day.Almuerzo});
-      saveState(true);closeModal();renderAll();showView('Food');toast('Cantidad estándar actualizada');return
+    if(loggedMealFoods(date,meal).length){
+      const edits=inputs.map(input=>({item:state.foods.find(f=>f.id===input.dataset.recordId&&f.date===date&&f.meal===meal),amount:parseLocaleNumber(input.value)}));
+      if(edits.some(edit=>!edit.item)){toast('El registro ha cambiado; vuelve a abrir Ajustar');return;}
+      edits.forEach(({item,amount})=>{item.amount=toStoredFoodAmount(item.foodKey,amount);item.displayAmount=amount;item.displayUnit=foodInputMeta(item.foodKey).inputUnit});
+      clearFlexibleOverrides(date,meal);
+      saveState();closeModal();renderAll();showView('Food');toast('Consumo actualizado · resto recalculado');return;
     }
     if(!ps.amountOverrides[date])ps.amountOverrides[date]={};
     ps.amountOverrides[date][meal]={optionId:option.id,amounts};
+    if(OPTIONAL_MEALS.includes(meal)){
+      if(!ps.optionalMeals[date])ps.optionalMeals[date]={};ps.optionalMeals[date][meal]=true;
+    }
     saveState(true);closeModal();renderAll();showView('Food');toast('Cantidades actualizadas')
   };
   window.chooseNutritionPlanMeal=function(date,meal,optionId){
