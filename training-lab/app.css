@@ -738,6 +738,22 @@ body[data-view="Home"] .today-btn{
 }
 .home-meter{width:100%;height:4px;margin-top:12px;background:#172c3b;border-radius:99px;overflow:hidden}
 .home-meter i{display:block;height:100%;border-radius:inherit;background:var(--home-card-accent)}
+.work-menu-sheet h2{font-size:1.3rem;margin:8px 0}
+.work-menu-modes{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.work-menu-course,.work-menu-extra{padding:16px 0;border-bottom:1px solid var(--line)}
+.work-menu-course select,.work-menu-sheet input{font-size:1rem}
+.work-menu-values{margin-top:12px}
+.work-menu-values summary{cursor:pointer;min-height:44px;padding:10px 0;font-size:.875rem;color:var(--muted)}
+.work-menu-values .field span,.work-menu-portion span,.work-menu-values small{font-size:.875rem}
+.work-menu-portion{max-width:180px;margin-top:12px}
+.work-menu-extra-check,.work-menu-review{display:flex;align-items:center;gap:12px;font-size:1rem;line-height:1.5}
+.work-menu-extra-check input,.work-menu-review input{width:22px;height:22px;flex-shrink:0}
+.work-menu-review{margin:14px 0}
+.work-menu-review[hidden],#workMenuWarning[hidden]{display:none}
+.work-menu-total{font-size:1rem;font-weight:700;line-height:1.6;padding:16px 0}
+.work-menu-balance{margin:14px 0}
+.work-menu-balance p,.work-menu-balance small{font-size:.875rem;line-height:1.5}
+.work-menu-plan-row .nutrition-plan-meal-actions{flex-wrap:wrap}
 .progress-phase-assessment{margin:14px 0}
 .progress-phase-assessment>.card{margin:0}
 
