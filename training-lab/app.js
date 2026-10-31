@@ -599,8 +599,8 @@ function renderHome(){
  const pendingCount=trainingPending.length+pendingItems.length;
  const canAddStrength=trainingDoubleSessionAvailable(x),strengthCount=trainingStrengthRecords(x).length;
  const trainingStatus=active?'Sesión en curso':trainingPending.length===1?'1 sesión pendiente':trainingPending.length>1?`${trainingPending.length} sesiones pendientes`:canAddStrength?(strengthCount?'Primera sesión guardada · puedes hacer otra':'Puedes elegir una sesión de fuerza'):allDone?'Entrenamiento registrado':'Sin sesión pendiente';
- const heroTitle=active?'Sesión en marcha.':pendingCount?'Lo pendiente de hoy.':allDone?'Trabajo hecho.':'Todo al día.';
- const heroText=active?'Continúa tu sesión y deja el registro al día.':pendingCount?(inPast?'Completa los registros de este día.':'Aquí tienes lo que falta por hacer o registrar.'):allDone?'El entrenamiento de hoy ya está registrado.':'No hay tareas pendientes por ahora.';
+ const heroTitle=active?'Sesión en marcha.':pendingCount?'Lo pendiente de hoy.':allDone?'Trabajo hecho.':'Tu día, a tu ritmo.';
+ const heroText=active?'Continúa tu sesión y deja el registro al día.':pendingCount?(inPast?'Completa los registros de este día.':'Aquí tienes lo que falta por hacer o registrar.'):allDone?'El entrenamiento de hoy ya está registrado.':'Elige cuándo entrenar y lleva tu registro al día.';
  const buttonLabel=active?'Continuar entrenamiento':canAddStrength&&strengthCount===1?'Registrar segunda sesión':trainingPending.length||canAddStrength?'Registrar entrenamiento':allDone?'Revisar entrenamiento':'Ir a Entreno';
  const kcal=Math.round(nut.kcal||0),protein=Math.round(nut.p||0),kcalGoal=Math.round(+goals.kcal||0),proteinGoal=Math.round(+goals.p||0),kcalPct=kcalGoal?Math.min(100,Math.max(0,kcal/kcalGoal*100)):0;
  const root=document.getElementById('viewHome');rememberDisclosures(root);
@@ -618,7 +618,7 @@ function renderHome(){
      ${pendingItems.length?`<div class="home-command-pending" aria-label="Otros pendientes de hoy">${pendingItems.map(homePendingItemHTML).join("")}</div>`:""}
         </div>
   </section>`;
- html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">DE UN VISTAZO</span><h2>Tu MAREVO</h2></div></div>
+ html+=`<section class="home-secondary-section"><div class="home-section-head"><div><span class="home-section-kicker">DE UN VISTAZO</span><h2>Tu registro</h2></div></div>
    <div class="home-destination-grid">
     <button type="button" class="home-destination home-food-card" onclick="showView('Food')">
       <div class="home-destination-top"><span class="home-destination-icon">${homeIconSVG('food')}</span><span class="home-chevron" aria-hidden="true">›</span></div>
@@ -629,7 +629,7 @@ function renderHome(){
     </button>
     <button type="button" class="home-destination home-progress-card" onclick="showView('Progress')">
       <div class="home-destination-top"><span class="home-destination-icon">${homeIconSVG('progress')}</span><span class="home-chevron" aria-hidden="true">›</span></div>
-      <span class="home-destination-label">Progreso</span>
+      <span class="home-destination-label">Actividad semanal</span>
       <strong>${weekly.sessions} <small>${weekly.sessions===1?'sesión registrada':'sesiones registradas'}</small></strong>
       <span>Esta semana · ${weekly.strength} fuerza · ${weekly.swim} natación</span>
     </button>

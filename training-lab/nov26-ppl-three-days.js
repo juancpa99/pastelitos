@@ -3,7 +3,7 @@
 (function(){
   const START="2026-11-02", END="2026-11-29";
   const KEYS=["nov26_push","nov26_pull","nov26_legs"];
-  const DAYS=[{day:2,label:"Martes · Push"},{day:4,label:"Jueves · Pull"},{day:6,label:"Sábado o domingo · Legs"}];
+  const DAYS=[{day:2,label:"Martes · Push"},{day:4,label:"Jueves · Pull"},{day:6,label:"Pierna · pendiente semanal"}];
   function inBlock(date){return typeof date==="string"&&date>=START&&date<=END}
   function weekOf(date){return inBlock(date)?Math.min(4,Math.floor((Date.parse(date+"T12:00:00Z")-Date.parse(START+"T12:00:00Z"))/604800000)+1):0}
   function strength(key,name,sets,min,max,muscle,rest,note,rir="1–2"){
@@ -141,16 +141,17 @@
   };
   function actionButton(key,date){
     const st=weeklyStatus(date,key);
+    if(oct26SwimDay(date))return '<span class="pill">'+st.label+'</span>';
     if(st.state==="done")return '<span class="pill good">Hecha</span>';
     return '<button class="btn secondary small" onclick="oct26StartWeeklySession(\''+key+'\')">'+(st.state==="active"?"Continuar":"Iniciar")+'</button>';
   }
   function pool(date){
     const rows=DAYS.map(function(slot,i){
       const key=KEYS[i],s=weeklyStatus(date,key),p=PLANS[key];
-      return '<div class="task"><div class="ico">'+(i+1)+'</div><div style="min-width:0"><strong>'+esc(slot.label)+' · '+esc(p.title)+'</strong><small>'+s.label+' · '+(i===2?"Elige sábado o domingo":"Sesión principal compartible")+'</small></div>'+actionButton(key,date)+'</div>';
+      return '<div class="task"><div class="ico">'+(i+1)+'</div><div style="min-width:0"><strong>'+esc(slot.label)+' · '+esc(p.title)+'</strong><small>'+s.label+' · '+(i===2?"Recuperación opcional el fin de semana":"Sesión principal compartible")+'</small></div>'+actionButton(key,date)+'</div>';
     }).join("");
     const count=KEYS.filter(function(k){return oct26WeeklyCompleted(date,k)}).length;
-    return '<div class="section oct26-week-pool-section">Tus 3 sesiones · noviembre</div><div class="card oct26-week-pool"><div class="row between"><div><div class="eyebrow">Semana de hipertrofia</div><strong>Martes · Jueves · Sábado o domingo</strong></div><span class="pill">'+count+'/3</span></div><p class="subtitle" style="margin-top:8px">Máximo 90 min por sesión. En el fin de semana solo hay una sesión de pierna, aunque puedes realizarla el sábado o el domingo. Natación lunes, miércoles y viernes.</p>'+rows+'<div class="callout" style="margin-top:10px">'+esc(focus(date))+'</div></div>';
+    return '<div class="section oct26-week-pool-section">Tus 3 sesiones · noviembre</div><div class="card oct26-week-pool"><div class="row between"><div><div class="eyebrow">Semana de hipertrofia</div><strong>Martes · Jueves · Recuperación opcional</strong></div><span class="pill">'+count+'/3</span></div><p class="subtitle" style="margin-top:8px">Máximo 90 min por sesión. Natación lunes, miércoles y viernes. El fin de semana puedes recuperar sesiones pendientes, incluida pierna; las ya completadas no se repiten.</p>'+rows+'<div class="callout" style="margin-top:10px">'+esc(focus(date))+'</div></div>';
   }
   const oldPool=oct26WeeklyPoolHTML;
   oct26WeeklyPoolHTML=function(date=currentDate()){return inBlock(date)?pool(date):oldPool(date)};

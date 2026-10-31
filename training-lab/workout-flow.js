@@ -6,7 +6,7 @@ function trainingStrengthRecords(date){
 function trainingDoubleDay(date){return [2,4,6,0].includes(weekday(date))}
 function trainingDoubleSessionAvailable(date){
  if(!trainingDoubleDay(date)||trainingStrengthRecords(date).length>=2)return false;
- return typeof oct26FlexContext!=='function'||!oct26FlexContext(date)||OCT26_WEEKLY_KEYS.some(key=>oct26SessionStatus(date,key).state==='pending');
+ return typeof oct26FlexContext!=='function'||!oct26FlexContext(date)||oct26WeekOrder(date).some(key=>oct26SessionStatus(date,key).state==='pending');
 }
 function trainingSwimAvailable(date){
  return typeof oct26FlexContext!=='function'||!oct26FlexContext(date)||oct26SwimDay(date);
