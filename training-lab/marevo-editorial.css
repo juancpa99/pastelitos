@@ -1,12 +1,12 @@
 /* MAREVO / Editorial sports system. All controls share these semantic tokens. */
 :root {
-  color-scheme:light;
+  color-scheme:var(--scheme,light);
   --bg:#f5f3eb; --panel:#fffefa; --panel-strong:#ebece3; --soft:#eeeee6;
   --surface-tint:#e8eee8; --line:#d5dbd2; --line-strong:#8d9f94;
   --text:#102e28; --muted:#536b61; --teal:#155d49; --teal-strong:#104937;
   --cyan:#215f7a; --lime:#44672d; --amber:#805512; --red:#a12f40; --radius:12px;
 }
-body { --section-accent:var(--teal); --section-deep:var(--teal-strong); --section-rgb:21,93,73; color-scheme:light; line-height:1.5; }
+body { --section-accent:var(--teal); --section-deep:var(--teal-strong); --section-rgb:21,93,73; color-scheme:var(--scheme,light); line-height:1.5; }
 body,input,button,select,textarea { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
 button,input,select,textarea { accent-color:var(--teal); }
 button { transition:background-color .15s,color .15s; }
@@ -23,7 +23,7 @@ h1 { font-size:42px;font-weight:800;letter-spacing:-.045em; }
 .subtitle { font-size:14px;line-height:1.5; }
 .date-nav,body[data-view=Home] .date-nav { border:0;background:transparent;border-radius:0;padding:0;box-shadow:none; }
 .datebox,body[data-view=Home] .datebox { background:transparent;border:0; }
-.datebox input { color:var(--text);color-scheme:light; }
+.datebox input { color:var(--text);color-scheme:var(--scheme,light); }
 .date-step,body[data-view=Home] .date-step,.today-btn,body[data-view=Home] .today-btn { background:transparent;border:1px solid var(--line-strong);color:var(--text);border-radius:50%;min-width:44px;min-height:44px; }
 .today-btn,body[data-view=Home] .today-btn { border-radius:8px; }
 body[data-view=Home] .headrow { margin-top:24px; }
@@ -40,7 +40,7 @@ body[data-view=Home] #pageSubtitle { display:none; }
 .btn.danger { background:#f9e6e8;color:var(--red);border:1px solid #ddafb6; }
 .btn.small { min-height:44px;font-size:13px; }
 .btn:hover,.home-training-cta:hover { filter:brightness(.96); }
-.field input,.field select,.field textarea,.setrow input,.sheet input:not([type=checkbox]):not([type=radio]),.sheet select,.sheet textarea { background:var(--panel);color:var(--text);border-color:var(--line-strong);border-radius:8px;color-scheme:light; }
+.field input,.field select,.field textarea,.setrow input,.sheet input:not([type=checkbox]):not([type=radio]),.sheet select,.sheet textarea { background:var(--panel);color:var(--text);border-color:var(--line-strong);border-radius:8px;color-scheme:var(--scheme,light); }
 .field label { font-size:13px; }
 .metric,.body-metric-card { background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:15px 8px; }
 .metric .v,.body-v { font-size:32px;letter-spacing:-.04em;font-variant-numeric:tabular-nums; }
@@ -159,3 +159,22 @@ body[data-view=Home] #pageSubtitle { display:none; }
 }
 
 #viewProgress svg text { font-size:12px; }
+
+/* Follow the device appearance, including native form controls. */
+@media (prefers-color-scheme:dark) {
+  :root {
+    --scheme:dark;
+    --bg:#101b18; --panel:#192722; --panel-strong:#24372e; --soft:#1d2e27;
+    --surface-tint:#263d31; --line:#364c40; --line-strong:#698575;
+    --text:#eff3e9; --muted:#b1c2b5; --teal:#9bd4b1; --teal-strong:#b4e4c5;
+    --cyan:#9dccdf; --lime:#b5d38e; --amber:#efd08e; --red:#ffacb7;
+  }
+  .btn,.btn:not(.secondary):not(.ghost):not(.danger) { color:var(--bg); }
+  .btn.secondary,.btn.ghost { color:var(--text); }
+  .btn.danger { background:#43272d;color:var(--red);border-color:#86515a; }
+  .pill.warn,.callout.warn { background:#3b3323;border-color:#796944;color:var(--amber); }
+  .home-cta-copy>span { color:#253e30; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { scroll-behavior:auto!important;animation:none!important;transition:none!important; }
+}

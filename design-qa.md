@@ -28,4 +28,7 @@ Seven relevant test files pass: quantities; double sessions; gym-friendly power;
 Two other existing tests fail on both original commit 9743c6c and this branch: push-notifications.cjs has an outdated source-text assertion; ux-hierarchy.cjs assumes an optional afternoon meal is active. These were not changed by this redesign.
 
 ## Delivery
-Prepared on a separate branch for review. Not merged or deployed to the existing public app.
+Published after explicit user instruction. The initial release was verified byte-for-byte on GitHub Pages. Visual QA remains incomplete as described above.
+
+## Follow-up review
+Added automatic device dark appearance, native dark form controls and matching browser theme colours. Added reduced-motion support. Text, secondary text, accent, warning and error semantic colours pass WCAG AA normal-text contrast against their primary surfaces in both palettes. The calendar and all-view rendering regression test still passes. A local Chromium installation was attempted as an alternative to the unavailable cloud browser, but its download failed. No full visual sign-off is claimed.
