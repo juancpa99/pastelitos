@@ -118,7 +118,8 @@
     return oct26SwimDay(date)?"Natación":"Descanso / recuperar";
   };
   oct26WeekLabel=oct26FlexibleWeekLabel;
-  homeWeekLabel=oct26FlexibleWeekLabel;
+  const oldHomeWeekLabel=homeWeekLabel;
+  homeWeekLabel=function(date){return inBlock(date)?oct26FlexibleWeekLabel(date):oldHomeWeekLabel(date)};
   const oldSecondary=oct26SecondaryTuesdayHTML;
   oct26SecondaryTuesdayHTML=function(date=currentDate()){return inBlock(date)?"":oldSecondary(date)};
   const oldStart=oct26StartWeeklySession;
