@@ -52,16 +52,29 @@ function workoutPlanningHTML(date,week){
 }
 function activeSessionExerciseHTML(e,i,scope,session){
  const card=exerciseCardHTML(e,i,scope);
- if(!session.startedAt||session.completed)return card;
  const first=session.exercises.findIndex(e=>e.type==='mobility'?!e.done:effectiveCount(e)<(+e.sets||0));
  const key=`exercise:${session.date}:${scope==='planned'?session.key:scope}:${i}`;
- const count=e.type==='mobility'?(e.done?'Realizado':'Pendiente'):`${effectiveCount(e)}/${e.sets} series`;
- return disclosureHTML(key,`${i+1}. ${e.name}`,card+(i<session.exercises.length-1?`<button class="btn secondary next-exercise" onclick="openNextExercise(this)">Siguiente ejercicio</button>`:''),i===(first<0?0:first),count);
+ const done=e.type==='mobility'?(e.done?1:0):effectiveCount(e),goal=e.type==='mobility'?1:+e.sets||0;
+ const expanded=viewDisclosures.has(key)?viewDisclosures.get(key):!session.completed&&i===(first<0?0:first);
+ const count=e.type==='mobility'?(e.done?'Realizado':'Pendiente'):`${done}/${goal} series`;
+ const dots=Array.from({length:Math.min(goal,12)},(_,n)=>`<i class="${n<done?'filled':''}"></i>`).join('');
+ return `<details class="view-disclosure workout-exercise ${done>=goal?'exercise-complete':''}" data-disclosure="${esc(key)}" ${expanded?'open':''}><summary><span class="exercise-order">${String(i+1).padStart(2,'0')}</span><span class="exercise-summary-copy"><strong>${esc(e.name)}</strong><small>${esc(e.type==='mobility'?e.dose||'Movilidad':`${e.min}–${e.max} reps · ${e.rest||''}`)}</small></span><span class="exercise-summary-progress"><span>${count}</span><span class="exercise-dots" aria-hidden="true">${dots}</span></span><span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><div class="disclosure-content">${card}</div></details>`;
 }
+// Native disclosures retain their state even when another dialog replaces the workspace.
+document.addEventListener('toggle',event=>{
+ const node=event.target;
+ if(node.matches?.('details[data-disclosure]')&&node.isConnected)viewDisclosures.set(node.dataset.disclosure,node.open);
+},true);
 function openNextExercise(button){
  const current=button.closest('details[data-disclosure]'),next=current?.nextElementSibling;
- if(next?.matches('details')){next.open=true;next.scrollIntoView?.({behavior:'smooth',block:'start'});next.querySelector('summary')?.focus({preventScroll:true});}
+ if(next?.matches('details')){current.open=false;next.open=true;next.querySelector('summary')?.focus({preventScroll:true});}
 }
+function toggleWorkoutExercises(button,expand){
+ const root=button.closest('.sheet,.workspace-inner')||document.getElementById('viewWorkout');
+ root.querySelectorAll('.workout-exercise').forEach(node=>{node.open=expand;viewDisclosures.set(node.dataset.disclosure,expand);});
+}
+function workoutDisplayControls(){return '<div class="workout-display-controls"><span>Ejercicios</span><button type="button" onclick="toggleWorkoutExercises(this,false)">Plegar todo</button><button type="button" onclick="toggleWorkoutExercises(this,true)">Ver todo</button></div>';}
+
 function progressOverviewHTML(ref,period,sessions){
  const groups=typeof strengthChartGroups==='function'?strengthChartGroups(ref):[];
  let increases=0,comparable=0;

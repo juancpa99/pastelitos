@@ -183,8 +183,11 @@ oct26Adherence=function(end){
   const order=oct26WeekOrder(week);
   OCT26_SLOT_DEFS.forEach((slot,i)=>{
    const assignedDate=dateForWeekday(week,slot.day);if(assignedDate>end)return;
-   const key=order[i],records=oct26WeeklyRecords(week,key),record=records.find(r=>r.completed&&r.date<=end)||null;
-   items.push({weekStart:week,assignedDate,slot:slot.label,type:"gym",key,title:oct26BaseTemplateByKey(key).title,completed:!!record,actualDate:record?.date??null,duration:record?.duration??null,rpe:record?.rpe??null,shoulderPain:record?.shoulderPain??null});
+   const key=order[i],base=oct26BaseTemplateByKey(key);
+   // Later blocks have different keys and are reported by their own module.
+   if(!base)return;
+   const records=oct26WeeklyRecords(week,key),record=records.find(r=>r.completed&&r.date<=end)||null;
+   items.push({weekStart:week,assignedDate,slot:slot.label,type:"gym",key,title:base.title,completed:!!record,actualDate:record?.date??null,duration:record?.duration??null,rpe:record?.rpe??null,shoulderPain:record?.shoulderPain??null});
   });
   for(const day of [1,3,5]){
    const date=dateForWeekday(week,day);if(date>end||date<OCT26_PHASE.start||date>OCT26_PHASE.end)continue;

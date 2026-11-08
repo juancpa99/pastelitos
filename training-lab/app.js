@@ -1165,6 +1165,7 @@ function gymHTML(p,x){
  const s=ensureDraftSession(x,p);
  const primaryAction=s.completed?'<span class="pill good">Sesión guardada</span>':`<button class="btn small" onclick="toggleGymSession()">${!s.startedAt?"Iniciar sesión":s.pausedAt?"Reanudar sesión":"Pausar sesión"}</button>${s.startedAt?'<button class="btn secondary small" onclick="openFinishGym()">Finalizar</button>':""}`;
  let html=`<div class="card hero session-heading"><div class="row between"><div><div class="eyebrow">${esc(pretty(x))}</div><div class="hero-title">${esc(p.title)}</div><div class="subtitle">${esc(p.subtitle||"")}</div></div><div id="autosaveStatus" class="autosave">Guardado</div></div><div class="hero-status">${s.startedAt&&!s.completed?`<span class="pill ${s.pausedAt?"warn":"teal"}">${s.pausedAt?"En pausa":"En curso"}</span>`:""}</div><div class="session-progress"><span>${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:effectiveCount(e)),0)} / ${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:+e.sets||0),0)} series</span><progress aria-label="Series registradas" max="${Math.max(1,s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:+e.sets||0),0))}" value="${s.exercises.reduce((n,e)=>n+(e.type==="mobility"?0:effectiveCount(e)),0)}"></progress></div><div class="actions">${s.startedAt&&!s.completed?"":primaryAction}</div></div>${s.completed?'<div class="callout good">Sesión terminada. Puedes revisar todas las series debajo.</div>':'<div id="sessionCoachPanel" class="session-coach"></div>'}`;
+ html+=workoutDisplayControls();
  s.exercises.forEach((e,i)=>html+=activeSessionExerciseHTML(e,i,"planned",s));
  if(!s.completed)html+=`<div class="session-options"><div class="session-options-label">Opciones de sesión</div><button class="btn secondary" onclick="openExercisePicker('add','planned')">Añadir ejercicio extra</button>${s.startedAt?'<button class="btn" onclick="openFinishGym()">Finalizar y guardar</button>':""}<button class="btn danger" onclick="discardPlannedWorkout()">Descartar entrenamiento</button></div>`;
  setTimeout(()=>{document.querySelectorAll('[data-gym="planned"]').forEach(el=>el.addEventListener("input",schedulePlannedAutosave));if(!s.completed)updateRestTimerPanel();if((s.startedAt&&!s.completed)||state.restTimer)startRuntimeTicker()},0);
@@ -1312,26 +1313,31 @@ function applyLibrarySelection(key,action,scope,index){
  }
 }
 
+function closeExercisePicker(scope){
+ closeModal();
+ if(scope!=="planned")editExtraSession(scope);
+}
 function openExercisePicker(action,scope,index=null){
+ saveScopeInputs(scope);
+ rememberDisclosures(document);
  const source=action==="replace"?sourceExercise(scope,index):null;
  if(action==="replace"){
-  document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Sustitución</div><div class="hero-title">Sustituir ${esc(source?.name||"ejercicio")}</div><div class="subtitle">Principal: ${esc(exerciseMuscleText(source))}. Solo se muestran ejercicios con una función similar.</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="field" style="margin-top:10px"><label>Filtrar sustitutos</label><input id="libSearch" placeholder="Buscar entre sustitutos…" oninput="renderLibrary('replace','${scope}',${index})"></div><div id="libraryList"></div></div></div>`;
+  document.getElementById("modalRoot").innerHTML=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Sustitución</div><div class="hero-title">Sustituir ${esc(source?.name||"ejercicio")}</div><div class="subtitle">Principal: ${esc(exerciseMuscleText(source))}. Solo se muestran ejercicios con una función similar.</div></div><button class="btn ghost small" onclick="closeExercisePicker('${scope}')">Cerrar</button></div><div class="field" style="margin-top:10px"><label>Filtrar sustitutos</label><input id="libSearch" placeholder="Buscar entre sustitutos…" oninput="renderLibrary('replace','${scope}',${index})"></div><div id="libraryList"></div></div></div>`;
  }else{
-  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet"><div class="row between"><div><div class="eyebrow">Biblioteca</div><div class="hero-title">Añadir ejercicio extra</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div><div class="searchrow"><div class="field"><label>Buscar</label><input id="libSearch" placeholder="sentadilla, dorsal, movilidad…" oninput="renderLibrary('add','${scope}',${index===null?"null":index})"></div><div class="field"><label>Familia</label><select id="libType" onchange="renderLibrary('add','${scope}',${index===null?"null":index})"><option value="">Todas</option>${EXERCISE_FAMILY_ORDER.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div></div><div id="libraryList"></div><div class="sep"></div><button class="btn secondary" onclick="openCustomExercise('add','${scope}',${index===null?"null":index})">Ejercicio personalizado</button></div></div>`;
+  document.getElementById("modalRoot").innerHTML=`<div class="modal" onclick="if(event.target===this)closeExercisePicker('${scope}')"><div class="sheet"><div class="row between"><div><div class="eyebrow">Biblioteca</div><div class="hero-title">Añadir ejercicio extra</div></div><button class="btn ghost small" onclick="closeExercisePicker('${scope}')">Cerrar</button></div><div class="searchrow"><div class="field"><label>Buscar</label><input id="libSearch" placeholder="sentadilla, dorsal, movilidad…" oninput="renderLibrary('add','${scope}',${index===null?"null":index})"></div><div class="field"><label>Familia</label><select id="libType" onchange="renderLibrary('add','${scope}',${index===null?"null":index})"><option value="">Todas</option>${EXERCISE_FAMILY_ORDER.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></div></div><div id="libraryList"></div><div class="sep"></div><button class="btn secondary" onclick="openCustomExercise('add','${scope}',${index===null?"null":index})">Ejercicio personalizado</button></div></div>`;
  }
  renderLibrary(action,scope,index)
 }
 function renderLibrary(action,scope,index){
- const q=(val("libSearch")||"").toLowerCase();
+ const q=(val("libSearch")||"").toLowerCase(),fam=val("libType");
  let list;
  if(action==="replace"){
   const source=sourceExercise(scope,index);
   list=substitutionCandidates(source).filter(e=>!q||(`${e.name} ${e.group} ${e.pattern} ${e.muscle||""}`).toLowerCase().includes(q));
  }else{
-  const fam=val("libType");
   list=EXERCISE_LIBRARY.filter(e=>(!fam||exerciseFamily(e)===fam)&&(!q||(`${e.name} ${e.group} ${e.pattern} ${e.muscle||""}`).toLowerCase().includes(q)));
  }
- document.getElementById("libraryList").innerHTML=list.length?(action==="replace"?list.map(e=>`<button type="button" class="libitem" onclick="selectLibraryExercise('${e.key}','${action}','${scope}',${index===null?"null":index})"><strong>${esc(e.name)}</strong><small>Principal: ${esc(exerciseMuscleText(e))} · ${esc(e.pattern)}${e.type==="strength"?` · ${e.sets}×${e.min}–${e.max}`:` · ${esc(e.dose)}`}</small></button>`).join(""):(()=>{const grouped={};list.forEach(e=>(grouped[exerciseFamily(e)]??=[]).push(e));return Object.keys(grouped).sort((a,b)=>EXERCISE_FAMILY_ORDER.indexOf(a)-EXERCISE_FAMILY_ORDER.indexOf(b)).map(f=>`<div class="library-family"><div class="section-sub">${esc(f)}</div>${grouped[f].map(e=>`<button type="button" class="libitem" onclick="selectLibraryExercise('${e.key}','${action}','${scope}',${index===null?"null":index})"><strong>${esc(e.name)}</strong><small>Principal: ${esc(exerciseMuscleText(e))} · ${esc(e.pattern)}${e.type==="strength"?` · ${e.sets}×${e.min}–${e.max}`:` · ${esc(e.dose)}`}</small></button>`).join("")}</div>`).join("")})()):`<div class="empty">${action==="replace"?"No hay un sustituto suficientemente similar en la biblioteca.":"Sin resultados."}</div>`
+ document.getElementById("libraryList").innerHTML=list.length?(action==="replace"?list.map(e=>`<button type="button" class="libitem" onclick="selectLibraryExercise('${e.key}','${action}','${scope}',${index===null?"null":index})"><strong>${esc(e.name)}</strong><small>Principal: ${esc(exerciseMuscleText(e))} · ${esc(e.pattern)}${e.type==="strength"?` · ${e.sets}×${e.min}–${e.max}`:` · ${esc(e.dose)}`}</small></button>`).join(""):(()=>{const grouped={};list.forEach(e=>(grouped[exerciseFamily(e)]??=[]).push(e));return Object.keys(grouped).sort((a,b)=>EXERCISE_FAMILY_ORDER.indexOf(a)-EXERCISE_FAMILY_ORDER.indexOf(b)).map(f=>`<details class="library-family" ${q||fam?'open':''}><summary>${esc(f)}<span>${grouped[f].length} ejercicios</span></summary>${grouped[f].map(e=>`<button type="button" class="libitem" onclick="selectLibraryExercise('${e.key}','${action}','${scope}',${index===null?"null":index})"><strong>${esc(e.name)}</strong><small>Principal: ${esc(exerciseMuscleText(e))} · ${esc(e.pattern)}${e.type==="strength"?` · ${e.sets}×${e.min}–${e.max}`:` · ${esc(e.dose)}`}</small></button>`).join("")}</details>`).join("")})()):`<div class="empty">${action==="replace"?"No hay un sustituto suficientemente similar en la biblioteca.":"Sin resultados."}</div>`
 }
 function libExercise(key){const e=EXERCISE_LIBRARY.find(x=>x.key===key);if(!e)return null;if(e.type==="mobility")return{...e,done:false};return{...e,recordedSets:[]}}
 function hasRecordedData(e){return !!(e&&(allAttempts(e).length||e.done))}
@@ -1372,6 +1378,7 @@ function editExtraSession(id){
  const s=state.extraSessions.find(x=>x.id===id);if(!s)return;
  rememberDisclosures(document.getElementById("modalRoot"));
  let html=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Entreno extra</div><div class="hero-title">${esc(s.title)}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div>`;
+ html+=workoutDisplayControls();
  s.exercises.forEach((e,i)=>html+=activeSessionExerciseHTML(e,i,id,s));
  html+=`<div class="actions"><button class="btn secondary" onclick="openExercisePicker('add','${id}')">Añadir ejercicio</button><button class="btn" onclick="openFinishExtra('${id}')">Finalizar y guardar</button><button class="btn danger" onclick="discardExtraSession('${id}')">Descartar entreno</button></div></div></div>`;
  document.getElementById("modalRoot").innerHTML=html;

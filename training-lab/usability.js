@@ -260,48 +260,46 @@ lastPerformanceSummary = function (e) {
 const legacyExerciseCard = exerciseCardHTML;
 exerciseCardHTML = function (e, i, scope) {
   if (e.type === "mobility") return legacyExerciseCard(e, i, scope);
-  const p = loadProfile(e),
-    arr = allAttempts(e),
-    done = effectiveCount(e),
-    goal = +e.sets || 3;
-  const tools=`<div class="actions"><button class="btn ghost" onclick="openExercisePicker('replace','${scope}',${i})">Cambiar ejercicio</button><button class="btn ghost" onclick="equipmentSettings('${scope}',${i})">Equipo y peso</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},-1)">−1 serie hoy</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},1)">+1 serie hoy</button></div><p>${esc(e.note||'')}</p>`;
-  let html = `<article class="exercise"><div class="exhead"><h3>${esc(e.name)}</h3><p class="exercise-prescription">${goal} series${p.unilateral ? " por lado" : ""} · ${e.min || 8}–${e.max || 12} reps · RIR ${esc(e.rir || "1–2")} · ${esc(e.rest||'')}</p><p class="load-convention">${esc(loadLabel(e))}</p><div class="row between"><strong>${done}/${goal} registradas</strong></div>${disclosureHTML('exercise-tools:'+scope+':'+i,'Técnica, equipo y opciones',tools)}<div class="recommend">${esc(exerciseAdvice(e))}</div></div>`;
-  arr.forEach((a, j) => {
-    const uni = p.unilateral;
-    const comparable=matchingHistory(e)[0];
-    const ordinal=arr.slice(0,j+1).filter(z=>z.attemptType===a.attemptType).length-1;
-    const previous=comparable&&allAttempts(comparable).filter(z=>z.completedAt&&z.attemptType===a.attemptType)[ordinal];
-    html += `<div class="attempt-block"><h4>${a.attemptType === "warmup" ? "Aproximación" : "Serie"} ${j + 1}${a.completedAt ? " · Guardada" : ""}</h4><div class="previous-set">Anterior: ${previous?`${esc(previous.kg)} kg × ${esc(previous.reps)} · RIR ${esc(previous.rir??"—")}${uni?` / D: ${esc(previous.rightKg??"—")} kg × ${esc(previous.rightReps??"—")}`:""}`:"Sin referencia comparable"}</div>`;
-    for (const side of uni ? ["left", "right"] : ["left"]) {
-      const right = side === "right",
-        stamp = right ? a.rightCompletedAt : a.leftCompletedAt || a.completedAt;
-      html += `<fieldset class="set-side"><legend>${uni ? (right ? "Derecha" : "Izquierda") : "Registro"}</legend><div class="set-input-grid">`;
-      for (const [id, k, label] of right
-        ? [
-            ["rkg", "rightKg", "Kg"],
-            ["rrp", "rightReps", "Reps"],
-            ["rrr", "rightRir", "RIR"],
-          ]
-        : [
-            ["kg", "kg", "Kg"],
-            ["rp", "reps", "Reps"],
-            ["rr", "rir", "RIR"],
-          ])
-        html += `<label>${label}<input aria-label="${label} ${uni ? (side === "right" ? "derecha" : "izquierda") : ""} serie ${j + 1}" id="${scope}_${id}_${i}_${j}" data-gym="${scope}" inputmode="decimal" value="${esc(a[k] ?? "")}" ${stamp ? "readonly" : ""}></label>`;
-      html += `</div>${uni && !stamp ? `<button class="btn secondary" onclick="completeSide('${scope}',${i},${j},'${side}')">Registrar ${right ? "derecha" : "izquierda"}</button>` : ""}</fieldset>`;
+  const p = loadProfile(e), arr = allAttempts(e), done = effectiveCount(e), goal = +e.sets || 3;
+  const tools = `<div class="actions"><button class="btn ghost small" onclick="openExercisePicker('replace','${scope}',${i})">Cambiar ejercicio</button><button class="btn ghost small" onclick="equipmentSettings('${scope}',${i})">Equipo y peso</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},-1)">−1 serie hoy</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},1)">+1 serie hoy</button></div><p>${esc(e.note||'')}</p><p>${esc(exerciseAdvice(e))}</p>`;
+  let html = `<article class="exercise compact-exercise"><div class="compact-prescription"><h3>${esc(e.name)}</h3><p>${goal} series${p.unilateral?' por lado':''} · ${e.min||8}–${e.max||12} reps · RIR ${esc(e.rir||'1–2')} · ${esc(e.rest||'')}</p><small>${esc(loadLabel(e))}</small></div>`;
+  html += `<div class="set-table" role="group" aria-label="Series de ${esc(e.name)}"><div class="compact-set-labels" aria-hidden="true"><span>Serie</span><span>Kg</span><span>Reps</span><span>RIR</span><span>Hecha</span></div>`;
+  const comparable = matchingHistory(e)[0];
+  arr.forEach((a,j)=>{
+    const ordinal = arr.slice(0,j+1).filter(z=>z.attemptType===a.attemptType).length-1;
+    const previous = comparable && allAttempts(comparable).filter(z=>z.completedAt&&z.attemptType===a.attemptType)[ordinal];
+    html += `<div class="compact-set ${a.completedAt?'is-done':''} ${a.attemptType==='warmup'?'is-warmup':''}">`;
+    for(const side of p.unilateral?['left','right']:['left']){
+      const right=side==='right',stamp=right?a.rightCompletedAt:a.leftCompletedAt||a.completedAt;
+      const title = `${a.attemptType==='warmup'?'A':'S'}${ordinal+1}${p.unilateral?(right?' D':' I'):''}`;
+      html += `<div class="compact-set-row"><span class="compact-set-number" title="${a.attemptType==='warmup'?'Aproximación':'Serie'} ${ordinal+1}${p.unilateral?(right?' derecha':' izquierda'):''}">${title}</span>`;
+      for(const [id,k,label] of right?[["rkg","rightKg","Kg"],["rrp","rightReps","Reps"],["rrr","rightRir","RIR"]]:[["kg","kg","Kg"],["rp","reps","Reps"],["rr","rir","RIR"]]){
+        html += `<input aria-label="${label} ${p.unilateral?(right?'derecha':'izquierda'):''} serie ${j+1}" id="${scope}_${id}_${i}_${j}" data-gym="${scope}" inputmode="${label==='Reps'?'numeric':'decimal'}" value="${esc(a[k]??'')}" placeholder="${label==='Reps'?e.min||8:label==='RIR'?(a.attemptType==='warmup'?'—':esc(e.rir||'1–2')):'—'}" ${stamp?'readonly':''}>`;
+      }
+      html += `<button type="button" class="compact-check ${stamp?'checked':''}" aria-label="${stamp?'Registrada':'Registrar'} serie ${j+1}${p.unilateral?(right?' derecha':' izquierda'):''}" ${stamp?'disabled':`onclick="${p.unilateral?`completeSide('${scope}',${i},${j},'${side}')`:`completeStrengthSet('${scope}',${i},${j})`}"`}>${stamp?'✓':'○'}</button></div>`;
     }
-    if (!a.completedAt)
-      html += `<div class="actions"><button class="btn ghost" onclick="copySet('${scope}',${i},${j},'previous')">Repetir anterior</button><button class="btn ghost" onclick="copySet('${scope}',${i},${j},'history')">Última sesión</button>${uni ? `<button class="btn ghost" onclick="copySet('${scope}',${i},${j},'side')">Copiar I → D</button>` : `<button class="btn" onclick="completeStrengthSet('${scope}',${i},${j})">Serie hecha · descansar</button>`}</div>`;
-    else html += `<p>${esc(classifyAttempt(e, a).text)}</p>`;
-    if (["plates", "sideplates"].includes(p.mode))
-      html += `<p>Carga nominal: ${nominalLoad(e, a.kg) ?? "—"} kg${p.base === "" ? " + base desconocida" : ""}</p>`;
-    html += disclosureHTML(`set-tools:${scope}:${i}:${j}`,"Opciones de serie",`<button class="btn danger small" onclick="discardSetAttempt('${scope}',${i},${j})">Descartar serie</button>`)+`</div>`;
+    const reference=previous?`${esc(previous.kg)} × ${esc(previous.reps)}${p.unilateral?` · D ${esc(previous.rightKg??'—')} × ${esc(previous.rightReps??'—')}`:''}`:'';
+    let actions = !a.completedAt?`<div class="actions"><button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'previous')">Repetir anterior</button><button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'history')">Última sesión</button>${p.unilateral?`<button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'side')">Copiar I → D</button>`:''}</div>`:`<p>${esc(classifyAttempt(e,a).text)}</p>`;
+    if(['plates','sideplates'].includes(p.mode)) actions+=`<p>Carga nominal: ${nominalLoad(e,a.kg)??'—'} kg${p.base===''?' + base desconocida':''}</p>`;
+    actions+=`<button class="btn danger small" onclick="discardSetAttempt('${scope}',${i},${j})">Descartar serie</button>`;
+    html+=`<div class="compact-set-meta"><span>${a.attemptType==='warmup'?'Aproximación':a.completedAt?'Guardada':reference?'Anterior: '+reference:'Sin referencia anterior'}</span>${disclosureHTML(`set-tools:${scope}:${i}:${j}`,'Opciones',actions)}</div></div>`;
   });
-  return (
-    html +
-    `<div class="actions attempt-add"><button class="btn ghost" onclick="addSetAttempt('${scope}',${i},'warmup')">+ Aproximación</button><button class="btn secondary" ${done >= goal ? "disabled" : ""} onclick="addSetAttempt('${scope}',${i},'effective')">+ Serie</button></div><p class="exnote">${esc(e.note || "")} ${p.unilateral ? "Completa ambos lados para cerrar la serie. El descanso comienza después del segundo lado." : ""}</p></article>`
-  );
+  if(!arr.length) html+='<p class="compact-empty">Añade la primera serie para registrar tu peso.</p>';
+  html+=`</div><div class="compact-add"><button class="btn secondary small" ${done>=goal?'disabled':''} onclick="addSetAttempt('${scope}',${i},'effective')">+ Serie</button>${done<goal&&arr.some(a=>a.completedAt&&a.attemptType==='effective')?`<button class="btn ghost small" onclick="repeatWorkoutSet('${scope}',${i})">Repetir</button>`:''}<button class="btn ghost small" onclick="addSetAttempt('${scope}',${i},'warmup')">+ Aproximación</button></div>`;
+  if(p.unilateral)html+='<p class="compact-hint">I · izquierda / D · derecha. Descanso al completar ambos lados.</p>';
+  return html+disclosureHTML('exercise-tools:'+scope+':'+i,'Técnica, equipo y opciones',tools)+'</article>';
 };
+
+function repeatWorkoutSet(scope,i){
+ saveScopeInputs(scope);
+ const e=scopeExercise(scope,i);if(!e||exerciseGoalComplete(e))return;
+ const arr=allAttempts(e),previous=arr.findLast(a=>a.completedAt&&a.attemptType==='effective');
+ if(!previous)return;
+ // Copies load and repetitions only: effort must be recorded for the new set.
+ arr.push({kg:previous.kg,reps:previous.reps,rir:'',rightKg:previous.rightKg??'',rightReps:previous.rightReps??'',rightRir:'',attemptType:'effective',status:null,completedAt:null});
+ e.recordedSets=arr;saveState(true);refreshScope(scope);
+}
+
 function validSet(a, right = false, warmup = false) {
   const v = (k) =>
     a[
