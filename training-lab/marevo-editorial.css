@@ -238,3 +238,40 @@ body[data-view=Home] #pageSubtitle { display:none; }
 .extra-clock>.btn{min-height:40px;font-size:11px;padding:6px 4px;margin:0}
 .extra-clock>strong+.btn{grid-column:3}
 .extra-clock>.rest-status{margin:0;font-size:12px;font-weight:650}
+
+/* A consistent mobile rhythm, with room for the numbers and thumb controls. */
+.sheet[data-extra-scope]{width:100%;max-width:720px;padding:18px 16px calc(24px + env(safe-area-inset-bottom));}
+.workout-session-heading{align-items:flex-start;gap:12px;margin-bottom:16px;}
+.workout-session-heading>div{min-width:0;flex:1;}
+.workout-session-heading .eyebrow{font-size:11px;margin-bottom:5px;letter-spacing:.07em;}
+.workout-session-heading .hero-title{font-size:22px;line-height:1.2;letter-spacing:-.025em;text-wrap:balance;}
+.workout-session-heading>.btn{flex:none;min-height:44px;padding:8px 12px;}
+.sheet[data-extra-scope] .extra-clock{top:0;margin:0 0 12px;background:var(--panel);box-shadow:0 3px 10px #102e2810;}
+.workout-display-controls{margin:8px 0;}
+.workout-exercise>summary{min-height:72px;padding:12px;}
+.workout-exercise>summary strong{font-size:16px;}
+.exercise-summary-progress{font-size:12px;}
+.compact-prescription{padding:12px 2px 8px;}
+.compact-prescription p{font-size:13px;line-height:1.5;}
+.compact-prescription small{font-size:12px;}
+.compact-set-labels{font-size:11px;padding:8px 0;}
+.compact-set-row input,.sheet .compact-set-row input:not([type=checkbox]){font-size:18px;height:46px;}
+.compact-set-number{font-size:12px;}
+.compact-set-meta>span{font-size:12px;line-height:44px;}
+.compact-set-meta>.view-disclosure>summary{min-height:44px;padding:6px 4px;}
+.compact-set-meta>.view-disclosure>summary strong{font-size:12px;}
+.compact-add{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.compact-add>.btn{min-width:0;font-size:13px;min-height:44px;}
+.compact-add>.btn:first-child{background:var(--teal);color:var(--bg);border-color:var(--teal);}
+.compact-add>.btn:last-child:nth-child(3){grid-column:1/-1;min-height:44px;background:transparent;border-color:transparent;color:var(--muted);padding:6px;}
+.library-family>summary{font-size:16px;}
+.library-family .libitem strong{font-size:15px;}
+.library-family .libitem small{font-size:12px;line-height:1.4;}
+@media(max-width:380px){
+ .sheet[data-extra-scope]{padding:14px 10px calc(20px + env(safe-area-inset-bottom));}
+ .workout-session-heading .hero-title{font-size:20px;}
+ .workout-exercise>summary{padding:12px 9px;gap:7px;}
+ .workout-exercise>summary strong{font-size:15px;}
+ .workout-exercise>.disclosure-content{padding:0 9px 8px;}
+ .extra-clock{grid-template-columns:minmax(0,1fr) 52px 94px;}
+}

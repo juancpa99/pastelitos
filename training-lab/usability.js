@@ -282,7 +282,7 @@ exerciseCardHTML = function (e, i, scope) {
     let actions = !a.completedAt?`<div class="actions"><button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'previous')">Repetir anterior</button><button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'history')">Última sesión</button>${p.unilateral?`<button class="btn ghost small" onclick="copySet('${scope}',${i},${j},'side')">Copiar I → D</button>`:''}</div>`:`<p>${esc(classifyAttempt(e,a).text)}</p>`;
     if(['plates','sideplates'].includes(p.mode)) actions+=`<p>Carga nominal: ${nominalLoad(e,a.kg)??'—'} kg${p.base===''?' + base desconocida':''}</p>`;
     actions+=`<button class="btn danger small" onclick="discardSetAttempt('${scope}',${i},${j})">Descartar serie</button>`;
-    html+=`<div class="compact-set-meta"><span>${a.attemptType==='warmup'?'Aproximación':a.completedAt?'Guardada':reference?'Anterior: '+reference:'Sin referencia anterior'}</span>${disclosureHTML(`set-tools:${scope}:${i}:${j}`,'Opciones',actions)}</div></div>`;
+    html+=`<div class="compact-set-meta"><span>${a.attemptType==='warmup'?'Aproximación':a.completedAt?'Guardada':reference?'Anterior: '+reference:'Pendiente'}</span>${disclosureHTML(`set-tools:${scope}:${i}:${j}`,'Opciones',actions)}</div></div>`;
   });
   if(!arr.length) html+='<p class="compact-empty">Añade la primera serie para registrar tu peso.</p>';
   html+=`</div><div class="compact-add"><button class="btn secondary small" ${done>=goal?'disabled':''} onclick="addSetAttempt('${scope}',${i},'effective')">+ Serie</button>${done<goal&&arr.some(a=>a.completedAt&&a.attemptType==='effective')?`<button class="btn ghost small" onclick="repeatWorkoutSet('${scope}',${i})">Repetir</button>`:''}<button class="btn ghost small" onclick="addSetAttempt('${scope}',${i},'warmup')">+ Aproximación</button></div>`;
@@ -553,8 +553,8 @@ editExtraSession = function (id) {
   const sheet = document.querySelector("#modalRoot .sheet");
   if (sheet) {
     sheet.dataset.extraScope = id;
-    sheet.insertAdjacentHTML(
-      "afterbegin",
+    sheet.querySelector(".workout-session-heading").insertAdjacentHTML(
+      "afterend",
       `<div class="extra-clock" id="extraClock"></div>`,
     );
     updateExtraClock();

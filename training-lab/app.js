@@ -1377,7 +1377,7 @@ function createExtraSession(){const id="extra_"+Date.now().toString(36);state.ex
 function editExtraSession(id){
  const s=state.extraSessions.find(x=>x.id===id);if(!s)return;
  rememberDisclosures(document.getElementById("modalRoot"));
- let html=`<div class="modal"><div class="sheet"><div class="row between"><div><div class="eyebrow">Entreno extra</div><div class="hero-title">${esc(s.title)}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div>`;
+ let html=`<div class="modal"><div class="sheet"><div class="row between workout-session-heading"><div><div class="eyebrow">Sesión de fuerza</div><div class="hero-title">${esc(s.title)}</div></div><button class="btn ghost small" onclick="closeModal()">Cerrar</button></div>`;
  html+=workoutDisplayControls();
  s.exercises.forEach((e,i)=>html+=activeSessionExerciseHTML(e,i,id,s));
  html+=`<div class="actions"><button class="btn secondary" onclick="openExercisePicker('add','${id}')">Añadir ejercicio</button><button class="btn" onclick="openFinishExtra('${id}')">Finalizar y guardar</button><button class="btn danger" onclick="discardExtraSession('${id}')">Descartar entreno</button></div></div></div>`;
