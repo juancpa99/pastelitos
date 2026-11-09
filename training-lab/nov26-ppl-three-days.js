@@ -203,6 +203,7 @@
       [0,2,4].forEach(function(offset){
         const date=addDaysISO(monday,offset);
         if(date>end)return;
+        if(typeof marevoNoSwimOnDate==="function"&&marevoNoSwimOnDate(date))return;
         const rec=(state.swim||[]).find(function(s){return s.completed&&s.date===date});
         items.push({type:"swim",assignedDate:date,title:"Natación",completed:!!rec,actualDate:rec?date:null});
       });
