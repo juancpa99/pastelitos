@@ -4,14 +4,14 @@
   const START="2026-11-09", END="2026-11-29";
   const BASE_KEYS=["nov26_push","nov26_pull","nov26_legs"];
   const GOALS={back:2,calves:3,chest:2,core:3};
-  const LABELS={back:"Espalda · jalón",calves:"Gemelos",chest:"Pecho · press",core:"Core adicional"};
+  const LABELS={back:"Espalda · jalón",calves:"Gemelos",chest:"Pectoral superior · press inclinado",core:"Core adicional"};
   const validDate=date=>typeof date==="string"&&date>=START&&date<=END;
   const weekStart=date=>mondayOf(date);
   const inSameWeek=(session,date)=>!!session&&session.date>=weekStart(date)&&session.date<=addDaysISO(weekStart(date),6);
 
   function flexExercise(target,sets){
     if(target==="back")return {key:"lat_pulldown",name:"Jalón al pecho · segundo estímulo",type:"strength",sets,min:10,max:12,rir:"1–2",rest:"90–120 s",muscle:"Dorsal y espalda",note:"Codos hacia abajo; sin inclinar el torso excesivamente." ,marevoFlexTarget:target};
-    if(target==="chest")return {key:"machine_chest_press",name:"Press de pecho en máquina · segundo estímulo",type:"strength",sets,min:8,max:12,rir:"1–2",rest:"2 min",muscle:"Pectoral",note:"Controla el descenso; sin necesitar llegar al fallo.",marevoFlexTarget:target};
+    if(target==="chest")return {key:"incline_machine_press",name:"Press inclinado en máquina · 15–30° · segundo estímulo",type:"strength",sets,min:8,max:12,rir:"1–2",rest:"2 min",muscle:"Pectoral superior + deltoide anterior + tríceps",note:"Prioridad pectoral clavicular. Banco a unos 15–30°; hombros estables y sin molestias. Evita el fallo técnico.",marevoFlexTarget:target};
     if(target==="calves")return {key:"seated_calf",name:"Gemelo sentado · complemento",type:"strength",sets,min:10,max:15,rir:"1–2",rest:"60–90 s",muscle:"Sóleo y gemelos",note:"Recorrido completo; pausa abajo sin rebotes.",marevoFlexTarget:target};
     return {key:"ab_wheel",name:"Rueda abdominal (o variante con fitball)",type:"strength",sets,min:6,max:12,rir:"2–3",rest:"60–90 s",muscle:"Abdomen y estabilización",note:"No arquees la zona lumbar; limita el recorrido o usa dead bug si no puedes mantener el control.",marevoFlexTarget:"core"};
   }
@@ -107,7 +107,7 @@
     return [
       movement("marevo_sunday_pogo","Saltos verticales suaves (opcional)","2 × 4–5","Solo si las piernas están recuperadas del sábado. Aterriza suave; si estás fatigado, omite.","Potencia"),
       movement("marevo_sunday_reverse_lunge","Zancadas inversas sin carga (opcional)","2 × 8/lado","Técnica y control, sin llegar al fallo; omite si hay fatiga tras piernas.","Coordinación"),
-      {key:"hanging_knee_raise",name:"Elevación de rodillas colgado",type:"strength",sets:3,min:8,max:12,rir:"1–2",rest:"90 s",muscle:"Abdomen",note:"Inicia el gesto con retroversión pélvica, sin impulso del tronco."},
+      {key:"hanging_knee_raise",name:"Elevación de rodillas colgado",type:"strength",sets:3,min:8,max:12,rir:"1–2",rest:"90 s",muscle:"Abdomen",note:"Inicia el gesto con retroversión pélvica, sin impulso del tronco. Este ejercicio también cubre el complemento semanal de core pendiente.",marevoFlexTarget:"core"},
       {key:"pallof_press",name:"Pallof press en polea",type:"strength",sets:3,min:10,max:12,rir:"1–2",rest:"60–90 s",muscle:"Core antirrotación",note:"No permitas que el cable te rote; 10–12 repeticiones por lado."},
       movement("marevo_sunday_dead_bug","Dead bug con exhalación","2 × 8/lado","Exhala al extender; mantén costillas y pelvis controladas.","Control lumbopélvico"),
       movement("marevo_sunday_side_plank","Plancha lateral","2 × 25–40 s/lado","Pelvis alineada, sin girar el tronco.","Estabilidad"),
@@ -117,10 +117,25 @@
       movement("marevo_sunday_wall_slide","Deslizamiento de brazos en pared (wall slides)","2 × 10","Mantén las costillas controladas, sin forzar hombros.","Movilidad")
     ];
   }
+  function sundayHypertrophy(){
+    // Only six new sets: arms and standing calves. Chest/back are supplied by the weekly pending work.
+    // Do not mark these as flex targets: they are extra direct volume, not duplicate completion.
+    return [
+      {key:"incline_db_curl",name:"Curl de bíceps inclinado con mancuernas · estética",type:"strength",sets:2,min:10,max:15,rir:"1–2",rest:"60–90 s",muscle:"Bíceps",note:"Brazos ligeramente detrás del tronco; controla la excéntrica y evita balancearte.",marevoSundayAccessory:"biceps"},
+      {key:"overhead_triceps",name:"Extensión de tríceps sobre la cabeza en polea · estética",type:"strength",sets:2,min:10,max:15,rir:"1–2",rest:"60–90 s",muscle:"Tríceps · cabeza larga",note:"Mantén los codos controlados, con recorrido cómodo. Ya hay 6 series directas el martes.",marevoSundayAccessory:"triceps"},
+      {key:"standing_calf",name:"Elevación de gemelos de pie · extra del domingo",type:"strength",sets:2,min:10,max:15,rir:"1–2",rest:"60–90 s",muscle:"Gemelos · gastrocnemio",note:"2 series adicionales a las 3 del sábado y las 3 flexibles. No balancees el cuerpo y pausa en el estiramiento.",marevoSundayAccessory:"calves"}
+    ];
+  }
   function sundayPlan(date){
-    const targets=["back","chest","calves","core"];
+    // Three core sets may be done on Thursday or Saturday. Sunday knee raises already
+    // provide substantial core work, so do not append an additional ab-wheel block.
+    const targets=["back","chest","calves"];
     const supplemental=targets.map(t=>flexExercise(t,pending(t,date))).filter(e=>e.sets>0);
-    return sundayBase().concat(supplemental).map(normalizeSessionExercise);
+    const base=sundayBase();
+    const activation=base.filter(e=>e.key==="marevo_sunday_pogo"||e.key==="marevo_sunday_reverse_lunge");
+    const core=base.filter(e=>e.type==="strength");
+    const mobility=base.filter(e=>e.type==="mobility"&&!activation.includes(e));
+    return activation.concat(supplemental,sundayHypertrophy(),core,mobility).map(normalizeSessionExercise);
   }
   function sundaySession(date){
     return (state.extraSessions||[]).find(s=>s.date===date&&s.marevoSunday===true);
@@ -134,7 +149,7 @@
       closeModal();editExtraSession(session.id);return;
     }
     const id="marevo_sunday_"+Date.now().toString(36);
-    session={id,date,title:"DOMINGO · Core, movilidad y complementos",marevoSunday:true,completed:false,startedAt:Date.now(),duration:null,rpe:null,activeKcal:null,exercises:sundayPlan(date)};
+    session={id,date,title:"DOMINGO · Hipertrofia, core y movilidad",marevoSunday:true,completed:false,startedAt:Date.now(),duration:null,rpe:null,activeKcal:null,exercises:sundayPlan(date)};
     state.extraSessions.push(session);saveState(true);closeModal();renderAll();editExtraSession(id);
   };
   const previousLanding=workoutLandingHTML;
@@ -142,9 +157,9 @@
     let html=previousLanding(date);
     if(!validDate(date)||weekday(date)!==0)return html;
     const session=sundaySession(date),label=session?(session.completed?"Domingo completado":"Continuar domingo"):"Iniciar domingo opcional";
-    const details=session?"Tu sesión queda guardada y puede reanudarse.":"Core, control lumbopélvico, movilidad, flexibilidad y saltos opcionales.";
+    const details=session?"Tu sesión queda guardada y puede reanudarse.":"Pectoral superior/espalda pendientes, 2 series de bíceps, 2 de tríceps, 2 de gemelos, core y movilidad. Todo opcional según recuperación.";
     html=html.replace("Fuerza completada esta semana. Hoy puedes descansar.","PPL completada. El domingo sigue siendo opcional.");
-    return html+'<div class="card" style="margin-top:14px"><div class="eyebrow">4.º día · opcional</div><div class="hero-title" style="font-size:19px">Domingo · core y movilidad</div><p class="subtitle">'+details+'</p><p class="subtitle">Complementos pendientes: '+pendingText(date,["back","chest","calves","core"])+'</p><div class="actions"><button class="btn secondary" '+(session&&session.completed?'disabled':'onclick="marevoStartSunday()"')+'>'+label+'</button></div><small class="subtitle">Si estás cansado tras piernas, puedes omitir saltos y zancadas o descansar.</small></div>';
+    return html+'<div class="card" style="margin-top:14px"><div class="eyebrow">4.º día · opcional</div><div class="hero-title" style="font-size:19px">Domingo · hipertrofia, core y movilidad</div><p class="subtitle">'+details+'</p><p class="subtitle">Complementos pendientes: '+pendingText(date,["back","chest","calves","core"])+'</p><div class="actions"><button class="btn secondary" '+(session&&session.completed?'disabled':'onclick="marevoStartSunday()"')+'>'+label+'</button></div><small class="subtitle">Si estás cansado tras piernas, puedes omitir saltos y zancadas o descansar.</small></div>';
   };
   const previousAdvice=exerciseAdvice;
   exerciseAdvice=function(e,date=currentDate()){
