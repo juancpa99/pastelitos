@@ -1,7 +1,7 @@
 // Calendar presentation from 31 October onward. Saved training history is never migrated.
 (function () {
   const applies = date => date >= '2026-10-31';
-  const swim = date => [1,3,5].includes(weekday(date));
+  const swim = date => [1,3,5].includes(weekday(date)) && !(typeof marevoNoSwimOnDate === 'function' && marevoNoSwimOnDate(date));
   const weekend = date => [0,6].includes(weekday(date));
   const pending = date => oct26WeekOrder(date).filter(key => !oct26WeeklyCompleted(date,key));
   const basePlan = planFor;
