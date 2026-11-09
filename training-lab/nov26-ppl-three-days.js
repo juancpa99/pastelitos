@@ -27,7 +27,7 @@
       strength("hammer_curl","Curl martillo",3,10,15,"Bíceps + braquial + braquiorradial","60–90 s","Agarre neutro. Sustituye el tercer curl redundante."),
       strength("cable_lateral_raise","Elevaciones laterales en polea",3,12,20,"Deltoide lateral","60–90 s","Segunda exposición semanal del deltoide lateral.")
     ]},
-    nov26_legs:{key:"nov26_legs",title:"LEGS · Pierna completa + hombro y core",type:"gym",subtitle:"Sábado o domingo · 26 series objetivo · máximo 90 min",exercises:[
+    nov26_legs:{key:"nov26_legs",title:"LEGS · Pierna completa + hombro y core",type:"gym",subtitle:"Sábado · 26 series objetivo · duración flexible",exercises:[
       strength("hack_squat","Sentadilla hack",4,6,10,"Cuádriceps + glúteo","2–3 min","Empieza por la variante estable y profunda que controles. Evita ir al fallo."),
       strength("rdl","Peso muerto rumano",3,8,10,"Isquios + glúteo","2–3 min","Bisagra de cadera controlada, barra cerca del cuerpo; nunca forzar repeticiones técnicas."),
       strength("leg_press","Prensa de piernas",4,10,15,"Cuádriceps + glúteo","2–3 min","Recorrido amplio sin despegar la pelvis."),
@@ -49,8 +49,8 @@
         if(Object.prototype.hasOwnProperty.call(reductions,e.key))e.sets=reductions[e.key];
         e.rir=w===1?"2–3":"1–2";
       });
-      if(w===1)plan.subtitle="Adaptación de piernas · 20 series · 2–3 RIR · máximo 90 min";
-      if(w===2)plan.subtitle="Progresión de piernas · 24 series · 1–2 RIR · máximo 90 min";
+      if(w===1)plan.subtitle="Adaptación de piernas · 20 series · 2–3 RIR · duración flexible";
+      if(w===2)plan.subtitle="Progresión de piernas · 24 series · 1–2 RIR · duración flexible";
     }
     plan.block="MAREVO PPL 3 días · noviembre 2026";
     plan.progressionWeek=w;
@@ -66,7 +66,7 @@
       "Pecho y espalda al volumen habitual; pierna con 20 series y RIR 2–3. Aprende las cargas sin perseguir el fallo.",
       "Mantén el torso y sube piernas a 24 series si la recuperación es adecuada; busca sumar repeticiones.",
       "Objetivo: 67 series en tres sesiones (19 Push, 22 Pull, 26 Legs). Progresa cargas solo al completar el rango con técnica y RIR correctos.",
-      "Consolida el volumen y compara pesos, repeticiones, tiempo y recuperación. Reduce series si las sesiones superan 90 minutos o cae el rendimiento."
+      "Consolida el volumen y compara pesos, repeticiones, tiempo y recuperación. Prioriza la calidad; el sábado no tiene límite rígido de 90 minutos. Reduce series complementarias si cae la recuperación."
     ][n]||"";
   }
   function weeklyStatus(date,key){return oct26SessionStatus(date,key)}
@@ -151,14 +151,14 @@
       return '<div class="task"><div class="ico">'+(i+1)+'</div><div style="min-width:0"><strong>'+esc(slot.label)+' · '+esc(p.title)+'</strong><small>'+s.label+' · '+(i===2?"Recuperación opcional el fin de semana":"Sesión principal compartible")+'</small></div>'+actionButton(key,date)+'</div>';
     }).join("");
     const count=KEYS.filter(function(k){return oct26WeeklyCompleted(date,k)}).length;
-    return '<div class="section oct26-week-pool-section">Tus 3 sesiones · noviembre</div><div class="card oct26-week-pool"><div class="row between"><div><div class="eyebrow">Semana de hipertrofia</div><strong>Martes · Jueves · Recuperación opcional</strong></div><span class="pill">'+count+'/3</span></div><p class="subtitle" style="margin-top:8px">Máximo 90 min por sesión. Natación lunes, miércoles y viernes. El fin de semana puedes recuperar sesiones pendientes, incluida pierna; las ya completadas no se repiten.</p>'+rows+'<div class="callout" style="margin-top:10px">'+esc(focus(date))+'</div></div>';
+    return '<div class="section oct26-week-pool-section">Tus 3 sesiones · noviembre</div><div class="card oct26-week-pool"><div class="row between"><div><div class="eyebrow">Semana de hipertrofia</div><strong>Martes · Jueves · Recuperación opcional</strong></div><span class="pill">'+count+'/3</span></div><p class="subtitle" style="margin-top:8px">Martes y jueves: 90 min orientativos. Sábado: duración flexible. Natación lunes, miércoles y viernes. El fin de semana puedes recuperar sesiones pendientes, incluida pierna; las ya completadas no se repiten.</p>'+rows+'<div class="callout" style="margin-top:10px">'+esc(focus(date))+'</div></div>';
   }
   const oldPool=oct26WeeklyPoolHTML;
   oct26WeeklyPoolHTML=function(date=currentDate()){return inBlock(date)?pool(date):oldPool(date)};
   const oldRules=oct26RulesHTML;
   oct26RulesHTML=function(date=currentDate()){
     if(!inBlock(date))return oldRules(date);
-    return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque MAREVO · 3 nov–29 nov 2026</div><div class="hero-title" style="font-size:19px">'+esc(title(date))+'</div><div class="callout" style="margin-top:8px">'+esc(focus(date))+'</div><details style="margin-top:10px"><summary>Progresión y reglas del mes</summary><p class="subtitle">Semana 1: 19 + 22 + 20 = 61 series. Semana 2: 19 + 22 + 24 = 65. Semanas 3–4: 19 + 22 + 26 = 67. Series de calentamiento no cuentan. En torso, 1–2 RIR; en piernas, 2–3 RIR la primera semana y 1–2 después. Suma repeticiones antes de subir peso. Respeta descansos de 2–3 min en compuestos; el tiempo límite son 90 min. Si no cabe, recorta accesorios antes de acelerar la técnica. Los registros anteriores permanecen intactos.</p></details></div>';
+    return '<div class="card oct26-cycle-card"><div class="eyebrow">Bloque MAREVO · 3 nov–29 nov 2026</div><div class="hero-title" style="font-size:19px">'+esc(title(date))+'</div><div class="callout" style="margin-top:8px">'+esc(focus(date))+'</div><details style="margin-top:10px"><summary>Progresión y reglas del mes</summary><p class="subtitle">Semana 1: 19 + 22 + 20 = 61 series. Semana 2: 19 + 22 + 24 = 65. Semanas 3–4: 19 + 22 + 26 = 67. Series de calentamiento no cuentan. En torso, 1–2 RIR; en piernas, 2–3 RIR la primera semana y 1–2 después. Suma repeticiones antes de subir peso. Respeta descansos de 2–3 min en compuestos; 90 min es una referencia para Push y Pull; el sábado puede durar más. Si falta tiempo, prioriza calidad técnica antes que apresurarte. Los registros anteriores permanecen intactos.</p></details></div>';
   };
   const oldPending=openPendingWorkouts;
   openPendingWorkouts=function(){
