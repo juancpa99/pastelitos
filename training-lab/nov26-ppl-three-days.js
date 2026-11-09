@@ -78,9 +78,14 @@
   function rest(date){
     return {key:"nov26_rest_"+weekday(date),title:oct26SwimDay(date)?"Natación":"Descanso",type:"rest",subtitle:oct26SwimDay(date)?"Registrar natación al terminar":"Sin gimnasio obligatorio",exercises:[]};
   }
+  function completedOnAnotherDate(date,key){
+    return oct26WeeklyRecords(date,key).some(function(s){return s.completed&&s.date!==date});
+  }
   function dayPlan(date){
     const day=weekday(date);
-    const key=day===2?KEYS[0]:day===4?KEYS[1]:[0,6].includes(day)&&!weekendAlreadyCompletedOtherDate(date)?KEYS[2]:null;
+    const key=day===2&&!completedOnAnotherDate(date,KEYS[0])?KEYS[0]:
+      day===4&&!completedOnAnotherDate(date,KEYS[1])?KEYS[1]:
+      [0,6].includes(day)&&!weekendAlreadyCompletedOtherDate(date)?KEYS[2]:null;
     return key?template(key,date):rest(date);
   }
   const oldTemplate=oct26TemplateForKey;
@@ -112,8 +117,8 @@
   const oldLabel=oct26FlexibleWeekLabel;
   oct26FlexibleWeekLabel=function(date){
     if(!inBlock(date))return oldLabel(date);
-    if(weekday(date)===2)return PLANS.nov26_push.title;
-    if(weekday(date)===4)return PLANS.nov26_pull.title;
+    if(weekday(date)===2&&!completedOnAnotherDate(date,KEYS[0]))return PLANS.nov26_push.title;
+    if(weekday(date)===4&&!completedOnAnotherDate(date,KEYS[1]))return PLANS.nov26_pull.title;
     if([0,6].includes(weekday(date))&&!weekendAlreadyCompletedOtherDate(date))return PLANS.nov26_legs.title;
     return oct26SwimDay(date)?"Natación":"Descanso / recuperar";
   };
