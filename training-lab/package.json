@@ -1,0 +1,1 @@
+{"name":"marevo-training-lab","private":true,"version":"8.0.0","scripts":{"test":"node --test tests/coach-engine.cjs tests/coach-offline.cjs && node tests/coach-integration.cjs && node tests/training-calendar.cjs && node tests/compact-workout.cjs"},"devDependencies":{"jsdom":"^27.0.1"},"engines":{"node":">=22"}}

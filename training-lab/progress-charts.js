@@ -13,8 +13,8 @@ function progressBuckets(ref,period){
  return rows;
 }
 function seriesByMuscle(sessions){
- const totals=Object.fromEntries(MUSCLE_AXES.map(([name])=>[name,0]));
- sessions.forEach(s=>(s.exercises||[]).forEach(e=>{if(e.type==='mobility')return;const count=getEffectiveRecordedSets(e).length;muscleGroupsForExercise(e).forEach(g=>{if(g in totals)totals[g]+=count;});}));return totals;
+ const actual=MarevoCoach.volume(sessions),map={'Pectoral':'Pectoral','Deltoides':'Deltoide lateral','Bíceps':'Bíceps','Tríceps':'Tríceps','Espalda':'Espalda','Cuádriceps':'Cuádriceps','Glúteo':'Glúteo','Gemelos':'Gemelos','Core':'Core','Isquios':'Isquios'};
+ return Object.fromEntries(MUSCLE_AXES.map(([name])=>[name,name==='Hombros'?['Deltoide lateral','Deltoide anterior','Deltoide posterior'].reduce((n,k)=>n+(actual[k]?.direct||0),0):name==='Brazos'?['Bíceps','Tríceps'].reduce((n,k)=>n+(actual[k]?.direct||0),0):actual[name==='Glúteos'?'Glúteo':map[name]||name]?.direct||0]));
 }
 function progressRadar(current,previous){
  const labels=MUSCLE_AXES.map(a=>a[0]),max=Math.max(1,...Object.values(current),...Object.values(previous||{})),cx=180,cy=157,R=101;
@@ -24,7 +24,7 @@ function progressRadar(current,previous){
  labels.forEach((label,i)=>{const [x,y]=point(i,1.24).split(',');svg+=`<line x1="180" y1="157" x2="${point(i,1).split(',')[0]}" y2="${point(i,1).split(',')[1]}" stroke="#294050"/><text x="${x}" y="${y}" text-anchor="${+x<170?'end':+x>190?'start':'middle'}" dominant-baseline="middle" fill="#adc1ce" font-size="9">${esc(label)}</text>`;});
  if(previous)svg+=`<polygon points="${labels.map((g,i)=>point(i,previous[g]/max)).join(' ')}" fill="none" stroke="#9aafbd" stroke-dasharray="4 4" stroke-width="2"/>`;
  svg+=`<polygon points="${labels.map((g,i)=>point(i,current[g]/max)).join(' ')}" fill="#2dd4bf" fill-opacity=".18" stroke="#2dd4bf" stroke-width="2.5"/></svg>`;
- return svg+`<p class="chart-caption">Escala común: 0–${max} series por grupo. Los ejercicios compuestos cuentan en varios grupos.</p><details class="chart-values"><summary>Ver valores</summary>${labels.map(g=>`<div class="summaryline"><span>${esc(g)}</span><span>${current[g]}${previous?' / '+previous[g]+' anterior':''}</span></div>`).join('')}</details>`;
+ return svg+`<p class="chart-caption">Escala común: 0–${max} series por grupo. Solo series directas; consulta las indirectas en Tu entrenador.</p><details class="chart-values"><summary>Ver valores</summary>${labels.map(g=>`<div class="summaryline"><span>${esc(g)}</span><span>${current[g]}${previous?' / '+previous[g]+' anterior':''}</span></div>`).join('')}</details>`;
 }
 function trendBars(buckets,values,unit){
  const max=Math.max(1,...values.filter(v=>v!=null));
@@ -39,10 +39,10 @@ function loadTrendHTML(ref,period,index=0){
 }
 function changeLoadTrend(index){document.getElementById('loadTrend').innerHTML=loadTrendHTML(todayISO(),state.settings.progressPeriod||'week',+index);}
 function progressCarouselHTML(ref,period){
- const buckets=progressBuckets(ref,period),last=buckets.at(-1),current=seriesByMuscle(last.sessions),previous=period==='day'?null:seriesByMuscle(buckets.at(-2).sessions);
+ const buckets=progressBuckets(ref,period),last=buckets.at(-1),current=seriesByMuscle(last.sessions),previous=null;
  const sets=buckets.map(b=>b.sessions.reduce((n,s)=>n+(s.exercises||[]).reduce((a,e)=>a+(e.type==='mobility'?0:getEffectiveRecordedSets(e).length),0),0));
  const swims=buckets.map(b=>b.sessions.filter(s=>s._kind==='swim').reduce((n,s)=>n+(+s.meters||0),0));
- const slides=[['Distribución muscular',`<p class="chart-legend"><span>● Actual</span>${previous?' · ┄ Periodo anterior':''}</p>${progressRadar(current,previous)}`],['Volumen de fuerza',trendBars(buckets,sets,'Series efectivas registradas')],['Evolución de la carga',`<div id="loadTrend">${loadTrendHTML(ref,period)}</div>`],['Volumen de natación',trendBars(buckets,swims,'Metros nadados')]];
+ const slides=[['Distribución muscular',`<p class="chart-legend"><span>● Actual</span>${previous?' · ┄ Periodo anterior':''}</p>${progressRadar(current,previous)}`],['Volumen de fuerza',trendBars(buckets,sets,'Series de trabajo registradas')],['Evolución de la carga',`<div id="loadTrend">${loadTrendHTML(ref,period)}</div>`],['Volumen de natación',trendBars(buckets,swims,'Metros nadados')]];
  return `<section class="progress-charts" aria-label="Gráficas de progreso"><div class="chart-navigation"><span>${period==='day'?'Actividad de hoy':'Últimos cuatro '+(period==='week'?'periodos semanales':'meses')}</span><div><button class="btn ghost small" aria-label="Gráfica anterior" onclick="moveProgressChart(-1)">‹</button><button class="btn ghost small" aria-label="Gráfica siguiente" onclick="moveProgressChart(1)">›</button></div></div>${period==='day'?'':'<p class="chart-caption">El periodo actual está en curso; los anteriores están completos.</p>'}<div class="chart-carousel" tabindex="0" aria-label="Desliza para ver otras gráficas">${slides.map(([title,body],i)=>`<article class="chart-slide" aria-label="${i+1} de 4: ${title}"><div class="row between"><h2>${title}</h2><small>${i+1} / 4</small></div>${body}</article>`).join('')}</div><p class="chart-caption">Desliza o usa las flechas: distribución · volumen · carga · natación.</p></section>`;
 }
 function moveProgressChart(direction){const el=document.querySelector('.chart-carousel');if(el)el.scrollTo({left:Math.max(0,Math.min(3,Math.round(el.scrollLeft/el.clientWidth)+direction))*el.clientWidth,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}

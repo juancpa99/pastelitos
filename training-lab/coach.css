@@ -1,0 +1,272 @@
+.coach-home,
+.coach-analysis,
+.coach-plan {
+  color: var(--text);
+  border-top: 1px solid var(--line);
+  padding: 22px 0;
+  margin-top: 20px;
+}
+.coach-home {
+  padding: 18px 0;
+}
+.coach-kicker {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 750;
+  color: var(--muted);
+}
+.coach-home h2,
+.coach-analysis h2,
+.coach-plan h2 {
+  font-size: 23px;
+  line-height: 1.15;
+  letter-spacing: -0.6px;
+  margin: 10px 0 14px;
+}
+.coach-home h2 {
+  font-size: 19px;
+}
+.coach-home p,
+.coach-analysis p,
+.coach-plan p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 9px 0;
+}
+.coach-home small,
+.coach-footnote {
+  color: var(--muted);
+  font-size: 11px !important;
+  line-height: 1.5;
+}
+.coach-link {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  min-height: 44px;
+  font-weight: 650;
+}
+.coach-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.coach-summary span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.coach-summary strong {
+  display: block;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1.3;
+}
+.coach-week-nav {
+  display: flex;
+  gap: 4px;
+}
+.coach-week-nav button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 50%;
+  font-size: 24px;
+}
+.coach-week-nav button:disabled {
+  opacity: 0.35;
+}
+.coach-prescription {
+  background: var(--soft);
+  border-left: 3px solid var(--teal);
+  padding: 12px;
+  margin: 10px 0 14px;
+  border-radius: 0 8px 8px 0;
+}
+.coach-comparison {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 6px 8px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.coach-comparison > span {
+  color: var(--muted);
+}
+.coach-comparison p {
+  margin: 0;
+  line-height: 1.6;
+}
+.coach-comparison small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.coach-prescription summary {
+  font-size: 12px;
+  min-height: 44px;
+}
+.coach-prescription .view-disclosure {
+  margin: 5px 0 0;
+}
+.coach-volume-head,
+.coach-volume-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.8fr) repeat(3, minmax(40px, 1fr));
+  gap: 5px;
+  align-items: center;
+  font-size: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.coach-volume-head {
+  font-size: 9px;
+  color: var(--muted);
+}
+.coach-volume-row > :not(:first-child),
+.coach-volume-head > :not(:first-child) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.coach-volume-row small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.coach-history > div,
+.coach-history-item,
+.coach-session,
+.coach-proposal {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.coach-history time,
+.coach-history small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.coach-history span {
+  display: block;
+  line-height: 1.6;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.coach-plan-meta {
+  display: flex;
+  gap: 26px;
+  margin: 18px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.coach-plan-meta strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  margin-top: 6px;
+}
+.coach-timeline {
+  list-style: none;
+  padding: 0 0 0 14px;
+  margin: 16px 0;
+  border-left: 2px solid var(--line);
+}
+.coach-timeline li {
+  position: relative;
+  padding: 0 0 20px 10px;
+}
+.coach-timeline li:before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--muted);
+  border-radius: 50%;
+  left: -19px;
+  top: 4px;
+}
+.coach-timeline li.is-current:before {
+  background: var(--teal);
+}
+.coach-timeline span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.coach-timeline strong {
+  font-size: 14px;
+}
+.coach-timeline p {
+  margin: 3px 0;
+}
+.coach-analysis pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 10px;
+}
+.coach-analysis summary,
+.coach-plan summary {
+  min-height: 44px;
+}
+.coach-analysis .view-disclosure,
+.coach-plan .view-disclosure {
+  margin-top: 8px;
+}
+.coach-week > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.coach-input-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.coach-analysis,
+.coach-plan,
+.coach-prescription {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.coach-analysis button:focus-visible,
+.coach-plan button:focus-visible,
+.coach-prescription button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+.coach-analysis a {
+  color: var(--text);
+  text-decoration: underline;
+}
+.coach-analysis .disclosure-content {
+  min-width: 0;
+}
+.coach-analysis h3 {
+  font-size: 18px;
+  line-height: 1.3;
+}
+.coach-analysis .view-disclosure .view-disclosure {
+  box-shadow: none;
+}
+.sheet {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  scroll-padding-bottom: 24px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-analysis *,
+  .coach-plan * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

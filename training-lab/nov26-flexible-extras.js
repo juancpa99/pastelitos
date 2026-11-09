@@ -5,7 +5,7 @@
   const BASE_KEYS=["nov26_push","nov26_pull","nov26_legs"];
   const GOALS={back:2,calves:3,chest:2,core:3};
   const LABELS={back:"Espalda · jalón",calves:"Gemelos",chest:"Pectoral superior · press inclinado",core:"Core adicional"};
-  const validDate=date=>typeof date==="string"&&date>=START&&date<=END;
+  const validDate=date=>typeof date==="string"&&date>=START;
   const weekStart=date=>mondayOf(date);
   const inSameWeek=(session,date)=>!!session&&session.date>=weekStart(date)&&session.date<=addDaysISO(weekStart(date),6);
 
@@ -40,7 +40,8 @@
   function preparedExercises(key,mode,date){
     const p=oct26TemplateForKey(key,date);
     const base=structuredClone(p.exercises||[]);
-    return base.concat(extrasFor(key,mode,date)).map(e=>normalizeSessionExercise(e));
+    const exercises=base.concat(extrasFor(key,mode,date)).map(e=>normalizeSessionExercise(e));
+    return typeof coachApplyChanges==="function"?coachApplyChanges(exercises,date,mode):exercises;
   }
   function currentRecord(key,date){
     const a=(state.sessions||[]).find(s=>s.date===date&&s.key===key&&!s.completed);
@@ -76,7 +77,7 @@
     if(!validDate(date)||!BASE_KEYS.includes(key)||!["solo","acompaniado"].includes(mode))return;
     const status=oct26SessionStatus(date,key);
     if(status.state!=="pending"){closeModal();previousStart(key);return}
-    if(planFor(date).key===key){
+    if(date<"2026-11-30"&&planFor(date).key===key){
       const p=planFor(date);
       const session=ensureDraftSession(date,p);
       if(!session.startedAt){
@@ -93,6 +94,7 @@
       session.exercises=preparedExercises(key,mode,date);
       session.marevoCompanionMode=mode;
       session.marevoFlexWeek=weekStart(date);
+      if(typeof coachRecordApplied==="function")coachRecordApplied(session);
       saveState(true);
       if(session.id)editExtraSession(session.id);
       else refreshPlannedWorkspace();
@@ -133,10 +135,11 @@
     const supplemental=targets.map(t=>flexExercise(t,pending(t,date))).filter(e=>e.sets>0);
     const base=sundayBase();
     const activation=base.filter(e=>e.key==="marevo_sunday_pogo"||e.key==="marevo_sunday_reverse_lunge");
-    const core=base.filter(e=>e.type==="strength");
+    const core=base.filter(e=>e.type==="strength").map(e=>e.marevoFlexTarget?{...e,sets:pending(e.marevoFlexTarget,date)}:e).filter(e=>e.sets>0);
     const mobility=base.filter(e=>e.type==="mobility"&&!activation.includes(e));
     return activation.concat(supplemental,sundayHypertrophy(),core,mobility).map(normalizeSessionExercise);
   }
+  window.coachSundayPlan=sundayPlan;
   function sundaySession(date){
     return (state.extraSessions||[]).find(s=>s.date===date&&s.marevoSunday===true);
   }
@@ -149,8 +152,8 @@
       closeModal();editExtraSession(session.id);return;
     }
     const id="marevo_sunday_"+Date.now().toString(36);
-    session={id,date,title:"DOMINGO · Hipertrofia, core y movilidad",marevoSunday:true,completed:false,startedAt:Date.now(),duration:null,rpe:null,activeKcal:null,exercises:sundayPlan(date)};
-    state.extraSessions.push(session);saveState(true);closeModal();renderAll();editExtraSession(id);
+    session={id,date,title:"DOMINGO · Hipertrofia, core y movilidad",marevoSunday:true,completed:false,startedAt:Date.now(),duration:null,rpe:null,activeKcal:null,exercises:typeof coachApplyChanges==="function"?coachApplyChanges(sundayPlan(date),date,"solo"):sundayPlan(date),marevoCompanionMode:"solo"};
+    state.extraSessions.push(session);if(typeof coachRecordApplied==="function")coachRecordApplied(session);saveState(true);closeModal();renderAll();editExtraSession(id);
   };
   const previousLanding=workoutLandingHTML;
   workoutLandingHTML=function(date){
