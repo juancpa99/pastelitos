@@ -156,7 +156,7 @@ function loadState(){
 let state=loadState(),autosaveTimer=null,activeView="Home";
 
 function saveState(silent=false){storageSet(STORAGE_KEY,JSON.stringify(state));if(!silent)toast("Guardado")}
-function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function todayISO(){return MarevoCoach.dateISO(new Date())}
 function dateObj(x){const [y,m,d]=x.split("-").map(Number);return new Date(y,m-1,d)}
 function weekday(x){return dateObj(x).getDay()}
 function currentDate(){return document.getElementById("selectedDate").value||todayISO()}
@@ -635,6 +635,7 @@ function renderHome(){
     </button>
    </div>
   </section>`;
+ if(typeof coachHomeHTML==='function')html+=coachHomeHTML(x);
  root.innerHTML=html;
  const todayButton=document.querySelector('.today-btn');if(todayButton){todayButton.hidden=x===todayISO();todayButton.textContent='Volver a hoy';}
 }
@@ -802,23 +803,14 @@ function removeOneRep(scope,exerciseIndex,attemptIndex){
 }
 
 function setCoachFeedback(e,reps,rir){
- const [rirMin,rirMax]=targetRIRRange(e.rir),r=+rir,rep=+reps;
- if(!Number.isFinite(rep))return {tone:"warn",title:"Faltan las repeticiones",text:"Introduce las reps para poder ajustar la siguiente serie."};
- if(!Number.isFinite(r))return {tone:"warn",title:"Introduce el RIR",text:"El RIR es lo que permite saber si la serie ha sido demasiado fácil o demasiado dura."};
- if(rep<+e.min||r<rirMin){
-  return {tone:"hard",title:"Más dura de lo previsto",text:"Para la siguiente serie, baja aproximadamente 2,5–5% la carga si no esperas recuperar el rango con el descanso."}
- }
- if(rep>=+e.max&&r>rirMax){
-  return {tone:"easy",title:"Te ha sobrado margen",text:"Puedes subir la carga mínima disponible en la siguiente serie y volver a la zona baja del rango."}
- }
- if(rep>=+e.max&&r>=rirMin&&r<=rirMax){
-  return {tone:"good",title:"Objetivo cumplido",text:"Mantén esta serie como referencia. Si se repite en todas las series, la próxima sesión toca subir carga."}
- }
- if(r>rirMax){
-  return {tone:"easy",title:"Algo fácil",text:"Mantén la carga y busca sumar repeticiones antes de subir peso."}
- }
- return {tone:"good",title:"En objetivo",text:"Mantén la carga para la siguiente serie."}
+ const rep=MarevoCoach.num(reps),r=MarevoCoach.num(rir),[low,high]=MarevoCoach.range(e.rir);
+ if(rep==null||rep<=0)return {tone:"warn",title:"Faltan repeticiones",text:"Completa el registro para evaluar la serie."};
+ if(r==null||r<0||r>10)return {tone:"warn",title:"Trabajo registrado · falta RIR",text:"La serie cuenta como trabajo. Registra el esfuerzo cuando puedas; no inferimos que llegaste al fallo."};
+ if(rep<+e.min||r<low)return {tone:"hard",title:"Fuera del objetivo",text:"Conservamos esta serie de trabajo. Descansa y mantén margen; una serie aislada no cambia la planificación."};
+ if(rep>=+e.max)return {tone:"good",title:"Rango superior registrado",text:"Al terminar revisaremos todas las series, el equipo y la recuperación antes de proponer más carga."};
+ return {tone:"good",title:r>high?"Trabajo con margen":"En objetivo",text:"Mantén la referencia. La próxima sesión puede buscar una repetición más si la recuperación lo permite."};
 }
+
 function difficultyLabel(rir){
  const r=+rir;if(!Number.isFinite(r))return "";
  if(r<=0)return "Límite";if(r<=1)return "Muy dura";if(r<=2)return "Dura";if(r<=3)return "Controlada";return "Fácil"
@@ -1242,7 +1234,7 @@ function commitGymFinish(values){
  if(s.pausedAt){s.pausedDuration=(+s.pausedDuration||0)+(Date.now()-s.pausedAt);s.pausedAt=null}
  s.duration=values.duration;s.rpe=values.rpe;s.activeKcal=values.kcal;s.finishedAt=Date.now();
  if(state.restTimer&&state.restTimer.date===s.date&&state.restTimer.scope==="planned")state.restTimer=null;
- releaseSessionWakeLock();saveState();closeModal();renderWorkout();renderBadges();stopRuntimeTickerIfIdle();toast("Entrenamiento guardado")
+ releaseSessionWakeLock();saveState();closeModal();renderWorkout();renderBadges();stopRuntimeTickerIfIdle();toast("Entrenamiento guardado");if(typeof coachAfterSession==='function')coachAfterSession(s)
 }
 function finishGym(){
  const s=collectPlannedInputs(),sum=sessionEffectiveSummary(s);
@@ -2168,7 +2160,8 @@ function renderProgress(){
  const ref=todayISO(),period=state.settings.progressPeriod||'week',sessions=sessionsForProgress(ref,period).filter(s=>s.date<=ref);
  const root=document.getElementById('viewProgress');rememberDisclosures(root);
  let html=`<div class="period-tabs" role="group" aria-label="Periodo de análisis">${['day','week','month'].map(p=>`<button aria-pressed="${period===p}" class="${period===p?'active':''}" onclick="setProgressPeriod('${p}')">${progressPeriodLabel(p)}</button>`).join('')}</div>`;
- html+=progressCarouselHTML(ref,period);
+ if(typeof coachProgressHTML==='function')html+=coachProgressHTML();
+ html+=disclosureHTML('progress-activity-charts','Gráficas de actividad',progressCarouselHTML(ref,period),false,'Volumen, cargas y natación');
  if(typeof sep26AssessmentCard==='function'){const assessment=sep26AssessmentCard(ref);if(assessment)html+=`<div class="progress-phase-assessment">${assessment}</div>`;}
  html+=disclosureHTML('progress-summary','Resumen y medidas',progressOverviewHTML(ref,period,sessions));
  html+=disclosureHTML('progress-strength','Fuerza',strengthProgressHTML(ref,period),false,'Por zona muscular, ejercicio y equipo');

@@ -1,6 +1,9 @@
 /* Session usability: records are explicit; templates remain unchanged. */
 const LOAD_MODES = {
   total: "Peso total / selector",
+  bodyweight: "Peso corporal · kg externos = 0",
+  weighted: "Lastre externo",
+  assisted: "Asistencia (menos kg = más dificultad)",
   dumbbell: "Una mancuerna (por mano)",
   plates: "Discos totales + base",
   sideplates: "Discos por lado + base",
@@ -35,6 +38,7 @@ function profileSignature(e) {
     String(p.base ?? ""),
     p.machine || "",
     !!p.unilateral,
+    p.variant||"",
   ]);
 }
 function loadLabel(e) {
@@ -62,11 +66,9 @@ const oldNormalizeAttempt = normalizeAttempt;
 normalizeAttempt = function (a) {
   return { ...a, ...oldNormalizeAttempt(a) };
 };
-inferredAttemptStatus = function (e, a) {
-  if (a.attemptType === "warmup") return a.completedAt ? "warmup" : null;
-  if (!a.completedAt) return null;
-  if (loadProfile(e).unilateral && !a.rightCompletedAt) return null;
-  return "effective";
+inferredAttemptStatus = function (e,a) {
+  const c=MarevoCoach.classify({...e,loadProfile:loadProfile(e)},a);
+  return c.kind==='warmup'?(a.completedAt?'warmup':null):c.work?'effective':null;
 };
 classifyAttempt = function (e, a) {
   if (a.attemptType === "warmup")
@@ -141,7 +143,7 @@ function equipmentSettings(scope, i) {
       )
       .join(
         "",
-      )}</select><label for="eqBase">Barra o resistencia inicial (kg, opcional)</label><input id="eqBase" inputmode="decimal" value="${esc(p.base ?? "")}" placeholder="Desconocida"><p>Ejemplo: barra 20 + 15 kg de discos por lado = 50 kg nominales. En poleas usa el selector; no sumes la máquina. La resistencia real depende de palancas y poleas.</p><label><input id="eqUni" type="checkbox" ${p.unilateral ? "checked" : ""}> Unilateral: registrar izquierda y derecha</label><p>Una pareja de lados = 1 serie por lado. Con dos mancuernas a la vez, registra el peso de una y deja unilateral desactivado.</p><div class="actions"><button class="btn" onclick="saveEquipment('${scope}',${i})">Guardar configuración</button><button class="btn ghost" onclick="closeModal();refreshScope('${scope}')">Cancelar</button></div></div></div>`;
+      )}</select><label for="eqBase">Barra o resistencia inicial (kg, opcional)</label><input id="eqBase" inputmode="decimal" value="${esc(p.base ?? "")}" placeholder="Desconocida"><p>Ejemplo: barra 20 + 15 kg de discos por lado = 50 kg nominales. En poleas usa el selector; no sumes la máquina. La resistencia real depende de palancas y poleas.</p><label for="eqIncrement">Incremento mínimo (kg en tu convención)</label><input id="eqIncrement" inputmode="decimal" value="${esc(p.increment??'')}" placeholder="Por ejemplo 2 por mancuerna"><label for="eqVariant">Variante / agarre</label><input id="eqVariant" value="${esc(p.variant||'')}" placeholder="Neutro, prono…"><label><input id="eqUni" type="checkbox" ${p.unilateral ? "checked" : ""}> Unilateral: registrar izquierda y derecha</label><p>Una pareja de lados = 1 serie por lado. Con dos mancuernas a la vez, registra el peso de una y deja unilateral desactivado.</p><div class="actions"><button class="btn" onclick="saveEquipment('${scope}',${i})">Guardar configuración</button><button class="btn ghost" onclick="closeModal();refreshScope('${scope}')">Cancelar</button></div></div></div>`;
 }
 function saveEquipment(scope, i) {
   const e = scopeExercise(scope, i);
@@ -156,7 +158,10 @@ function saveEquipment(scope, i) {
     toast("La base debe ser un peso válido");
     return;
   }
+  const increment=val("eqIncrement").replace(",", ".");
+  if(increment!==""&&(!Number.isFinite(+increment)||+increment<=0)){toast("El incremento debe ser positivo");return;}
   e.loadProfile = {
+    increment,variant:val("eqVariant").trim(),
     mode: val("eqMode"),
     base,
     machine: val("eqMachine").trim(),
@@ -263,6 +268,7 @@ exerciseCardHTML = function (e, i, scope) {
   const p = loadProfile(e), arr = allAttempts(e), done = effectiveCount(e), goal = +e.sets || 3;
   const tools = `<div class="actions"><button class="btn ghost small" onclick="openExercisePicker('replace','${scope}',${i})">Cambiar ejercicio</button><button class="btn ghost small" onclick="equipmentSettings('${scope}',${i})">Equipo y peso</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},-1)">−1 serie hoy</button><button class="btn ghost small" onclick="adjustSessionSets('${scope}',${i},1)">+1 serie hoy</button></div><p>${esc(e.note||'')}</p><p>${esc(exerciseAdvice(e))}</p>`;
   let html = `<article class="exercise compact-exercise"><div class="compact-prescription"><h3>${esc(e.name)}</h3><p>${goal} series${p.unilateral?' por lado':''} · ${e.min||8}–${e.max||12} reps · RIR ${esc(e.rir||'1–2')} · ${esc(e.rest||'')}</p><small>${esc(loadLabel(e))}</small></div>`;
+  if(typeof coachExerciseHTML==='function')html+=coachExerciseHTML(e,scope,i);
   html += `<div class="set-table" role="group" aria-label="Series de ${esc(e.name)}"><div class="compact-set-labels" aria-hidden="true"><span>Serie</span><span>Kg</span><span>Reps</span><span>RIR</span><span>Hecha</span></div>`;
   const comparable = matchingHistory(e)[0];
   arr.forEach((a,j)=>{
@@ -313,7 +319,7 @@ function validSet(a, right = false, warmup = false) {
     +v("kg") >= 0 &&
     Number.isInteger(+v("reps")) &&
     +v("reps") > 0 &&
-    (warmup ||
+    (warmup || v("rir")==="" ||
       (v("rir") !== "" &&
         Number.isFinite(+v("rir")) &&
         +v("rir") >= 0 &&
@@ -639,6 +645,7 @@ finishExtra = function (id) {
   saveState(true);
   closeModal();
   renderAll();
+  if(typeof coachAfterSession==='function')coachAfterSession(s);
 };
 const legacyCloseModal = closeModal;
 closeModal = function () {

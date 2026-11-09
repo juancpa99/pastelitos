@@ -3,6 +3,15 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const dom=new JSDOM(html.replace(/<script[^>]*src=[^>]*><\/script>/g,''),{url:'https://example.test/training-lab/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,doc=w.document,ctx=dom.getInternalVMContext(),run=s=>vm.runInContext(s,ctx);
+// Track real observers so teardown cannot notify callbacks after the window is closed.
+  const observers = [], NativeObserver = w.MutationObserver;
+  w.MutationObserver = class extends NativeObserver {
+    constructor(callback) { super(callback); observers.push(this); }
+  };
+  w.closeTestWindow = () => setImmediate(() => {
+    observers.forEach(observer => observer.disconnect());
+    w.close();
+  });
 w.matchMedia=()=>({matches:false,addEventListener(){}});w.ResizeObserver=class{observe(){}};w.structuredClone=structuredClone;w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
 for(const m of html.matchAll(/<script src="([^"?]+)(?:\?[^\"]*)?"><\/script>/g))run(fs.readFileSync(path.join(root,m[1]),'utf8'));
 try {
@@ -38,4 +47,4 @@ try {
  }
  assert.equal(run('JSON.stringify(state.extraSessions)'),saved);
  console.log('PASS: swimming-only days, optional weekend recovery, weekly deduplication, full-week completion, all views and retained history');
-} finally {w.close()}
+} finally {w.closeTestWindow()}
