@@ -14,6 +14,15 @@ function app(snapshot) {
     w = dom.window,
     ctx = dom.getInternalVMContext(),
     run = (s) => vm.runInContext(s, ctx);
+// Track real observers so teardown cannot notify callbacks after the window is closed.
+  const observers = [], NativeObserver = w.MutationObserver;
+  w.MutationObserver = class extends NativeObserver {
+    constructor(callback) { super(callback); observers.push(this); }
+  };
+  w.closeTestWindow = () => setImmediate(() => {
+    observers.forEach(observer => observer.disconnect());
+    w.close();
+  });
   w.matchMedia = () => ({ matches: false, addEventListener() {} });
   w.ResizeObserver = class {
     observe() {}
@@ -188,5 +197,5 @@ try {
   });
   console.log(`${passed} integration scenarios passed`);
 } finally {
-  w.close();
+  w.closeTestWindow();
 }
