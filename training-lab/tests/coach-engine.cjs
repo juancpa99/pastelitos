@@ -307,6 +307,7 @@ test("longitudinal PPL dedup and missed sessions, no Sunday obligation", () => {
       },
     ],
   };
+  d.coach={programHistory:[{date:"2026-11-14",days:3}]};
   const r = C.longitudinal(d, "2026-12-06");
   assert.equal(r.pplDue, 3);
   assert.equal(r.pplCompleted, 1);

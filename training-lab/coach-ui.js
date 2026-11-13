@@ -123,7 +123,7 @@ function coachHomeHTML(date) {
     goals = r.recommendations
       .filter((x) => x.last && ["reps", "load", "hold"].includes(x.action))
       .slice(0, 2);
-  return `<section class="coach-home" aria-label="Tu entrenador"><div class="row between"><span class="coach-kicker">Tu entrenador</span><button class="coach-link" onclick="showView('Progress')">Ver análisis <span aria-hidden="true">↗</span></button></div><h2>${esc(r.conclusion)}</h2>${goals.length ? goals.map((g) => `<p><strong>${esc(g.exercise.name)}</strong> · ${esc(coachSeriesText(g.targets))}</p>`).join("") : "<p>Registra cargas, repeticiones y RIR. Con las primeras sesiones podremos proponerte objetivos concretos.</p>"}<small>${r.partial ? "Semana en curso · evaluación provisional" : "Semana completa"} · ${r.completed}/3 PPL registradas</small></section>`;
+  return `<section class="coach-home" aria-label="Tu entrenador"><div class="row between"><span class="coach-kicker">Tu entrenador</span><button class="coach-link" onclick="showView('Progress')">Ver análisis <span aria-hidden="true">↗</span></button></div><h2>${esc(r.conclusion)}</h2>${goals.length ? goals.map((g) => `<p><strong>${esc(g.exercise.name)}</strong> · ${esc(coachSeriesText(g.targets))}</p>`).join("") : "<p>Registra cargas, repeticiones y RIR. Con las primeras sesiones podremos proponerte objetivos concretos.</p>"}<small>${r.partial ? "Semana en curso · evaluación provisional" : "Semana completa"} · ${r.completed}/${r.plannedSessions} sesiones registradas</small></section>`;
 }
 function coachVolumeHTML(actual, planned = {}) {
   const groups = [
@@ -199,7 +199,7 @@ function coachActionLabel(a) {
 function coachProgressHTML() {
   const date = coachDate(),
     r = coachReport(date);
-  return `<section class="coach-analysis"><div class="row between"><div><div class="coach-kicker">Tu entrenador</div><h2>Análisis semanal</h2></div><div class="coach-week-nav"><button aria-label="Semana anterior" onclick="coachMoveWeek(-1)">‹</button><button aria-label="Semana siguiente" ${coachWeekOffset === 0 ? "disabled" : ""} onclick="coachMoveWeek(1)">›</button></div></div><p class="subtitle">${r.start} → ${r.through}${r.partial ? " · semana incompleta" : ""}</p><h3>${esc(r.conclusion)}</h3><p>${esc(r.recovery.reason)}</p><div class="coach-summary"><span><strong>${r.completed}/3</strong>PPL registradas</span><span><strong>${r.recovery.swims}</strong>sesiones de natación</span><span><strong>${r.rows.reduce((n, s) => n + (+s.duration || 0), 0)}</strong>min de fuerza registrados</span></div><p class="coach-footnote">${r.partial ? "No se compara el total de esta semana con una semana completa." : "Evaluación de lunes a domingo."} Zona horaria: Madrid.</p>${disclosureHTML("coach-exercises", "Rendimiento y próximos objetivos", r.recommendations.map((x) => disclosureHTML("coach-ex:" + x.identity, esc(x.exercise.name), `<p>${esc(x.reason)}</p><p><strong>Próxima: ${esc(coachSeriesText(x.targets))}</strong> · RIR ${esc(x.exercise.rir)}</p>${coachTrendHTML(x)}<p>Datos: ${x.sufficiency === "trend" ? "cuatro o más exposiciones; revisa su comparabilidad" : x.sufficiency === "reference" ? "referencia inicial; tendencia aún limitada" : "insuficientes"}. ${x.trend === "stable" ? "Rendimiento estable." : x.trend === "declining" ? "Caída repetida." : x.trend === "improving" ? "Hay mejoras de repeticiones; revisa el esfuerzo." : ""}</p>`, false, x.last ? coachSeriesText(x.last.sets) : "Sin historial comparable")).join(""))}${disclosureHTML("coach-volume", "Volumen por músculo", coachVolumeHTML(r.volume, r.planned))}${disclosureHTML(
+  return `<section class="coach-analysis"><div class="row between"><div><div class="coach-kicker">Tu entrenador</div><h2>Análisis semanal</h2></div><div class="coach-week-nav"><button aria-label="Semana anterior" onclick="coachMoveWeek(-1)">‹</button><button aria-label="Semana siguiente" ${coachWeekOffset === 0 ? "disabled" : ""} onclick="coachMoveWeek(1)">›</button></div></div><p class="subtitle">${r.start} → ${r.through}${r.partial ? " · semana incompleta" : ""}</p><h3>${esc(r.conclusion)}</h3><p>${esc(r.recovery.reason)}</p><div class="coach-summary"><span><strong>${r.completed}/${r.plannedSessions}</strong>sesiones registradas</span><span><strong>${r.recovery.swims}</strong>sesiones de natación</span><span><strong>${r.rows.reduce((n, s) => n + (+s.duration || 0), 0)}</strong>min de fuerza registrados</span></div><p class="coach-footnote">${r.partial ? "No se compara el total de esta semana con una semana completa." : "Evaluación de lunes a domingo."} Zona horaria: Madrid.</p>${disclosureHTML("coach-exercises", "Rendimiento y próximos objetivos", r.recommendations.map((x) => disclosureHTML("coach-ex:" + x.identity, esc(x.exercise.name), `<p>${esc(x.reason)}</p><p><strong>Próxima: ${esc(coachSeriesText(x.targets))}</strong> · RIR ${esc(x.exercise.rir)}</p>${coachTrendHTML(x)}<p>Datos: ${x.sufficiency === "trend" ? "cuatro o más exposiciones; revisa su comparabilidad" : x.sufficiency === "reference" ? "referencia inicial; tendencia aún limitada" : "insuficientes"}. ${x.trend === "stable" ? "Rendimiento estable." : x.trend === "declining" ? "Caída repetida." : x.trend === "improving" ? "Hay mejoras de repeticiones; revisa el esfuerzo." : ""}</p>`, false, x.last ? coachSeriesText(x.last.sets) : "Sin historial comparable")).join(""))}${disclosureHTML("coach-volume", "Volumen por músculo", coachVolumeHTML(r.volume, r.planned))}${disclosureHTML(
     "coach-session-review",
     "Sesiones y resultados",
     r.rows
@@ -275,7 +275,7 @@ function coachDecide(action) {
           mode: "solo",
           available: true,
           capacity: coachSlotCapacity(p, date),
-          swim: oct26SwimDay(date),
+          swim: oct26SwimDay(date) && !(MarevoCoach.programFor(state,date)===4 && weekday(date)===1),
           optional: weekday(date) === 0,
           confirmed: true,
           started: MarevoCoach.records(state).some(
@@ -471,12 +471,12 @@ function coachRecordApplied(session) {
 
 function coachLongitudinalHTML(date) {
   const r = MarevoCoach.longitudinal(state, date);
-  return `<p>${r.weeks.length} semanas observadas · ${r.sessions} sesiones de fuerza · ${r.swims} de natación.</p><p>Sesiones PPL completadas: ${r.pplCompleted} de ${r.pplDue} previstas hasta la fecha. Los cambios de día cuentan una vez. El domingo complementario no es obligatorio.</p><div class="coach-history">${
+  return `<p>${r.weeks.length} semanas observadas · ${r.sessions} sesiones de fuerza · ${r.swims} de natación.</p><p>Sesiones de fuerza completadas: ${r.pplCompleted} de ${r.pplDue} previstas hasta la fecha. Los cambios de día cuentan una vez. El balance sigue la rutina seleccionada.</p><div class="coach-history">${
     r.weeks
       .slice(-6)
       .map(
         (w) =>
-          `<div><time>${w.start} · ${w.partial ? "en curso" : "completa"}</time><span>${w.ppl}/3 PPL · ${w.workSets} series de trabajo · ${w.swimMinutes} min natación</span></div>`,
+          `<div><time>${w.start} · ${w.partial ? "en curso" : "completa"}</time><span>${w.ppl}/${w.plannedSessions} sesiones · ${w.workSets} series de trabajo · ${w.swimMinutes} min natación</span></div>`,
       )
       .join("") || "<p>El programa comienza el 30 de noviembre.</p>"
   }</div><p>${r.message}</p><button class="btn secondary small" onclick="coachExport()">Descargar todas las semanas</button>`;

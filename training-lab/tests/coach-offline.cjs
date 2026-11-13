@@ -74,10 +74,11 @@ test("service worker installs all assets and serves engine and page offline with
   });
   assert.match(await response, /coach-engine/);
   for (const url of [
-    "./coach-engine.js?v=800",
-    "./coach-ui.js?v=800",
+    "./coach-engine.js?v=801",
+    "./coach-ui.js?v=801",
     "./coach-planner.js?v=800",
     "./coach.css?v=800",
+    "./four-day-program.js?v=801",
   ]) {
     events.fetch({
       request: { method: "GET", url },

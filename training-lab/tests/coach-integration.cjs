@@ -38,6 +38,7 @@ function app(snapshot) {
   return { dom, w, run };
 }
 const { dom, w, run } = app();
+run("state.coach={programHistory:[{date:'2026-11-14',days:3}]}");
 let passed = 0;
 function check(name, fn) {
   fn();

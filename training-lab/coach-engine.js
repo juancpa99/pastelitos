@@ -299,6 +299,7 @@
       last: last || null,
       trend: "insufficient",
     };
+    if (e.repPolicy === 'failure') return {...base, action:'hold', reason:'Cuatro series al fallo técnico. Registra las repeticiones reales; ajusta la carga manualmente sin un techo de repeticiones inventado.', targets:Array.from({length:target},(_,i)=>({kg:last?.sets[i]?.kg??null,reps:last?.sets[i]?.reps??null,rir:0}))};
     if (!last)
       return {
         ...base,
@@ -563,6 +564,12 @@
       intermediate: add(START, 83),
     };
   }
+  function programFor(data, date) {
+    if(date < '2026-11-14') return 3;
+    const rows=(data.coach?.programHistory||[]).filter(x=>x.date<=date&&[3,4].includes(x.days)).sort((a,b)=>a.date.localeCompare(b.date));
+    return rows.at(-1)?.days || 4;
+  }
+  function programKeys(data,date) { return programFor(data,date)===4 ? ['four_shoulders','four_legs','four_back','four_chest'] : ['nov26_push','nov26_pull','nov26_legs']; }
   function weekly(data, date, plans = []) {
     const start = monday(date),
       end = add(start, 6),
@@ -586,7 +593,7 @@
       rows
         .filter((s) => s.completed)
         .map((s) => s.weeklyTemplateKey || s.key || s.sourceKey)
-        .filter((k) => ["nov26_push", "nov26_pull", "nov26_legs"].includes(k)),
+        .filter((k) => (plans.length ? plans.map(p=>p.key) : programKeys(data,date)).includes(k)),
     );
     return {
       start,
@@ -599,6 +606,7 @@
       recovery: rec,
       recommendations,
       completed: completed.size,
+      plannedSessions: plans.length || programKeys(data,date).length,
       plan: planning(date),
       conclusion:
         rec.pain >= 4
@@ -779,15 +787,17 @@
             .filter((s) => s.completed)
             .map((s) => s.weeklyTemplateKey || s.key || s.sourceKey),
         );
-      const completed = ["nov26_push", "nov26_pull", "nov26_legs"].filter((k) =>
+      const selectedKeys = programKeys(data, end < through ? end : through);
+      const completed = selectedKeys.filter((k) =>
         keys.has(k),
       ).length;
-      const due = [1, 3, 5].filter((n) => add(d, n) <= through).length;
+      const due = (selectedKeys.length===4?[0,1,3,5]:[1,3,5]).filter((n) => add(d, n) <= through).length;
       weeks.push({
         start: d,
         end,
         partial: through < end,
         ppl: completed,
+        plannedSessions: selectedKeys.length,
         pplDue: Math.max(due, completed),
         workSets: rows.reduce(
           (n, s) =>
@@ -822,6 +832,7 @@
     };
   }
   return {
+    programFor,
     VERSION,
     START,
     END,
