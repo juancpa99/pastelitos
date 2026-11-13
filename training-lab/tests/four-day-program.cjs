@@ -68,6 +68,11 @@ try {
   for(const date of ['2026-11-18','2026-11-20']){run(`document.getElementById('selectedDate').value='${date}'`);assert.equal(run('trainingChoices().length'),0);}
   run("document.getElementById('selectedDate').value='2026-11-22';showView('Workout')");
   assert.ok(!w.document.querySelector('[onclick="marevoStartSunday()"]'));
+  run("state.sessions.push({date:'2026-11-17',key:'nov26_push',title:'PUSH en curso',startedAt:1,completed:false,exercises:[]})");
+  assert.equal(run("planFor('2026-11-17').key"),'nov26_push');
+  run("document.getElementById('selectedDate').value='2026-11-17';openPlannedWorkspace()");
+  assert.equal(run('plannedWorkspaceOpen'),true);
+  run('closePlannedWorkspace()');
   const snapshot=run('JSON.stringify(state.extraSessions)');
   for(const date of ['2026-11-14','2026-11-16','2026-12-01','2027-06-01'])for(const view of ['Home','Workout','Progress','Settings'])run(`document.getElementById('selectedDate').value='${date}';showView('${view}')`);
   assert.equal(run('JSON.stringify(state.extraSessions)'),snapshot);

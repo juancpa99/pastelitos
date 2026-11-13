@@ -78,7 +78,7 @@ test("service worker installs all assets and serves engine and page offline with
     "./coach-ui.js?v=801",
     "./coach-planner.js?v=800",
     "./coach.css?v=800",
-    "./four-day-program.js?v=801",
+    "./four-day-program.js?v=802",
   ]) {
     events.fetch({
       request: { method: "GET", url },

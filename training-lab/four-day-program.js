@@ -56,7 +56,7 @@
   oct26WeekOrder=(d=currentDate())=>active(d)?keys.slice():old.order(d);
   oct26TemplateForKey=(k,d=currentDate())=>keys.includes(k)?template(k,d):old.template(k,d);
   oct26SlotIndicesForDate=d=>active(d)?(days.includes(weekday(d))?[days.indexOf(weekday(d))]:[]):old.slots(d);
-  planFor=function(d){if(!active(d))return old.plan(d);const k=keys[days.indexOf(weekday(d))];return k&&!oct26WeeklyRecords(d,k).some(s=>s.completed&&s.date!==d)?template(k,d):{key:'four_rest_'+weekday(d),title:oct26SwimDay(d)?'Natación':'Descanso',type:'rest',exercises:[]};};
+  planFor=function(d){const started=(state.sessions||[]).find(s=>s.date===d&&s.startedAt&&!s.completed);if(started)return {...structuredClone(started),type:'gym'};if(!active(d))return old.plan(d);const k=keys[days.indexOf(weekday(d))];return k&&!oct26WeeklyRecords(d,k).some(s=>s.completed&&s.date!==d)?template(k,d):{key:'four_rest_'+weekday(d),title:oct26SwimDay(d)?'Natación':'Descanso',type:'rest',exercises:[]};};
   oct26PlanForDate=planFor;
   homeWeekLabel=d=>active(d)?planFor(d).title:old.label(d);
   const allowed=d=>![3,5].includes(weekday(d))||marevoNoSwimOnDate(d);
