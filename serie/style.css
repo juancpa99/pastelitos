@@ -45,3 +45,43 @@ button.danger:hover{background:color-mix(in srgb,var(--danger) 9%,transparent)}
  .unilateral-round .set-row input{font-size:16px;padding:7px 2px}
  .unilateral-round .set-row button{min-height:40px}
 }
+
+/* Supersets are a single block, ordered as round -> member -> recorded set. */
+.superset-card{border-color:var(--line);padding:16px;background:var(--card)}
+.superset-card>summary{padding:8px 4px 12px;align-items:center}
+.superset-card>.superset-body{padding:3px 0 2px}
+.superset-card .exercise-title strong{font-size:17px}
+.superset-card .exercise-title small{font-size:12px;line-height:1.45}
+.superset-round{border:1px solid var(--line);border-radius:13px;overflow:hidden;margin:10px 0;background:var(--card)}
+.superset-round>summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 15px;cursor:pointer;background:var(--soft)}
+.superset-round[open]>summary{border-bottom:1px solid var(--line)}
+.superset-round>summary strong{font-size:15px}
+.superset-round-body{padding:5px 14px 12px}
+.superset-round .pill{white-space:nowrap}
+.superset-member{padding:12px 0}
+.superset-member+.superset-member{border-top:1px solid var(--line)}
+.superset-member-title{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px}
+.superset-member-title strong{font-size:14px}
+.superset-member-title small{font-size:12px}
+.superset-round .set-head{margin-top:5px}
+.superset-member .set-note{margin-top:1px}
+.superset-member .unilateral-round{margin-top:8px}
+.superset-actions{gap:10px;margin:14px 0 8px}
+.superset-actions .muted{flex:1;min-width:180px}
+.superset-warmups,.superset-edit{margin:14px 0;border-top:1px solid var(--line);padding-top:10px}
+.superset-warmups>summary,.superset-edit>summary{font-size:13px;font-weight:650;cursor:pointer;padding:8px 2px}
+.superset-warmups-body,.superset-edit-body{padding:0 7px}
+.superset-edit-member{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.superset-edit-member>div:first-child{display:grid;gap:3px}
+.superset-edit-member>div:first-child small{font-size:11px}
+.superset-edit-member .row{gap:6px}
+.superset-edit-member button.small{padding:7px 10px}
+@media(max-width:500px){
+ .superset-card{padding:12px}
+ .superset-round-body{padding:5px 8px 10px}
+ .superset-round>summary{padding:12px 10px}
+ .superset-round .set-row{gap:4px}
+ .superset-member-title{display:grid;gap:2px}
+ .superset-actions{display:grid}
+ .superset-edit-member{display:grid}
+}
