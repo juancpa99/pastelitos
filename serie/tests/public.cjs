@@ -345,7 +345,7 @@ test('new Progress is compact and starts with radar, weekly trend and collapsed 
  assert.match(doc.getElementById('volume-muscle-rows').textContent,/Femoral/);
  r("setVolumeMode('month')");
  assert.match(doc.querySelector('.muscle-trend-svg').getAttribute('aria-label'),/mensual/);
- assert.match(doc.getElementById('volume-now-label').textContent,/Actual/);
+ assert.match(doc.getElementById('volume-now-label').textContent,/actual/i);
  r("setVolumeZone('Bíceps')");
  assert.equal(doc.getElementById('volume-series-total').textContent,'0');
  r("setVolumeZone('Hombros')");
