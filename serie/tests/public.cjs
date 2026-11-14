@@ -356,6 +356,7 @@ test('individual exercise histories are filtered by body zone without losing exi
  const isolated=app(),r=isolated.run,doc=isolated.w.document;
  r("selectedDate=today();startSession(0)");
  r("current().exercises[0].recordedSets[0]={kg:25,reps:10,rir:2,attemptType:'effective',completedAt:123}");
+ r("current().exercises.find(e=>e.key==='incline_db_press').recordedSets[0]={kg:15,reps:9,rir:2,attemptType:'effective',completedAt:124}");
  r('finishSession();navigate("progress")');
  const details=doc.getElementById('exercise-analysis');details.open=true;
  r("setProgressGroup('Pectoral')");
@@ -368,6 +369,7 @@ test('individual exercise histories are filtered by body zone without losing exi
  assert.match([...picker.options].map(x=>x.textContent).join('|'),/Press militar/i);
  assert.match(doc.getElementById('chart').innerHTML,/svg|table/i);
  assert.ok(r('progressEntries.length')>picker.options.length,'global exercise list remains available for other groups');
+ assert.equal(r('progressEntries.length'),2,'unrecorded routine exercises do not clutter Progress');
  isolated.w.close();
 });
 console.log(`${count} public-app scenarios passed`);
