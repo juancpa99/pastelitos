@@ -79,5 +79,41 @@ test('training cards follow configured weekday order, swapping Thursday and Satu
  assert.equal([...doc.querySelectorAll('.plan-card')].at(-1).querySelector('h2').textContent,'Hombros, pecho y brazos');
  isolated.w.close();
 });
+test('install guide appears once for mobile browser visitors and remains openable in settings or standalone',()=>{
+ const isolated=app(),r=isolated.run,w=isolated.w;
+ Object.defineProperty(w.navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit'});
+ assert.equal(w.localStorage.getItem('serie.install.tip.v2'),null);
+ assert.equal(r('openInstallGuide(true)'),true);
+ assert.equal(w.localStorage.getItem('serie.install.tip.v2'),'1');
+ assert.match(w.document.getElementById('dialog').textContent,/Añadir a pantalla de inicio/);
+ r('closeDialog()');
+ assert.equal(r('openInstallGuide(true)'),false);
+ assert.equal(w.document.getElementById('dialog').open,false);
+ r("navigate('settings')");
+ assert.match(w.document.getElementById('app').textContent,/Cómo instalar SERIE/);
+ assert.equal(r('openInstallGuide(false)'),true);
+ assert.equal(w.document.getElementById('dialog').open,true);
+ r('closeDialog()');
+ Object.defineProperty(w.navigator,'standalone',{configurable:true,value:true});
+ assert.equal(r('openInstallGuide(true)'),false);
+ assert.equal(r('openInstallGuide(false)'),true);
+ assert.match(w.document.getElementById('dialog').textContent,/Ya tienes SERIE instalada/);
+ w.close();
+});
+test('install prompt retries after a workout or another dialog instead of marking it as shown',()=>{
+ const isolated=app(),r=isolated.run,w=isolated.w;
+ Object.defineProperty(w.navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit'});
+ r("selectedDate='2026-11-23';startSession(0)");
+ assert.equal(r('openInstallGuide(true)'),false);
+ assert.equal(w.localStorage.getItem('serie.install.tip.v2'),null);
+ r("navigate('train')");
+ r("openLibrary()");
+ assert.equal(r('openInstallGuide(true)'),false);
+ assert.equal(w.localStorage.getItem('serie.install.tip.v2'),null);
+ r('closeDialog()');
+ assert.equal(r('openInstallGuide(true)'),true);
+ assert.equal(w.localStorage.getItem('serie.install.tip.v2'),'1');
+ w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
