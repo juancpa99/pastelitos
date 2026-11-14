@@ -163,7 +163,7 @@ function exportData(){const blob=new Blob([storageError?(localStorage.getItem(KE
 function validateData(data){if(data?.version!==1||!Array.isArray(data.sessions)||!Array.isArray(data.custom)||!Array.isArray(data.days)||data.days.length!==4||new Set(data.days).size!==4||data.days.some(d=>!Number.isInteger(d)||d<0||d>6))throw Error('Formato incorrecto');const validId=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]+$/.test(x);const validExercise=e=>e&&validId(e.key)&&typeof e.name==='string'&&typeof e.muscle==='string'&&e.sets>0&&e.sets<=30&&Number.isFinite(+e.min)&&Number.isFinite(+e.max)&&+e.min>0&&+e.max>=+e.min;for(const e of data.custom)if(!validExercise(e)||!SERIE_GROUPS.includes(e.muscle))throw Error('Ejercicio incorrecto');const ids=new Set();for(const s of data.sessions){if(!validId(s.id)||ids.has(s.id)||!/^\d{4}-\d{2}-\d{2}$/.test(s.date)||!Number.isFinite(Date.parse(s.date+'T12:00:00'))||typeof s.title!=='string'||!SERIE_PLANS.some(p=>p.key===s.planKey)||!Array.isArray(s.exercises))throw Error('Sesión incorrecta');ids.add(s.id);const eids=new Set();for(const e of s.exercises){if(!validExercise(e)||!validId(e.id)||eids.has(e.id)||(e.superset&&!validId(e.superset))||!Array.isArray(e.recordedSets)||!e.loadProfile)throw Error('Registro incorrecto');eids.add(e.id);
  // Only upgrade unrecorded, in-progress legacy movements. Historical values
  // have no known side and must never be reinterpreted as left-side records.
- const preset=catalogue(e.key);
+ const preset=SERIE_CATALOG.find(item=>item.key===e.key);
  if(!s.completed&&preset?.unilateral&&!e.sideMode&&!e.loadProfile.unilateral&&
     e.recordedSets.every(a=>!a.completedAt&&!a.rightCompletedAt)){
    e.sideMode='both';e.unilateral=true;e.loadProfile.unilateral=true;
