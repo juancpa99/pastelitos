@@ -50,5 +50,34 @@ test('install guide opens and remains available in settings',()=>{
  assert.match(w.document.getElementById('app').textContent,/Cómo instalar SERIE/i);
  w.close();
 });
+test('training cards follow configured weekday order, swapping Thursday and Saturday without moving training data',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-12';startSession(2)");
+ r("current().exercises[0].recordedSets[0]={kg:30,reps:10,rir:2,attemptType:'effective',completedAt:123}");
+ r('finishSession()');
+ const old=r("JSON.stringify(db.sessions[0])");
+ r("navigate('settings');changeDay(2,6)");
+ assert.equal(r('db.days.join()'),'1,2,6,4');
+ assert.equal(r('JSON.stringify(db.sessions[0])'),old);
+ assert.match(doc.getElementById('app').textContent,/intercambian los días/i);
+ r("selectedDate='2026-11-19';navigate('train')");
+ const cards=[...doc.querySelectorAll('.plan-card')];
+ assert.deepEqual(cards.map(c=>c.querySelector('h2').textContent),['Hombros, pecho y brazos','Pierna y espalda','Pecho y hombros','Espalda y pierna']);
+ assert.deepEqual(cards.map(c=>c.querySelector('.plan-number').textContent),['01','02','03','04']);
+ assert.deepEqual(cards.map(c=>c.querySelector('.eyebrow').textContent),['Lunes','Martes','Jueves','Sábado']);
+ assert.equal(cards[2].querySelector('button').getAttribute('onclick'),'startSession(3)');
+ assert.match(cards[2].textContent,/Programada para hoy/);
+ assert.match(doc.querySelector('.hero-aside').textContent,/Lun · Mar · Jue · Sáb/);
+ r("selectedDate='2026-11-21';render()");
+ assert.match(doc.querySelectorAll('.plan-card')[3].textContent,/Programada para hoy/);
+ const snapshot=r('JSON.stringify(db)'),again=app(snapshot);
+ assert.equal(again.run('db.days.join()'),'1,2,6,4');
+ assert.match(again.w.document.querySelectorAll('.plan-card')[2].textContent,/Pecho y hombros/);
+ assert.equal(again.run('db.sessions.length'),1);
+ again.w.close();
+ r('changeDay(0,0)');
+ assert.equal([...doc.querySelectorAll('.plan-card')].at(-1).querySelector('h2').textContent,'Hombros, pecho y brazos');
+ isolated.w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
