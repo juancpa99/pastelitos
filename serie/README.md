@@ -14,7 +14,7 @@ Public, standalone four-day strength tracker at `/pastelitos/serie/`.
 - Bayesian cable curl and incline-bench dumbbell curl behind the torso are separate catalogue entries.
 - In-progress workouts can be discarded after confirmation without deleting completed history; a discarded day can be started again.
 - A mobile-first installation guide appears on first mobile visit, remains available in Settings, and supports native PWA installation prompts.
-- SERIE's wave mark is shared by the interface, SVG favicon, and generated 192 px / 512 px installed-app icons.
+- SERIE's three identical green wave strokes on white are shared by the interface, SVG favicon, and 192 px / 512 px installed-app icons.
 - A dedicated service worker caches only public assets and only deletes its own obsolete caches.
 
 ## Checks
