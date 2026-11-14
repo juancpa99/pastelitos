@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#142923"/><g fill="#d5eb76" transform="translate(106 125)"><rect width="300" height="58" rx="29"/><rect x="45" y="102" width="255" height="58" rx="29"/><rect y="204" width="300" height="58" rx="29"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">SERIE</title><desc id="desc">Tres ondas curvas que forman la identidad de SERIE</desc>
+<rect width="512" height="512" rx="110" fill="#142923"/>
+<g fill="none" stroke="#d5eb76" stroke-width="48" stroke-linecap="round">
+<path d="M149 162 C207 118 308 118 363 162"/>
+<path d="M165 255 C224 301 287 301 347 255"/>
+<path d="M149 348 C207 304 308 304 363 348"/>
+</g>
+</svg>
