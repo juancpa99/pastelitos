@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const key = 'serie.install.tip.v1';
+  const key = 'serie.install.tip.v2';
   let nativeInstallPrompt = null;
   function isInstalled() {
     return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
@@ -24,17 +24,20 @@
   }
   function openInstallGuide(automatic) {
     const auto = automatic === true;
-    if (isInstalled()) {
-      if (!auto) toast('SERIE ya está abierta como aplicación.');
-      return;
-    }
-    if (auto && (!isMobile() || previouslyShown() || sessionId || document.getElementById('dialog').open)) return;
-    if (auto) markShown();
+    if (auto && (isInstalled() || !isMobile() || previouslyShown() ||
+        sessionId || document.getElementById('dialog').open ||
+        document.visibilityState === 'hidden' ||
+        document.activeElement?.matches('input, textarea, select, [contenteditable="true"]'))) return false;
     const action = nativeInstallPrompt ? '<button class="primary" type="button" onclick="installSerie()">Instalar ahora</button>' : '';
     modal('SERIE en tu móvil',
-      '<div class="install-guide"><div class="install-intro"><img src="icon.svg" alt=""><p>Guarda SERIE en tu pantalla de inicio para abrir tus entrenamientos como una app, sin entrar cada vez al navegador.</p></div>' +
+      '<div class="install-guide"><div class="install-intro"><img src="icon.svg?v=4" alt=""><p>' +
+      (isInstalled() ? 'Ya tienes SERIE instalada en este dispositivo. Estas instrucciones también te sirven para instalarla en otro móvil.' : 'Guarda SERIE en tu pantalla de inicio para abrir tus entrenamientos como una app, sin entrar cada vez al navegador.') +
+      '</p></div>' +
       '<ol>' + steps() + '</ol><p class="muted small">Tus entrenamientos se guardan en este dispositivo. Exporta una copia desde Ajustes si cambias de móvil. Tras la primera carga, la app también puede funcionar sin conexión.</p>' +
       '<div class="row">' + action + '<button type="button" onclick="closeDialog()">Entendido</button></div></div>');
+    // Only remember a successful display, never a deferred attempt.
+    if (auto) markShown();
+    return true;
   }
   window.openInstallGuide = openInstallGuide;
   window.installSerie = async function () {
@@ -52,5 +55,16 @@
     nativeInstallPrompt = event;
   });
   window.addEventListener('appinstalled', () => { nativeInstallPrompt = null; markShown(); closeDialog(); });
-  setTimeout(() => openInstallGuide(true), 1000);
+  // New visitors see the guide once. A workout or another modal must never
+  // suppress it permanently: retry when the interface is available again.
+  function showInitialGuide() {
+    if (!isMobile() || isInstalled() || previouslyShown()) return true;
+    return openInstallGuide(true) === true;
+  }
+  setTimeout(() => {
+    if (showInitialGuide()) return;
+    const retry = setInterval(() => {
+      if (showInitialGuide()) clearInterval(retry);
+    }, 3000);
+  }, 1000);
 })();
