@@ -205,5 +205,35 @@ test('progress records show independent sides for complete unilateral rounds',()
  assert.match(chart.innerHTML,/rightKg|Derecha/i);
  isolated.w.close();
 });
+test('legacy in-progress movements upgrade only when no side has already been recorded',()=>{
+ const old=app(),r=old.run;
+ r("selectedDate='2026-11-28';startSession(0);addExercise('single_leg_rdl')");
+ r("current().exercises.at(-1).sideMode=undefined;current().exercises.at(-1).loadProfile.unilateral=false;current().exercises.at(-1).unilateral=false;current().exercises.at(-1).recordedSets[0].kg=12;save()");
+ let reloaded=app(r('JSON.stringify(db)'));
+ assert.equal(reloaded.run('db.sessions[0].exercises.at(-1).loadProfile.unilateral'),true);
+ assert.equal(reloaded.run('db.sessions[0].exercises.at(-1).recordedSets[0].kg'),12);
+ assert.equal(reloaded.run('db.sessions[0].exercises.at(-1).recordedSets[0].rightKg'),'');
+ reloaded.w.close();
+ r("current().exercises.at(-1).recordedSets[0].completedAt=123;current().completed=true;save()");
+ reloaded=app(r('JSON.stringify(db)'));
+ assert.equal(reloaded.run('db.sessions[0].exercises.at(-1).loadProfile.unilateral'),false);
+ assert.equal(reloaded.run('db.sessions[0].exercises.at(-1).recordedSets[0].completedAt'),123);
+ reloaded.w.close();old.w.close();
+});
+test('rejecting a switch away from two sides leaves the recorded data and exercise unchanged',()=>{
+ const isolated=app(),r=isolated.run,w=isolated.w;
+ r("selectedDate='2026-11-25';startSession(0);addExercise('single_leg_rdl')");
+ const id=r("current().exercises.at(-1).id"),name=r("current().exercises.at(-1).name");
+ r("current().exercises.at(-1).recordedSets[0].rightCompletedAt=123");
+ r("editExercise('"+id+"')");
+ w.document.getElementById('edit-side-mode').value='single';
+ w.document.getElementById('edit-name').value='Do not overwrite';
+ w.confirm=()=>false;
+ r("saveExercise({preventDefault(){}},'"+id+"')");
+ assert.equal(r("current().exercises.at(-1).name"),name);
+ assert.equal(r("current().exercises.at(-1).sideMode"),'both');
+ assert.equal(r("current().exercises.at(-1).recordedSets[0].rightCompletedAt"),123);
+ w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
