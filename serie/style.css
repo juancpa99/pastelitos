@@ -165,3 +165,22 @@ body.dark .volume-legend .legend-now{border-color:#b4d36d}
  .progress-exercise-details #chart>.card{padding:12px}
  .progress-volume-kpi strong{font-size:33px}
 }
+
+/* Fractional muscle-volume model: clear visual distinction between total,
+   direct-only, and previous-period total, without conflating them. */
+.radar-direct{fill:none;stroke:#5182a6;stroke-width:2.2;stroke-dasharray:7 4;stroke-linejoin:round}
+.volume-legend .legend-direct{background:transparent;border-top:3px dashed #5182a6;border-radius:0;height:1px}
+.edit-secondary-panel{margin:3px 0 9px;padding:12px;border:1px solid var(--line);border-radius:12px}
+.edit-secondary-panel summary{cursor:pointer;font-weight:650;min-height:32px}
+.edit-secondary-panel>p{font-size:12px;margin:7px 0 11px}
+.edit-secondary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.edit-secondary-grid label{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px;border-radius:7px;background:var(--soft);cursor:pointer}
+.edit-secondary-grid input{width:18px;height:18px;min-height:18px;flex:none;margin:0;accent-color:#71953d}
+.progress-method a{color:var(--ink);text-underline-offset:2px}
+body.dark .radar-direct{stroke:#83bbdc}
+body.dark .volume-legend .legend-direct{border-color:#83bbdc}
+@media(max-width:430px){
+ .edit-secondary-grid{grid-template-columns:1fr}
+ .edit-secondary-grid label{min-height:32px}
+ .volume-legend{gap:8px 12px}
+}
