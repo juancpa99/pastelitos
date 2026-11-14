@@ -4,7 +4,7 @@ Public, standalone four-day strength tracker at `/pastelitos/serie/`.
 
 - Four-day programme; default Monday, Tuesday, Thursday and Saturday. Each person can move the days, occupied weekdays swap automatically, and training cards, numbering, schedule summary and today highlights follow Monday–Sunday order. Historical sessions are unchanged.
 - No personal records, dietary modules or three-day programme. The private app's files are unchanged.
-- 146 catalogue entries in 12 muscle groups; equipment/search filters and custom movements.
+- 146 catalogue entries in 12 muscle groups; equipment/search filters and custom movements. 24 unilateral variants default to independent left/right sets (including single-leg Romanian deadlift), while any exercise can opt into or out of two-sided tracking via Edit. Completed rounds require both sides; rest and supersets wait for both, and side-specific loads/repetitions/RIR remain separate in logs, charts and double progression.
 - Exercises, sets and supersets remain editable after completion. Editing keeps the original session date, updates a revision timestamp and never creates a duplicate session.
 - The final Add exercise button also supports completed sessions. Supersets merge existing groups or add a new exercise, remain explicit in the session, and delay rest until the effective round is complete. Warmups rest independently.
 - Save as my routine copies the current structure, with empty set logs for future sessions; past sessions are unchanged.
