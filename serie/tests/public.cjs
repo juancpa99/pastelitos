@@ -268,7 +268,7 @@ test('round-based supersets preserve separate weights, repetitions and unilatera
      r("current().exercises["+i+"].recordedSets[0].rightKg="+(18+i)+";current().exercises["+i+"].recordedSets[0].rightReps="+(19-i)+";current().exercises["+i+"].recordedSets[0].rightRir=2");
    }
    r("toggleSet('"+ids[i]+"',0)");
-   assert.equal(r('restEnd'),0,'no rest before all exercises and both sides finish');
+   if(i<2||r('current().exercises['+i+'].loadProfile.unilateral')) assert.equal(r('restEnd'),0,'no rest before all exercises and both sides finish');
    if(r("current().exercises["+i+"].loadProfile.unilateral")){
      r("toggleSet('"+ids[i]+"',0,'right')");
      if(i<2)assert.equal(r('restEnd'),0,'no rest before all exercises finish');
