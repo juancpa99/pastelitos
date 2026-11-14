@@ -7,3 +7,35 @@ test('public PWA caches all assets offline and preserves other apps caches',asyn
  const respondWith=p=>work=p;events.fetch({request:{url:'https://example.test/serie/',method:'GET',mode:'navigate'},respondWith});assert.match(await work,/SERIE/);
  for(const file of ['catalog.js','plans.js','coach.js','install.js'])assert.ok((await caches.match('./'+file+'?v=3')).length>100);assert.ok((await caches.match('./app.js?v=4')).length>100);assert.ok((await caches.match('./updates.js?v=1')).length>100);assert.ok((await caches.match('./style.css?v=4')).length>100);
 });
+
+test('online assets refresh their cached copy and keep the new version offline',async()=>{
+ const handlers={},stored=new Map(),pending=[];
+ let online=true;
+ const response=value=>({ok:true,type:'basic',body:value,clone(){return response(value);}});
+ const caches={
+  open:async()=>({put:async(key,value)=>stored.set(typeof key==='string'?key:key.url,value),addAll:async()=>{}}),
+  match:async key=>stored.get(typeof key==='string'?key:key.url)
+ };
+ const scope='https://example.test/serie/';
+ const context={
+  self:{addEventListener:(name,fn)=>handlers[name]=fn,registration:{scope},skipWaiting:async()=>{},clients:{claim:async()=>{}}},
+  location:{origin:'https://example.test'},caches,URL,Promise,
+  fetch:async(request,options)=>{assert.equal(options.cache,'no-store');if(!online)throw Error('offline');return response('latest-javascript');}
+ };
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8'),context);
+ const request={url:scope+'app.js?v=4',method:'GET',mode:'cors'};
+ const invoke=async(req)=>{
+  let work=null;
+  handlers.fetch({request:req,respondWith:promise=>{work=promise;},waitUntil:promise=>pending.push(promise)});
+  return work?await work:null;
+ };
+ const fresh=await invoke(request);
+ assert.equal(fresh.body,'latest-javascript');
+ await Promise.all(pending);
+ assert.equal(stored.get(request.url).body,'latest-javascript');
+ online=false;
+ const offline=await invoke(request);
+ assert.equal(offline.body,'latest-javascript');
+ assert.equal(await invoke({url:'https://example.test/training-lab/app.js',method:'GET',mode:'cors'}),null);
+ assert.equal(await invoke({url:'https://outside.test/serie/app.js',method:'GET',mode:'cors'}),null);
+});
