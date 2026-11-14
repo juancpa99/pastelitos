@@ -57,7 +57,92 @@ function groupMembers(e){return e.superset?current().exercises.filter(x=>x.super
 function groupLabel(e){const groups=[...new Set(current().exercises.map(x=>x.superset).filter(Boolean))];return e.superset?String.fromCharCode(65+groups.indexOf(e.superset)):'';}
 function recommendation(e){const input={...e,variant:(e.variant||'')+(e.superset?'|superset':'|straight')};const sessions=db.sessions.filter(s=>s.id!==sessionId).map(s=>({...s,exercises:s.exercises.map(x=>({...x,variant:(x.variant||'')+(x.superset?'|superset':'|straight')}))}));return SerieCoach.recommend({sessions},input,current().date);}
 function dose(e){return e.kind==='timed'?`${e.min}–${e.max} s`:e.repPolicy==='failure'?'al fallo técnico':`${e.min===e.max?e.min:e.min+'–'+e.max} reps`;}
-function sessionHTML(){const s=current();if(!s)return '';const count=s.exercises.reduce((n,e)=>n+e.recordedSets.filter(a=>roundDone(e,a)&&a.attemptType!=='warmup').length,0);return `<button class="small back" onclick="navigate('train')">← Entrenamientos</button><div class="session-top"><div class="eyebrow">${pretty(s.date)} · ${s.completed?'Guardado · editable':'En curso'}</div><h1>${esc(s.title)}</h1><div class="row between"><span class="muted">${count} series registradas · ${s.exercises.length} ejercicios</span><button class="small" onclick="saveTemplate()">Guardar como mi rutina</button></div>${s.completed?'<p class="notice">Puedes añadir o editar ejercicios aquí. Se guardarán en esta misma sesión, con su fecha original.</p>':'<p class="muted small">Arrastra ⠿ para ordenar. Abre «Editar / superserie» para agrupar ejercicios.</p>'}</div><div id="exercises">${s.exercises.map((e,i)=>exerciseHTML(e,i)).join('')}</div><button class="footer-add" onclick="openLibrary()">＋ Añadir ejercicio</button><label>Notas de la sesión<textarea rows="2" onchange="current().notes=this.value;touch()">${esc(s.notes)}</textarea></label><div class="row space"><button class="primary" onclick="finishSession()">${s.completed?'Guardar cambios':'Terminar entrenamiento'}</button><button class="small" onclick="navigate('history')">Ver historial</button>${s.completed?'':'<button class="small danger" onclick="discardSession()">Descartar sesión</button>'}</div>`;}
+function sessionHTML(){const s=current();if(!s)return '';const count=s.exercises.reduce((n,e)=>n+e.recordedSets.filter(a=>roundDone(e,a)&&a.attemptType!=='warmup').length,0);return `<button class="small back" onclick="navigate('train')">← Entrenamientos</button><div class="session-top"><div class="eyebrow">${pretty(s.date)} · ${s.completed?'Guardado · editable':'En curso'}</div><h1>${esc(s.title)}</h1><div class="row between"><span class="muted">${count} series registradas · ${s.exercises.length} ejercicios</span><button class="small" onclick="saveTemplate()">Guardar como mi rutina</button></div>${s.completed?'<p class="notice">Puedes añadir o editar ejercicios aquí. Se guardarán en esta misma sesión, con su fecha original.</p>':'<p class="muted small">Arrastra ⠿ para ordenar. Abre «Editar / superserie» para agrupar ejercicios.</p>'}</div><div id="exercises">${renderExerciseBlocks()}</div><button class="footer-add" onclick="openLibrary()">＋ Añadir ejercicio</button><label>Notas de la sesión<textarea rows="2" onchange="current().notes=this.value;touch()">${esc(s.notes)}</textarea></label><div class="row space"><button class="primary" onclick="finishSession()">${s.completed?'Guardar cambios':'Terminar entrenamiento'}</button><button class="small" onclick="navigate('history')">Ver historial</button>${s.completed?'':'<button class="small danger" onclick="discardSession()">Descartar sesión</button>'}</div>`;}
+
+function supersetBlocks(){
+ const seen=new Set();
+ return current().exercises.reduce((result,e)=>{
+   if(e.superset && groupMembers(e).length>1){
+     if(seen.has(e.superset))return result;
+     seen.add(e.superset);
+     result.push({group:e.superset,members:groupMembers(e)});
+   }else result.push({group:null,members:[e]});
+   return result;
+ },[]);
+}
+function renderExerciseBlocks(){
+ return supersetBlocks().map(({group,members})=>group?
+   supersetHTML(members):exerciseHTML(members[0],current().exercises.indexOf(members[0]))).join('');
+}
+function workSet(e,round){
+ return e.recordedSets.map((a,index)=>({a,index})).filter(({a})=>a.attemptType!=='warmup')[round]||null;
+}
+function supersetHTML(members){
+ const first=members[0],s=current(),group=first.superset,label=groupLabel(first);
+ const total=Math.max(1,...members.map(e=>e.recordedSets.filter(a=>a.attemptType!=='warmup').length));
+ const data=Array.from({length:total},(_,round)=>{
+   const entries=members.map(e=>({e,item:workSet(e,round)})).filter(({item})=>!!item);
+   const completed=entries.filter(({e,item})=>roundDone(e,item.a)).length;
+   return {round,entries,completed,done:entries.length>0&&completed===entries.length};
+ });
+ const finished=data.filter(x=>x.done).length,firstPending=data.findIndex(x=>!x.done);
+ const openRound=firstPending<0?data.length-1:firstPending;
+ const warmups=members.flatMap(e=>e.recordedSets.map((a,index)=>({e,a,index})).filter(x=>x.a.attemptType==='warmup'));
+ return `<details class="exercise superset-card" data-eid="${first.id}" open>
+  <summary><button class="drag-handle" aria-label="Mover superserie ${label}" data-drag="${first.id}" onclick="event.preventDefault()">⠿</button>
+    <span class="exercise-title"><strong>Superserie ${label} · ${members.length} ejercicios</strong><small>Una serie de cada ejercicio por ronda · descansa al terminar todos</small></span>
+    <span class="pill">${finished}/${total} rondas</span>
+  </summary>
+  <div class="exercise-body superset-body">
+    ${warmups.length?`<details class="superset-warmups"><summary>Calentamientos · ${warmups.length} series</summary><div class="superset-warmups-body">
+      ${warmups.map(({e,a,index})=>`<div class="superset-member"><strong>${esc(e.name)}</strong>${setHTML(e,a,index)}</div>`).join('')}
+    </div></details>`:''}
+    ${data.map(({round,entries,completed,done})=>`<details class="superset-round" data-round-key="${group}:${round}" ${round===openRound?'open':''}>
+      <summary><strong>Serie ${round+1}</strong><span class="pill">${done?'✓ Completada':completed+'/'+entries.length+' ejercicios'}</span></summary>
+      <div class="superset-round-body">
+        ${entries.map(({e,item},position)=>`<section class="superset-member" data-member="${e.id}">
+          <div class="superset-member-title"><strong>${position+1}. ${esc(e.name)}</strong>
+            <small>${dose(e)} · ${esc(e.equipment)}${e.loadProfile?.unilateral?' · ambos lados':''}</small></div>
+          ${e.loadProfile?.unilateral?'':`<div class="set-head"><span>Serie</span><span>kg</span><span>${e.kind==='timed'?'seg':'reps'}</span><span>RIR</span><span>Hecha</span></div>`}
+          ${setHTML(e,item.a,item.index)}
+        </section>`).join('')}
+        ${entries.length<members.length?'<p class="muted small">Algunos ejercicios tienen menos series configuradas.</p>':''}
+      </div>
+    </details>`).join('')}
+    <div class="row superset-actions">
+      <button class="small" onclick="addSupersetRound('${group}')">＋ Añadir ronda completa</button>
+      <span class="muted small">Cada ronda registra un set por ejercicio, con pesos y repeticiones independientes.</span>
+    </div>
+    <details class="superset-edit"><summary>Editar ejercicios y calentamientos</summary>
+      <div class="superset-edit-body">
+        ${members.map(e=>`<div class="superset-edit-member">
+          <div><strong>${esc(e.name)}</strong><small>${e.sets} series · ${e.rest} s</small></div>
+          <div class="row">
+            <button class="small" onclick="editExercise('${e.id}')">Editar</button>
+            <button class="small" onclick="addSet('${e.id}',true)">＋ Calentamiento</button>
+            <button class="small danger" onclick="removeExercise('${e.id}')">Quitar</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </details>
+  </div>
+ </details>`;
+}
+function addSupersetRound(group){
+ const members=current()?.exercises.filter(e=>e.superset===group)||[];
+ if(members.length<2)return;
+ for(const e of members){e.recordedSets.push(newSet(e));e.sets=e.recordedSets.filter(a=>a.attemptType!=='warmup').length;}
+ touch();rerenderSession();
+}
+function moveBlock(id,to){
+ const s=current();if(!s)return;
+ const blocks=supersetBlocks(),from=blocks.findIndex(b=>b.members.some(e=>e.id===id));
+ if(from<0||to<0||to>=blocks.length||from===to)return;
+ const [block]=blocks.splice(from,1);blocks.splice(to,0,block);
+ s.exercises=blocks.flatMap(b=>b.members);
+ touch();rerenderSession();
+}
+
 function exerciseHTML(e,i){const s=current(),members=groupMembers(e),tag=groupLabel(e);const count=e.recordedSets.filter(a=>roundDone(e,a)).length;const rec=e.kind==='strength'&&!s.completed?recommendation(e):null;const target=rec?.targets[0],unilat=!!e.loadProfile?.unilateral;return `<details class="exercise ${e.superset?'superset':''}" data-eid="${e.id}" ${i===0?'open':''}><summary><button class="drag-handle" aria-label="Mover ${esc(e.name)}" data-drag="${e.id}" onclick="event.preventDefault()">⠿</button><span class="exercise-title"><strong>${esc(e.name)}</strong><small>${e.sets} × ${dose(e)} · ${e.kind==='timed'?'Resistencia':`RIR ${esc(e.rir)}`} · ${e.rest} s</small></span>${tag?`<span class="group-letter">${tag}${members.indexOf(e)+1}</span>`:''}<span class="pill">${count}/${e.recordedSets.length}</span></summary><div class="exercise-body">${tag?`<p class="superset-label"><strong>Superserie ${tag}</strong> · ${members.map(x=>esc(x.name)).join(' → ')}. Descansa ${members.at(-1).rest} s al terminar la ronda.</p>`:''}${rec?`<div class="target"><strong>Próximo objetivo</strong><p>${unilat?`Izquierda: ${target?.kg??'—'} kg × ${target?.reps??'—'} · Derecha: ${target?.rightKg??'—'} kg × ${target?.rightReps??'—'} · RIR ${target?.rir??e.rir}`:`${target?.kg!=null?esc(target.kg)+' kg':'Elige tu carga'} · ${target?.reps??dose(e)} ${target?.reps!=null?'reps':''} · RIR ${target?.rir??e.rir}`}</p><details><summary>Ver objetivos y motivo</summary><p>${esc(rec.reason)}</p>${rec.targets.map((t,j)=>`<p>Serie ${j+1}: ${unilat?`I: ${t.kg??'—'} kg × ${t.reps??'—'}, D: ${t.rightKg??'—'} kg × ${t.rightReps??'—'}`:`${t.kg??'—'} kg × ${t.reps??'al fallo'}`} · RIR ${t.rir}</p>`).join('')}</details></div>`:''}<small>${esc(e.equipment)}${e.loadProfile.mode==='dumbbell'?' · kg por mancuerna':e.loadProfile.mode==='assisted'?' · kg de asistencia':e.loadProfile.mode==='bodyweight'?' · usa 0 kg sin lastre':' · carga total o indicada por la máquina'}${unilat?' · registra izquierda y derecha por separado':''}</small>${unilat?'':'<div class="set-head"><span>Serie</span><span>kg</span><span>Reps / seg</span><span>RIR</span><span>Hecha</span></div>'}${e.recordedSets.map((a,j)=>setHTML(e,a,j)).join('')}<div class="row space"><button class="small" onclick="addSet('${e.id}')">＋ Serie</button><button class="small" onclick="addSet('${e.id}',true)">＋ Calentamiento</button></div><div class="row exercise-actions"><button class="small" onclick="editExercise('${e.id}')">Editar / superserie</button><button class="small danger" onclick="removeExercise('${e.id}')">Quitar</button></div>${e.note?`<p class="muted small">${esc(e.note)}</p>`:''}</div></details>`;}
 function sideRow(e,a,j,side){
  const right=side==='right',done=!!a[right?'rightCompletedAt':'completedAt'];
@@ -94,6 +179,7 @@ function toggleSet(id,index,side='left'){
    rerenderSession();toast('Lado '+(right?'derecho':'izquierdo')+' registrado. Falta el otro lado.');return;
  }
  if(!current().completed){
+   if(a.attemptType==='warmup'){startRest(e.rest,'Descanso de calentamiento');rerenderSession();return;}
    const members=groupMembers(e),ordinal=e.recordedSets.slice(0,index+1).filter(z=>z.attemptType!=='warmup').length-1;
    const pending=a.attemptType==='warmup'?[]:members.filter(x=>{
      const z=x.recordedSets.filter(z=>z.attemptType!=='warmup')[ordinal];
@@ -178,13 +264,13 @@ function validateData(data){if(data?.version!==1||!Array.isArray(data.sessions)|
 async function importData(file){if(!file)return;try{if(file.size>10000000)throw Error('La copia supera 10 MB');const candidate=validateData(JSON.parse(await file.text()));if(!confirm('¿Reemplazar los datos de SERIE con esta copia? Exporta antes los actuales si quieres conservarlos.'))return;db=candidate;storageError=false;save();sessionId=null;render();toast('Copia importada');}catch(error){toast('No se ha importado: '+error.message);}}
 // Touch-only drag handles leave normal page scrolling available everywhere else.
 let dragging=null;
-function endDrag(commit){if(!dragging)return;const d=dragging;dragging=null;cancelAnimationFrame(d.frame);document.querySelectorAll('.is-dragging,.drop-target').forEach(n=>n.classList.remove('is-dragging','drop-target'));if(d.handle.hasPointerCapture?.(d.pointer))d.handle.releasePointerCapture(d.pointer);if(commit&&d.moved)moveExercise(d.id,d.to);}
+function endDrag(commit){if(!dragging)return;const d=dragging;dragging=null;cancelAnimationFrame(d.frame);document.querySelectorAll('.is-dragging,.drop-target').forEach(n=>n.classList.remove('is-dragging','drop-target'));if(d.handle.hasPointerCapture?.(d.pointer))d.handle.releasePointerCapture(d.pointer);if(commit&&d.moved)moveBlock(d.id,d.to);}
 function dragTick(){if(!dragging)return;const d=dragging,rows=[...document.querySelectorAll('#exercises>.exercise')];if(d.moved){if(d.y<90)window.scrollBy(0,-10);else if(d.y>innerHeight-100)window.scrollBy(0,10);}let slot=rows.length;rows.forEach(n=>n.classList.remove('drop-target'));for(let i=0;i<rows.length;i++){const r=rows[i].getBoundingClientRect();if(d.y<r.top+r.height/2){slot=i;break;}}d.to=Math.max(0,Math.min(rows.length-1,slot-(slot>d.from?1:0)));if(d.to!==d.from)rows[d.to]?.classList.add('drop-target');d.frame=requestAnimationFrame(dragTick);}
-document.addEventListener('pointerdown',ev=>{const handle=ev.target.closest?.('[data-drag]');if(!handle||ev.button!==0||ev.isPrimary===false||dragging)return;ev.preventDefault();document.activeElement?.blur();const id=handle.dataset.drag;dragging={id,handle,pointer:ev.pointerId,from:current().exercises.findIndex(e=>e.id===id),to:0,y:ev.clientY,start:ev.clientY,moved:false};handle.setPointerCapture?.(ev.pointerId);handle.closest('.exercise').classList.add('is-dragging');dragTick();});
+document.addEventListener('pointerdown',ev=>{const handle=ev.target.closest?.('[data-drag]');if(!handle||ev.button!==0||ev.isPrimary===false||dragging)return;ev.preventDefault();document.activeElement?.blur();const id=handle.dataset.drag;dragging={id,handle,pointer:ev.pointerId,from:supersetBlocks().findIndex(b=>b.members.some(e=>e.id===id)),to:0,y:ev.clientY,start:ev.clientY,moved:false};handle.setPointerCapture?.(ev.pointerId);handle.closest('.exercise').classList.add('is-dragging');dragTick();});
 document.addEventListener('pointermove',ev=>{if(dragging&&ev.pointerId===dragging.pointer){ev.preventDefault();dragging.y=ev.clientY;if(Math.abs(ev.clientY-dragging.start)>6)dragging.moved=true;}},{passive:false});
 document.addEventListener('pointerup',ev=>{if(dragging&&ev.pointerId===dragging.pointer)endDrag(true);});
 for(const name of ['pointercancel','lostpointercapture'])document.addEventListener(name,ev=>{if(dragging&&ev.pointerId===dragging.pointer)endDrag(false);});
-document.addEventListener('keydown',ev=>{if(ev.key==='Escape')endDrag(false);const h=ev.target.closest?.('[data-drag]');if(h&&['ArrowUp','ArrowDown'].includes(ev.key)){ev.preventDefault();const index=current().exercises.findIndex(e=>e.id===h.dataset.drag);moveExercise(h.dataset.drag,index+(ev.key==='ArrowUp'?-1:1));document.querySelector(`[data-drag="${h.dataset.drag}"]`)?.focus({preventScroll:true});}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape')endDrag(false);const h=ev.target.closest?.('[data-drag]');if(h&&['ArrowUp','ArrowDown'].includes(ev.key)){ev.preventDefault();const index=supersetBlocks().findIndex(b=>b.members.some(e=>e.id===h.dataset.drag));moveBlock(h.dataset.drag,index+(ev.key==='ArrowUp'?-1:1));document.querySelector(`[data-drag="${h.dataset.drag}"]`)?.focus({preventScroll:true});}});
 window.addEventListener('blur',()=>endDrag(false));
 const baseRender=render;render=function(){baseRender();if(tab==='progress'&&!sessionId)renderChart();};
 render();if(storageError)toast('No se pudo leer el registro guardado. Conserva una copia antes de introducir nuevos datos.');
