@@ -66,7 +66,7 @@ function sideRow(e,a,j,side){
    const label=base==='kg'?'Peso':base==='reps'?(e.kind==='timed'?'Segundos':'Repeticiones'):'RIR';
    return `<input aria-label="${label} · ${side==='right'?'Derecha':'Izquierda'} · ${esc(e.name)} · serie ${j+1}" inputmode="${base==='reps'?'numeric':'decimal'}" data-ex="${e.id}" data-set="${j}" data-side="${side}" data-field="${field}" value="${esc(a[field]??'')}" placeholder="—" ${e.kind==='timed'&&base==='rir'?'disabled':''}>`;
  }).join('');
- return `<div class="set-row ${done?'saved':''}"><span class="muted small">${right?'D':'I'}</span>${inputs}<button aria-label="${done?'Desmarcar':'Guardar'} lado ${right?'derecho':'izquierdo'} · serie ${j+1}" class="${done?'lime':''}" onclick="toggleSet('${e.id}',${j},'${side}')">${done?'✓':'○'}</button></div>`;
+ return `<div class="set-row ${done?'saved':''}"><span class="muted small">${right?'Der.':'Izq.'}</span>${inputs}<button aria-label="${done?'Desmarcar':'Guardar'} lado ${right?'derecho':'izquierdo'} · serie ${j+1}" class="${done?'lime':''}" onclick="toggleSet('${e.id}',${j},'${side}')">${done?'✓':'○'}</button></div>`;
 }
 function setHTML(e,a,j){
  if(e.loadProfile?.unilateral){
