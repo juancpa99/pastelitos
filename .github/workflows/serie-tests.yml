@@ -19,6 +19,6 @@ jobs:
           cache-dependency-path: training-lab/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: training-lab
-      - run: node serie/tests/public.cjs && node --test serie/tests/offline.cjs serie/tests/updates.cjs
+      - run: node serie/tests/public.cjs && node --test serie/tests/offline.cjs serie/tests/updates.cjs serie/tests/progress.cjs
         env:
           NODE_PATH: ${{ github.workspace }}/training-lab/node_modules

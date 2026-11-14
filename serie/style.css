@@ -85,3 +85,83 @@ button.danger:hover{background:color-mix(in srgb,var(--danger) 9%,transparent)}
  .superset-actions{display:grid}
  .superset-edit-member{display:grid}
 }
+
+/* Compact progress dashboard: muscle radar, time series and drill-down by zone. */
+.progress-summary-grid{margin:18px 0 20px;gap:12px}
+.progress-summary-grid>.card{margin:0;min-height:118px}
+.progress-summary-grid .big-stat{font-size:40px}
+.progress-volume-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:14px;align-items:stretch}
+.progress-volume-grid>.card{margin:0;min-width:0}
+.progress-volume-card{padding:20px;overflow:hidden}
+.progress-volume-card h2{font-size:20px;margin:3px 0 8px}
+.progress-volume-head{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.progress-small-select{font-size:12px;color:var(--muted);display:grid;gap:5px;max-width:100%}
+.progress-small-select select{font-size:14px;min-height:39px;padding:6px 9px;color:var(--ink)}
+.progress-volume-head .progress-small-select{width:120px;flex-shrink:0}
+.progress-volume-card>p.small{font-size:12px;line-height:1.55}
+.progress-radar{width:100%;max-width:520px;margin:10px auto 0}
+.muscle-radar-svg{display:block;width:100%;height:auto}
+.radar-grid,.radar-axis{fill:none;stroke:var(--line);stroke-width:1.2}
+.radar-previous{fill:rgba(116,128,115,.05);stroke:var(--muted);stroke-width:2;stroke-dasharray:6 5;stroke-linejoin:round}
+.radar-current{fill:rgba(125,160,62,.18);stroke:#71953d;stroke-width:2.8;stroke-linejoin:round}
+.radar-point{fill:#71953d;stroke:var(--card);stroke-width:1.3}
+.radar-label{font-size:12px;font-weight:600;fill:var(--ink)}
+.volume-legend{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--muted)}
+.volume-legend>span{display:inline-flex;gap:7px;align-items:center}
+.volume-legend i{display:inline-block;width:17px;height:10px;border-radius:3px}
+.volume-legend .legend-now{background:rgba(125,160,62,.19);border:2px solid #71953d}
+.volume-legend .legend-before{background:rgba(116,128,115,.04);border:2px dashed var(--muted)}
+.progress-volume-kpi{display:grid;gap:2px;margin:15px 0 5px}
+.progress-volume-kpi strong{font-size:36px;letter-spacing:-1px;line-height:1.1}
+.progress-volume-kpi span{font-size:12px;color:var(--muted)}
+.volume-zone-select{margin-top:19px}
+.progress-trend{min-height:218px;margin:10px -2px}
+.muscle-trend-svg{width:100%;height:auto;display:block}
+.trend-grid{stroke:var(--line);stroke-width:1.1}
+.trend-line{fill:none;stroke:#71953d;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.trend-dot{fill:#71953d;stroke:var(--card);stroke-width:1.5}
+.trend-tick{fill:var(--muted);font-size:11px}
+.progress-volume-table{margin-top:14px;padding-top:9px;border-top:1px solid var(--line)}
+.progress-volume-table summary{cursor:pointer;font-size:13px;color:var(--ink);font-weight:650;min-height:34px;display:flex;align-items:center}
+.progress-volume-table table{width:100%;font-size:12px}
+.progress-volume-table td,.progress-volume-table th{padding:8px 6px}
+.progress-volume-table td:not(:first-child),.progress-volume-table th:not(:first-child){text-align:right}
+.progress-method{max-width:900px;margin:13px 0 24px;line-height:1.65;font-size:12px}
+.progress-empty{margin:18px 0 24px}
+.progress-exercise-details{padding:0!important;overflow:visible;margin-top:23px}
+.progress-exercise-details>summary{padding:17px 20px;cursor:pointer;list-style:none}
+.progress-exercise-details>summary::-webkit-details-marker{display:none}
+.progress-exercise-details>summary::after{content:'⌄';font-size:22px;color:var(--muted);float:right;margin-top:-38px}
+.progress-exercise-details[open]>summary::after{content:'⌃'}
+.progress-exercise-details>summary strong{display:block;font-size:18px}
+.progress-exercise-details>summary small{display:block;margin-top:2px}
+.progress-exercise-details[open]>summary{border-bottom:1px solid var(--line)}
+.progress-exercise-details .progress-exercise-picker{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 18px 0}
+.progress-exercise-picker label{display:grid;gap:5px;font-size:12px;color:var(--muted);min-width:0}
+.progress-exercise-picker select{font-size:14px;min-width:0}
+.progress-exercise-details #chart{padding:14px}
+.progress-exercise-details #chart>.card{margin:0;padding:15px}
+body.dark .radar-current{stroke:#b4d36d;fill:rgba(180,211,109,.18)}
+body.dark .radar-point,body.dark .trend-dot{fill:#b4d36d}
+body.dark .trend-line{stroke:#b4d36d}
+body.dark .volume-legend .legend-now{border-color:#b4d36d}
+@media(max-width:760px){
+ .progress-volume-grid{grid-template-columns:1fr}
+ .progress-radar{max-width:440px}
+}
+@media(max-width:520px){
+ .progress-summary-grid{grid-template-columns:1fr 1fr;gap:8px}
+ .progress-summary-grid>.card{padding:13px;min-height:104px}
+ .progress-summary-grid .big-stat{font-size:32px}
+ .progress-summary-grid small{font-size:11px}
+ .progress-volume-card{padding:15px}
+ .progress-volume-card h2{font-size:19px}
+ .progress-volume-head{gap:7px}
+ .progress-volume-head .progress-small-select{width:105px}
+ .radar-label{font-size:12px}
+ .progress-exercise-details>summary{padding:15px}
+ .progress-exercise-details .progress-exercise-picker{grid-template-columns:1fr;gap:10px;padding:12px}
+ .progress-exercise-details #chart{padding:10px}
+ .progress-exercise-details #chart>.card{padding:12px}
+ .progress-volume-kpi strong{font-size:33px}
+}

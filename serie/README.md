@@ -9,6 +9,7 @@ Public, standalone four-day strength tracker at `/pastelitos/serie/`.
 - The final Add exercise button also supports completed sessions. Supersets merge existing groups or add a new exercise. Every superserie is displayed **by round** (round 1 contains one set of each exercise, then round 2, etc.), can add a complete round for all members, and waits to rest until all exercises and both sides of unilateral work finish. Warmups remain separately editable. Past exercise recordings, group membership, and custom templates are retained.
 - Save as my routine copies the current structure, with empty set logs for future sessions; past sessions are unchanged.
 - Touch/keyboard order changes follow stable exercise IDs.
+- Progress now opens with muscle-zone volume (a 12-axis radar of current vs previous week/month and an 8-week or 6-month series trend). Effective completed sets are attributed exactly once to the exercise's primary catalogue muscle; unilateral two-side rounds count once, warmups and unfinished sets are excluded. Individual exercise load histories are behind a body-zone-first collapsible selector. The app explicitly distinguishes training exposure from muscle gain and does not infer indirect compound-muscle volume.
 - Double progression reuses the existing pure recommendation engine, restricted to its exercise-history functions. Different equipment, repetition ranges, and straight/superset conditions remain separate. Load increases require a configured increment and sufficient records.
 - Data is local to `serie.public.v1`; no account, server, analytics or automatic cross-device synchronisation. JSON export/import provides portability. Local backup retains the previous successful state.
 - Bayesian cable curl and incline-bench dumbbell curl behind the torso are separate catalogue entries.
@@ -24,7 +25,7 @@ Install the existing repository test dependency with `npm ci --ignore-scripts` i
 
 ```
 NODE_PATH="$PWD/training-lab/node_modules" node serie/tests/public.cjs
-node --test serie/tests/offline.cjs
+node --test serie/tests/offline.cjs serie/tests/updates.cjs serie/tests/progress.cjs
 ```
 
 Browser QA covers loading the public app, registering a set, creating a superset, closing a session with unfinished sets, and adding an exercise to the closed session. No real user training data is seeded or published.

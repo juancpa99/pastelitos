@@ -10,6 +10,7 @@ const blank=()=>({version:1,sessions:[],templates:null,custom:[],theme:'light',d
 let db=blank(),storageError=false;
 try {const raw=localStorage.getItem(KEY);if(raw)db=validateData(JSON.parse(raw));}catch(error){storageError=true;}
 let tab='train',sessionId=null,selectedDate=today(),restEnd=0,restLabel='',toastTimer,libraryLink=null;
+let volumeMode='week', volumeZone='all', progressGroup='';
 const current=()=>db.sessions.find(s=>s.id===sessionId);
 const allCatalog=()=>[...SERIE_CATALOG,...db.custom];
 const catalogue=k=>allCatalog().find(e=>e.key===k);
@@ -222,7 +223,102 @@ function removeExercise(id){const e=exercise(id);if(!confirm('¿Quitar '+e.name+
 function saveTemplate(){const s=current();if(!confirm('¿Usar los ejercicios, orden y superseries de esta sesión para las próximas sesiones de '+s.title+'? Los registros anteriores no cambiarán.'))return;db.templates=plans().map(p=>({...structuredClone(p),exercises:p.exercises.map(source=>{const copy=instantiate(source);delete copy.id;delete copy.recordedSets;return copy;})}));const p=db.templates.find(p=>p.key===s.planKey);p.exercises=s.exercises.map(e=>{const copy=structuredClone(e);delete copy.id;delete copy.recordedSets;return copy;});save();toast('Rutina actualizada para las próximas sesiones');}
 function moveExercise(id,to){const s=current(),from=s.exercises.findIndex(e=>e.id===id);if(from<0||to<0||to>=s.exercises.length||from===to)return;const [e]=s.exercises.splice(from,1);s.exercises.splice(to,0,e);touch();rerenderSession();}
 function historyHTML(){return `<div class="eyebrow">Tu registro</div><h1>Lo que ya has hecho.</h1><p class="muted">Abre cualquier sesión para revisarla, añadir ejercicios o editar sus superseries.</p>${db.sessions.length?db.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<button class="history-item card" onclick="openSession('${s.id}')"><span><strong>${esc(s.title)}</strong><small>${pretty(s.date)} · ${s.exercises.length} ejercicios${s.revision?' · actualizado':''}</small></span><span class="pill">${s.completed?'Guardado':'En curso'} →</span></button>`).join(''):'<p class="empty">Tu primera sesión aparecerá aquí.</p>'}`;}
-function progressHTML(){const finished=db.sessions.filter(s=>s.completed);const entries=[...new Map(finished.flatMap(s=>s.exercises.filter(e=>e.kind!=='timed').map(e=>[SerieCoach.identity({...e,variant:e.superset?'superset':'straight'})+'|'+e.min+'|'+e.max,e]))).entries()];window.progressEntries=entries;return `<div class="eyebrow">Sesiones y cargas</div><h1>Tu progreso,<br>con perspectiva.</h1><div class="grid"><div class="card"><div class="big-stat">${finished.length}</div><small>entrenamientos guardados</small></div><div class="card"><div class="big-stat">${finished.reduce((n,s)=>n+s.exercises.reduce((sum,e)=>sum+e.recordedSets.filter(a=>roundDone(e,a)&&a.attemptType!=='warmup').length,0),0)}</div><small>series de trabajo</small></div></div>${entries.length?`<label class="space">Ejercicio y condiciones<select id="progress-exercise" onchange="renderChart()">${entries.map(([id,e],i)=>`<option value="${i}">${esc(e.name)} · ${e.min}–${e.max} · ${esc(e.loadProfile.machine)}${e.loadProfile.unilateral?' · izquierda/derecha':''}${e.superset?' · superserie':''}</option>`).join('')}</select></label><div id="chart"></div>`:'<p class="empty">Guarda una sesión con cargas y repeticiones para empezar a comparar.</p>'}<p class="notice">La progresión suma repeticiones antes de subir carga. Necesita series completas, RIR y un incremento de peso definido. No se inventan cargas iniciales ni se sube el volumen por calendario.</p>`;}
+function progressHTML(){
+ const finished=db.sessions.filter(s=>s.completed);
+ const total=finished.reduce((sum,s)=>sum+s.exercises.reduce((n,e)=>n+SerieProgress.workSets(e).length,0),0);
+ const entries=[...new Map(finished.flatMap(s=>s.exercises.filter(e=>e.kind!=='timed'&&SerieProgress.workSets(e).length>0)
+   .map(e=>[SerieCoach.identity({...e,variant:e.superset?'superset':'straight'})+'|'+e.min+'|'+e.max,e]))).entries()];
+ window.progressEntries=entries;
+ const groups=SerieProgress.AXES.filter(([group])=>entries.some(([,e])=>SerieProgress.zone(e,SERIE_CATALOG)===group));
+ if(!groups.some(([g])=>g===progressGroup)) progressGroup=groups[0]?.[0]||'';
+ const groupOptions=groups.map(([key,label])=>'<option value="'+esc(key)+'"'+(progressGroup===key?' selected':'')+'>'+esc(label)+'</option>').join('');
+ const exerciseOptions=entries.map(([identity,e],i)=>({e,i,group:SerieProgress.zone(e,SERIE_CATALOG)}))
+  .filter(item=>item.group===progressGroup)
+  .map(({e,i})=>'<option value="'+i+'">'+esc(e.name)+' · '+e.min+'–'+e.max+
+   ' · '+esc(e.loadProfile?.machine||e.equipment)+(e.loadProfile?.unilateral?' · izq./der.':'')+
+   (e.superset?' · superserie':'')+'</option>').join('');
+ const modeOptions=[['week','Semanal'],['month','Mensual']].map(([mode,label])=>
+   '<option value="'+mode+'"'+(volumeMode===mode?' selected':'')+'>'+label+'</option>').join('');
+ const zoneOptions=[['all','Todas las zonas'],...SerieProgress.AXES].map(([key,label])=>
+   '<option value="'+esc(key)+'"'+(volumeZone===key?' selected':'')+'>'+esc(label)+'</option>').join('');
+ let html='<div class="eyebrow">Evolución del entrenamiento</div><h1>Tu progreso,<br>con perspectiva.</h1>'+
+  '<div class="grid progress-summary-grid"><div class="card"><div class="big-stat">'+finished.length+
+  '</div><small>entrenamientos guardados</small></div><div class="card"><div class="big-stat">'+
+  total+'</div><small>series de trabajo registradas</small></div></div>';
+ if(finished.length){
+   html+='<div class="progress-volume-grid">'+
+     '<section class="card progress-volume-card" aria-labelledby="volume-radar-title">'+
+       '<div class="progress-volume-head"><div><div class="eyebrow">Distribución muscular</div>'+
+       '<h2 id="volume-radar-title">Volumen por zona</h2></div>'+
+       '<label class="progress-small-select">Periodo<select id="volume-period" aria-label="Periodo del volumen muscular" onchange="setVolumeMode(this.value)">'+modeOptions+'</select></label></div>'+
+       '<p class="muted small">Series efectivas registradas por zona principal. Compara el periodo actual con el anterior.</p>'+
+       '<div id="volume-radar" class="progress-radar"></div>'+
+       '<div class="volume-legend"><span><i class="legend-now"></i><span id="volume-now-label">Actual</span></span>'+
+       '<span><i class="legend-before"></i><span id="volume-before-label">Anterior</span></span></div>'+
+       '<details class="progress-volume-table"><summary>Ver cifras de todas las zonas</summary>'+
+       '<div class="table-wrap"><table><thead><tr><th>Zona</th><th>Actual</th><th>Anterior</th></tr></thead>'+
+       '<tbody id="volume-muscle-rows"></tbody></table></div></details></section>'+
+     '<section class="card progress-volume-card" aria-labelledby="volume-trend-title">'+
+       '<div class="eyebrow">Semana a semana / mes a mes</div><h2 id="volume-trend-title">Evolución del volumen</h2>'+
+       '<label class="progress-small-select volume-zone-select">Zona corporal<select id="volume-muscle" aria-label="Zona para el historial de volumen" onchange="setVolumeZone(this.value)">'+zoneOptions+'</select></label>'+
+       '<div class="progress-volume-kpi"><strong id="volume-series-total">—</strong><span>series en el periodo actual</span></div>'+
+       '<div id="volume-trend" class="progress-trend"></div>'+
+       '<details class="progress-volume-table"><summary>Ver datos por periodo</summary>'+
+       '<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Series</th></tr></thead>'+
+       '<tbody id="volume-trend-rows"></tbody></table></div></details>'+
+     '</section></div>'+
+   '<p class="muted small progress-method">Se cuentan las series de trabajo completadas, sin calentamientos. Cada serie de un ejercicio unilateral cuenta una vez al terminar ambos lados. Un ejercicio se atribuye a su zona principal, sin sumar de nuevo el trabajo indirecto de otros músculos. Esto describe tu entrenamiento registrado, no mide crecimiento muscular. El periodo actual puede estar incompleto.</p>';
+ }else{
+   html+='<div class="empty progress-empty">Todavía no hay sesiones terminadas. Cuando guardes entrenamientos, aquí verás la distribución muscular y su evolución semanal y mensual.</div>';
+ }
+ if(entries.length){
+   html+='<details class="card progress-exercise-details" id="exercise-analysis">'+
+     '<summary><div><div class="eyebrow">Análisis detallado</div><strong>Progreso por ejercicio</strong>'+
+     '<span class="muted small">Abre una zona muscular para comparar las cargas de sus ejercicios.</span></div></summary>'+
+     '<div class="progress-exercise-picker">'+
+       '<label>Zona corporal<select id="progress-muscle-group" aria-label="Filtrar ejercicios por zona corporal" onchange="setProgressGroup(this.value)">'+groupOptions+'</select></label>'+
+       '<label>Ejercicio<select id="progress-exercise" aria-label="Ejercicio para analizar" onchange="renderChart()">'+exerciseOptions+'</select></label></div>'+
+     '<div id="chart"></div></details>';
+ }
+ return html;
+}
+function setVolumeMode(value){
+ if(value!=='week'&&value!=='month')return;
+ volumeMode=value;renderVolume();
+}
+function setVolumeZone(value){
+ if(value!=='all'&&!SerieProgress.AXES.some(([zone])=>zone===value))return;
+ volumeZone=value;renderVolume();
+}
+function renderVolume(){
+ const radar=document.getElementById('volume-radar'),trend=document.getElementById('volume-trend');
+ if(!radar||!trend)return;
+ const snap=SerieProgress.snapshot(db.sessions,SERIE_CATALOG,today(),volumeMode);
+ const previousKey=SerieProgress.previousKey(snap.rows.at(-1).key,volumeMode);
+ radar.innerHTML=SerieProgress.radarSvg(snap.current,snap.previous);
+ const names=Object.fromEntries(SerieProgress.AXES);
+ document.getElementById('volume-now-label').textContent='Actual · '+SerieProgress.periodLabel(snap.rows.at(-1).key,volumeMode);
+ document.getElementById('volume-before-label').textContent='Anterior · '+SerieProgress.periodLabel(previousKey,volumeMode);
+ document.getElementById('volume-muscle-rows').innerHTML=SerieProgress.AXES.map(([zone,label])=>
+  '<tr><td>'+esc(label)+'</td><td>'+snap.current[zone]+'</td><td>'+snap.previous[zone]+'</td></tr>').join('');
+ const selected=volumeZone==='all'?snap.total:snap.current[volumeZone]||0;
+ document.getElementById('volume-series-total').textContent=selected;
+ trend.innerHTML=SerieProgress.trendSvg(snap.rows,volumeZone,volumeMode);
+ document.getElementById('volume-trend-rows').innerHTML=snap.rows.slice().reverse().map(r=>
+  '<tr><td>'+SerieProgress.periodLabel(r.key,volumeMode)+'</td><td>'+
+  (volumeZone==='all'?r.total:r.values[volumeZone]||0)+'</td></tr>').join('');
+}
+function setProgressGroup(value){
+ if(!SerieProgress.AXES.some(([zone])=>zone===value))return;
+ progressGroup=value;
+ const picker=document.getElementById('progress-exercise');if(!picker)return;
+ picker.innerHTML=progressEntries.map(([identity,e],i)=>({e,i,zone:SerieProgress.zone(e,SERIE_CATALOG)}))
+  .filter(item=>item.zone===progressGroup)
+  .map(({e,i})=>'<option value="'+i+'">'+esc(e.name)+' · '+e.min+'–'+e.max+
+   ' · '+esc(e.loadProfile?.machine||e.equipment)+(e.loadProfile?.unilateral?' · izq./der.':'')+
+   (e.superset?' · superserie':'')+'</option>').join('');
+ renderChart();
+}
 function renderChart(){
  const root=document.getElementById('chart');if(!root)return;
  const selected=progressEntries[+document.getElementById('progress-exercise').value];if(!selected)return;
@@ -272,5 +368,5 @@ document.addEventListener('pointerup',ev=>{if(dragging&&ev.pointerId===dragging.
 for(const name of ['pointercancel','lostpointercapture'])document.addEventListener(name,ev=>{if(dragging&&ev.pointerId===dragging.pointer)endDrag(false);});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape')endDrag(false);const h=ev.target.closest?.('[data-drag]');if(h&&['ArrowUp','ArrowDown'].includes(ev.key)){ev.preventDefault();const index=supersetBlocks().findIndex(b=>b.members.some(e=>e.id===h.dataset.drag));moveBlock(h.dataset.drag,index+(ev.key==='ArrowUp'?-1:1));document.querySelector(`[data-drag="${h.dataset.drag}"]`)?.focus({preventScroll:true});}});
 window.addEventListener('blur',()=>endDrag(false));
-const baseRender=render;render=function(){baseRender();if(tab==='progress'&&!sessionId)renderChart();};
+const baseRender=render;render=function(){baseRender();if(tab==='progress'&&!sessionId){renderVolume();renderChart();}};
 render();if(storageError)toast('No se pudo leer el registro guardado. Conserva una copia antes de introducir nuevos datos.');
