@@ -2,7 +2,7 @@
 
 Public, standalone four-day strength tracker at `/pastelitos/serie/`.
 
-- Four-day programme; default Monday, Tuesday, Thursday and Saturday. Each person can move the days.
+- Four-day programme; default Monday, Tuesday, Thursday and Saturday. Each person can move the days, occupied weekdays swap automatically, and training cards, numbering, schedule summary and today highlights follow Monday–Sunday order. Historical sessions are unchanged.
 - No personal records, dietary modules or three-day programme. The private app's files are unchanged.
 - 146 catalogue entries in 12 muscle groups; equipment/search filters and custom movements.
 - Exercises, sets and supersets remain editable after completion. Editing keeps the original session date, updates a revision timestamp and never creates a duplicate session.
