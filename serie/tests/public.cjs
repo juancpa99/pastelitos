@@ -321,7 +321,7 @@ test('diagonal cable rotation and other side-specific core movements have left/r
    assert.equal(r("catalogue('"+key+"').unilateral"),true,key);
  assert.equal(r("catalogue('cable_crunch').unilateral"),false);
  r("selectedDate='2026-11-23';startSession(0);addExercise('cable_woodchop')");
- assert.equal(doc.querySelectorAll('[data-eid="'+r('current().exercises.at(-1).id')+'"] [data-field="rightReps"]').length,1);
+ assert.equal(doc.querySelectorAll('[data-eid="'+r('current().exercises.at(-1).id')+'"] [data-field="rightReps"]').length,r('current().exercises.at(-1).sets'));
  isolated.w.close();
 });
 
