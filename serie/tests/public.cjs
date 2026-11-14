@@ -185,7 +185,7 @@ test('unilateral progression compares both sides, never replaces right load with
  assert.equal(rec.targets[0].rightKg,18);
  const incomplete=structuredClone(history);delete incomplete.exercises[0].recordedSets[0].rightCompletedAt;
  const noHistory=w.SerieCoach.recommend({sessions:[incomplete]},e,'2026-11-20');
- assert.equal(noHistory.sufficiency,'none');
+ assert.equal(noHistory.action,'hold');assert.match(noHistory.reason,/incompleta|series/i);
  w.close();
 });
 test('progress records show independent sides for complete unilateral rounds',()=>{
