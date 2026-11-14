@@ -1,5 +1,5 @@
 const CACHE='serie-public-v6';
-const ASSETS=['./','./index.html','./style.css?v=3','./app.js?v=4','./install.js?v=3','./updates.js?v=1','./catalog.js?v=3','./plans.js?v=3','./coach.js?v=3','./icon.svg','./icon.svg?v=4','./icon-192.png?v=4','./icon-512.png?v=4','./manifest.webmanifest?v=4'];
+const ASSETS=['./','./index.html','./style.css?v=4','./app.js?v=4','./install.js?v=3','./updates.js?v=1','./catalog.js?v=3','./plans.js?v=3','./coach.js?v=3','./icon.svg','./icon.svg?v=4','./icon-192.png?v=4','./icon-512.png?v=4','./manifest.webmanifest?v=4'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });
