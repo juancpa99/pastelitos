@@ -394,7 +394,7 @@ test('muscle radar includes and explains indirect volume without modifying physi
  assert.match(doc.getElementById('volume-source-rows').textContent,/Press militar/);
  assert.match(doc.getElementById('volume-source-rows').textContent,/Indirecto/);
  assert.match(doc.querySelector('.progress-method').textContent,/0,5/);
- assert.match(doc.querySelector('.progress-method a').href,/pubmed.ncbi.nlm.nih.gov\\/41343037/);
+ assert.ok(doc.querySelector('.progress-method a').href.includes('pubmed.ncbi.nlm.nih.gov/41343037'));
  isolated.w.close();
 });
 test('editing muscle attributions updates the radar and survives saved routine templates',()=>{
