@@ -235,5 +235,95 @@ test('rejecting a switch away from two sides leaves the recorded data and exerci
  assert.equal(r("current().exercises.at(-1).recordedSets[0].rightCompletedAt"),123);
  w.close();
 });
+
+test('a three-exercise superset is displayed as rounds instead of three long exercise cards',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-23';startSession(0)");
+ const ids=r("current().exercises.slice(0,3).map(e=>e.id)"),names=r("current().exercises.slice(0,3).map(e=>e.name)");
+ r("linkExercises('"+ids[0]+"','"+ids[1]+"');linkExercises('"+ids[0]+"','"+ids[2]+"');render()");
+ const blocks=[...doc.querySelectorAll('#exercises > .exercise')];
+ assert.equal(blocks.filter(x=>x.classList.contains('superset-card')).length,1);
+ assert.equal(blocks.some(x=>x.dataset.eid===ids[1]),false);
+ const group=doc.querySelector('.superset-card'),rounds=[...group.querySelectorAll('.superset-round')];
+ assert.equal(rounds.length,Math.max(...r("current().exercises.slice(0,3).map(e=>e.sets)")));
+ for(const round of rounds){
+   const entries=[...round.querySelectorAll(':scope > .superset-round-body > .superset-member')];
+   assert.equal(entries.length,3);
+   assert.deepEqual(entries.map(x=>x.querySelector('strong').textContent.replace(/^\d+\.\s*/,'')),names);
+ }
+ assert.match(rounds[0].querySelector('summary').textContent,/Serie 1/);
+ assert.match(rounds[1].querySelector('summary').textContent,/Serie 2/);
+ assert.equal(rounds[0].open,true);
+ assert.equal(rounds[1].open,false);
+ isolated.w.close();
+});
+test('round-based supersets preserve separate weights, repetitions and unilateral sides, resting only at round end',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-23';startSession(0)");
+ const ids=r("current().exercises.slice(0,3).map(e=>e.id)");
+ r("linkExercises('"+ids[0]+"','"+ids[1]+"');linkExercises('"+ids[0]+"','"+ids[2]+"');render()");
+ for(let i=0;i<3;i++){
+   r("current().exercises["+i+"].recordedSets[0].kg="+(20+i)+";current().exercises["+i+"].recordedSets[0].reps="+(20-i)+";current().exercises["+i+"].recordedSets[0].rir=2");
+   if(r("current().exercises["+i+"].loadProfile.unilateral")){
+     r("current().exercises["+i+"].recordedSets[0].rightKg="+(18+i)+";current().exercises["+i+"].recordedSets[0].rightReps="+(19-i)+";current().exercises["+i+"].recordedSets[0].rightRir=2");
+   }
+   r("toggleSet('"+ids[i]+"',0)");
+   assert.equal(r('restEnd'),0,'no rest before all exercises and both sides finish');
+   if(r("current().exercises["+i+"].loadProfile.unilateral")){
+     r("toggleSet('"+ids[i]+"',0,'right')");
+     if(i<2)assert.equal(r('restEnd'),0,'no rest before all exercises finish');
+   }
+ }
+ assert.ok(r("restEnd>Date.now()"));
+ assert.equal(r("current().exercises[0].recordedSets[0].reps"),20);
+ assert.equal(r("current().exercises[1].recordedSets[0].reps"),19);
+ assert.equal(r("current().exercises[2].recordedSets[0].reps"),18);
+ assert.equal(doc.querySelectorAll('.superset-round')[0].getAttribute('data-round-key').endsWith(':0'),true);
+ assert.equal(doc.querySelectorAll('.superset-round')[0].open,false,'moves to next round on completion');
+ assert.equal(doc.querySelectorAll('.superset-round')[1].open,true);
+ assert.match(doc.querySelector('.superset-round').textContent,/Completada/);
+ isolated.w.close();
+});
+test('add superset round updates every member while preserving old sets, warmups and saved templates',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-23';startSession(0)");
+ const ids=r("current().exercises.slice(0,3).map(e=>e.id)");
+ r("linkExercises('"+ids[0]+"','"+ids[1]+"');linkExercises('"+ids[0]+"','"+ids[2]+"');render()");
+ const before=r("current().exercises.slice(0,3).map(e=>e.recordedSets.map(a=>JSON.stringify(a)))");
+ const group=r("current().exercises[0].superset");
+ r("addSupersetRound('"+group+"')");
+ assert.deepEqual(r("current().exercises.slice(0,3).map(e=>e.sets)"),before.map(a=>a.length+1));
+ assert.deepEqual(r("current().exercises.slice(0,3).map(e=>e.recordedSets.slice(0,-1).map(a=>JSON.stringify(a)))"),before);
+ assert.equal(doc.querySelectorAll('.superset-card .superset-round').length,Math.max(...r("current().exercises.slice(0,3).map(e=>e.sets)")));
+ r("addSet('"+ids[1]+"',true)");
+ assert.equal(doc.querySelectorAll('.superset-warmups .superset-member').length,1);
+ assert.equal(doc.querySelectorAll('.superset-round')[0].querySelectorAll('.superset-member').length,3);
+ r('saveTemplate()');
+ assert.equal(r("db.templates[0].exercises.slice(0,3).every(e=>e.superset===db.templates[0].exercises[0].superset)"),true);
+ const snapshot=r('JSON.stringify(db)'),loaded=app(snapshot);
+ assert.equal(loaded.run('db.sessions.length'),1);
+ assert.equal(loaded.run('db.templates[0].exercises[0].superset'),group);
+ loaded.w.close();isolated.w.close();
+});
+test('superset can be moved as a complete block without separating its exercises',()=>{
+ const isolated=app(),r=isolated.run;
+ r("selectedDate='2026-11-23';startSession(0)");
+ const ids=r("current().exercises.slice(0,3).map(e=>e.id)");
+ r("linkExercises('"+ids[0]+"','"+ids[1]+"');linkExercises('"+ids[0]+"','"+ids[2]+"');render()");
+ r("moveBlock('"+ids[0]+"',1)");
+ assert.deepEqual(r("current().exercises.slice(1,4).map(e=>e.id)"),ids);
+ assert.equal(r("current().exercises.slice(1,4).every(e=>e.superset===current().exercises[1].superset)"),true);
+ isolated.w.close();
+});
+test('diagonal cable rotation and other side-specific core movements have left/right defaults',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ for(const key of ['cable_woodchop','pallof_press','side_bend','lateral_lunge','bird_dog','wrist_pronation'])
+   assert.equal(r("catalogue('"+key+"').unilateral"),true,key);
+ assert.equal(r("catalogue('cable_crunch').unilateral"),false);
+ r("selectedDate='2026-11-23';startSession(0);addExercise('cable_woodchop')");
+ assert.equal(doc.querySelectorAll('[data-eid="'+r('current().exercises.at(-1).id')+'"] [data-field="rightReps"]').length,1);
+ isolated.w.close();
+});
+
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
