@@ -1,6 +1,6 @@
 const {JSDOM}=require('jsdom'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const root=path.join(__dirname,'..');
-function app(snapshot){const html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script[^>]*>[\s\S]*?<\/script>/g,'');const dom=new JSDOM(html,{url:'https://example.test/serie/',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,ctx=dom.getInternalVMContext(),run=s=>vm.runInContext(s,ctx);w.structuredClone=structuredClone;w.crypto.randomUUID=crypto.randomUUID;w.scrollTo=()=>{};w.scrollBy=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};w.confirm=()=>true;if(snapshot)w.localStorage.setItem('serie.public.v1',snapshot);for(const f of ['catalog.js','plans.js','coach.js','app.js','install.js','updates.js'])run(fs.readFileSync(path.join(root,f),'utf8'));return {w,run};}
+function app(snapshot){const html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace(/<script[^>]*>[\s\S]*?<\/script>/g,'');const dom=new JSDOM(html,{url:'https://example.test/serie/',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,ctx=dom.getInternalVMContext(),run=s=>vm.runInContext(s,ctx);w.structuredClone=structuredClone;w.crypto.randomUUID=crypto.randomUUID;w.scrollTo=()=>{};w.scrollBy=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};w.confirm=()=>true;if(snapshot)w.localStorage.setItem('serie.public.v1',snapshot);for(const f of ['catalog.js','plans.js','coach.js','progress.js','app.js','install.js','updates.js'])run(fs.readFileSync(path.join(root,f),'utf8'));return {w,run};}
 const {w,run}=app();let count=0;function test(name,fn){fn();count++;console.log('PASS',name);}
 try{
 test('public app has four plans, no personal data, no nutrition or three-day UI',()=>{assert.equal(run('plans().length'),4);assert.equal(run('db.sessions.length'),0);assert.equal(run('db.days.join()'),'1,2,4,6');for(const page of ['train','history','progress','settings']){run(`navigate('${page}')`);assert.doesNotMatch(w.document.body.textContent,/MAREVO|dieta|comida|nutrici|3 días|Camilo/i);}assert.equal(run('SERIE_CATALOG.length'),new Set(run('SERIE_CATALOG.map(e=>e.key)')).size);assert.ok(run('SERIE_CATALOG.length')>130);assert.equal(run('SERIE_GROUPS.length'),12);assert.ok(run('SERIE_PLANS.every(p=>p.exercises.every(e=>catalogue(e.key)))'));});
@@ -195,6 +195,7 @@ test('progress records show independent sides for complete unilateral rounds',()
  r("finishSession();navigate('progress')");
  const index=r("progressEntries.findIndex(([,e])=>e.key==='single_leg_rdl')");
  assert.ok(index>=0);
+ r("setProgressGroup('Isquios')");
  doc.getElementById('progress-exercise').value=String(index);
  r("renderChart()");
  const chart=doc.getElementById('chart');
@@ -325,5 +326,49 @@ test('diagonal cable rotation and other side-specific core movements have left/r
  isolated.w.close();
 });
 
+test('new Progress is compact and starts with radar, weekly trend and collapsed per-zone exercise details',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r('navigate("progress")');
+ assert.match(doc.getElementById('app').textContent,/todavía no hay sesiones terminadas/i);
+ assert.equal(doc.querySelectorAll('.muscle-radar-svg').length,0);
+ r("selectedDate=today();startSession(0)");
+ r("current().exercises[0].recordedSets[0]={kg:25,reps:10,rir:2,attemptType:'effective',completedAt:123}");
+ r("current().exercises[0].recordedSets[1]={kg:10,reps:10,rir:2,attemptType:'warmup',completedAt:123}");
+ r('finishSession();navigate("progress")');
+ assert.ok(doc.querySelector('.muscle-radar-svg'),'radar is visible');
+ assert.ok(doc.querySelector('.muscle-trend-svg'),'history trend is visible');
+ assert.equal(doc.getElementById('volume-series-total').textContent,'1');
+ assert.equal(doc.querySelector('.progress-summary-grid .big-stat').textContent,'1');
+ assert.equal(doc.querySelector('.progress-exercise-details').open,false,'individual exercises are initially collapsed');
+ assert.equal(doc.getElementById('volume-period').value,'week');
+ assert.match(doc.getElementById('volume-muscle-rows').textContent,/Hombros/);
+ assert.match(doc.getElementById('volume-muscle-rows').textContent,/Femoral/);
+ r("setVolumeMode('month')");
+ assert.match(doc.querySelector('.muscle-trend-svg').getAttribute('aria-label'),/mensual/);
+ assert.match(doc.getElementById('volume-now-label').textContent,/Actual/);
+ r("setVolumeZone('Bíceps')");
+ assert.equal(doc.getElementById('volume-series-total').textContent,'0');
+ r("setVolumeZone('Hombros')");
+ assert.equal(doc.getElementById('volume-series-total').textContent,'1');
+ isolated.w.close();
+});
+test('individual exercise histories are filtered by body zone without losing existing detail charts',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate=today();startSession(0)");
+ r("current().exercises[0].recordedSets[0]={kg:25,reps:10,rir:2,attemptType:'effective',completedAt:123}");
+ r('finishSession();navigate("progress")');
+ const details=doc.getElementById('exercise-analysis');details.open=true;
+ r("setProgressGroup('Pectoral')");
+ const picker=doc.getElementById('progress-exercise');
+ const selection=[...picker.options].map(x=>x.textContent).join('|');
+ assert.match(selection,/Press de banca inclinado/i);
+ assert.doesNotMatch(selection,/Press militar/i);
+ assert.equal(doc.getElementById('exercise-analysis').open,true,'switching muscle does not close details');
+ r("setProgressGroup('Hombros')");
+ assert.match([...picker.options].map(x=>x.textContent).join('|'),/Press militar/i);
+ assert.match(doc.getElementById('chart').innerHTML,/svg|table/i);
+ assert.ok(r('progressEntries.length')>picker.options.length,'global exercise list remains available for other groups');
+ isolated.w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
