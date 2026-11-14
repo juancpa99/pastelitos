@@ -28,3 +28,20 @@ button.danger:hover{background:color-mix(in srgb,var(--danger) 9%,transparent)}
   #serie-update-banner{bottom:calc(75px + env(safe-area-inset-bottom));padding:10px 12px;gap:8px}
   #serie-update-banner button{padding:8px 10px;font-size:12px}
 }
+
+/* Two distinct sides form one unilateral set. Never collapse them into one load. */
+.unilateral-round{border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:10px 12px;margin:12px 0}
+.unilateral-heading{margin-bottom:3px;font-size:13px}
+.unilateral-round .set-head{padding:6px 0 2px}
+.unilateral-round .set-row{grid-template-columns:32px minmax(52px,1fr) minmax(52px,1fr) minmax(45px,.7fr) 44px}
+.unilateral-round .set-row input{background:var(--card);min-width:0}
+.unilateral-round .set-row.saved input{background:var(--soft)}
+.unilateral-round .set-note{margin-top:5px}
+.side-history{display:inline-block;margin:3px 0;line-height:1.6}
+.side-history strong{font-weight:750}
+@media(max-width:450px){
+ .unilateral-round{padding:10px 8px}
+ .unilateral-round .set-row{gap:4px;grid-template-columns:24px minmax(42px,1fr) minmax(42px,1fr) minmax(40px,.7fr) 40px}
+ .unilateral-round .set-row input{font-size:16px;padding:7px 2px}
+ .unilateral-round .set-row button{min-height:40px}
+}
