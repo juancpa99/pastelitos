@@ -15,7 +15,8 @@ Public, standalone four-day strength tracker at `/pastelitos/serie/`.
 - In-progress workouts can be discarded after confirmation without deleting completed history; a discarded day can be started again.
 - A mobile-first installation guide appears on first mobile visit, remains available in Settings, and supports native PWA installation prompts.
 - SERIE's three identical green wave strokes on white are shared by the interface, SVG favicon, and 192 px / 512 px installed-app icons.
-- A dedicated service worker caches only public assets and only deletes its own obsolete caches.
+- Automatic PWA updates check on launch, foreground, reconnect and periodically (5 minutes). New versions reload automatically when the user is not editing or inside a workout; active sessions get a discreet notification and update after leaving the workout or via explicit confirmation. The current view/date is restored on version reload.
+- Network-first same-origin asset loading prevents stale code from remaining pinned in the installed app, with offline cache fallback. SERIE only touches its own caches and keeps the existing local workout data keys unchanged.
 
 ## Checks
 
