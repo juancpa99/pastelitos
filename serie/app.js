@@ -229,10 +229,10 @@ function progressHTML(){
  const entries=[...new Map(finished.flatMap(s=>s.exercises.filter(e=>e.kind!=='timed'&&SerieProgress.workSets(e).length>0)
    .map(e=>[SerieCoach.identity({...e,variant:e.superset?'superset':'straight'})+'|'+e.min+'|'+e.max,e]))).entries()];
  window.progressEntries=entries;
- const groups=SerieProgress.AXES.filter(([group])=>entries.some(([,e])=>SerieProgress.zone(e,SERIE_CATALOG)===group));
+ const groups=SerieProgress.AXES.filter(([group])=>entries.some(([,e])=>SerieProgress.roles(e,SERIE_CATALOG).primary===group));
  if(!groups.some(([g])=>g===progressGroup)) progressGroup=groups[0]?.[0]||'';
  const groupOptions=groups.map(([key,label])=>'<option value="'+esc(key)+'"'+(progressGroup===key?' selected':'')+'>'+esc(label)+'</option>').join('');
- const exerciseOptions=entries.map(([identity,e],i)=>({e,i,group:SerieProgress.zone(e,SERIE_CATALOG)}))
+ const exerciseOptions=entries.map(([identity,e],i)=>({e,i,group:SerieProgress.roles(e,SERIE_CATALOG).primary}))
   .filter(item=>item.group===progressGroup)
   .map(({e,i})=>'<option value="'+i+'">'+esc(e.name)+' · '+e.min+'–'+e.max+
    ' · '+esc(e.loadProfile?.machine||e.equipment)+(e.loadProfile?.unilateral?' · izq./der.':'')+
@@ -251,23 +251,27 @@ function progressHTML(){
        '<div class="progress-volume-head"><div><div class="eyebrow">Distribución muscular</div>'+
        '<h2 id="volume-radar-title">Volumen por zona</h2></div>'+
        '<label class="progress-small-select">Periodo<select id="volume-period" aria-label="Periodo del volumen muscular" onchange="setVolumeMode(this.value)">'+modeOptions+'</select></label></div>'+
-       '<p class="muted small">Series efectivas registradas por zona principal. Compara el periodo actual con el anterior.</p>'+
+       '<p class="muted small">Series equivalentes por músculo: 1 por serie directa y 0,5 por serie indirecta estimada. Compara el periodo actual con el anterior.</p>'+
        '<div id="volume-radar" class="progress-radar"></div>'+
-       '<div class="volume-legend"><span><i class="legend-now"></i><span id="volume-now-label">Actual</span></span>'+
-       '<span><i class="legend-before"></i><span id="volume-before-label">Anterior</span></span></div>'+
+       '<div class="volume-legend"><span><i class="legend-now"></i><span id="volume-now-label">Total actual</span></span>'+
+       '<span><i class="legend-direct"></i>Solo directas</span>'+ 
+       '<span><i class="legend-before"></i><span id="volume-before-label">Total anterior</span></span></div>'+
        '<details class="progress-volume-table"><summary>Ver cifras de todas las zonas</summary>'+
-       '<div class="table-wrap"><table><thead><tr><th>Zona</th><th>Actual</th><th>Anterior</th></tr></thead>'+
+       '<div class="table-wrap"><table><thead><tr><th>Zona</th><th>Directas</th><th>Indirectas ×0,5</th><th>Total</th><th>Total anterior</th></tr></thead>'+
        '<tbody id="volume-muscle-rows"></tbody></table></div></details></section>'+
      '<section class="card progress-volume-card" aria-labelledby="volume-trend-title">'+
        '<div class="eyebrow">Semana a semana / mes a mes</div><h2 id="volume-trend-title">Evolución del volumen</h2>'+
        '<label class="progress-small-select volume-zone-select">Zona corporal<select id="volume-muscle" aria-label="Zona para el historial de volumen" onchange="setVolumeZone(this.value)">'+zoneOptions+'</select></label>'+
-       '<div class="progress-volume-kpi"><strong id="volume-series-total">—</strong><span>series en el periodo actual</span></div>'+
+       '<div class="progress-volume-kpi"><strong id="volume-series-total">—</strong><span>series equivalentes del periodo actual (directas + 0,5 indirectas)</span></div>'+
        '<div id="volume-trend" class="progress-trend"></div>'+
        '<details class="progress-volume-table"><summary>Ver datos por periodo</summary>'+
-       '<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Series</th></tr></thead>'+
-       '<tbody id="volume-trend-rows"></tbody></table></div></details>'+
+       '<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Eq. totales</th></tr></thead>'+
+       '<tbody id="volume-trend-rows"></tbody></table></div></details>'+ 
+       '<details class="progress-volume-table"><summary>¿De qué ejercicios sale este volumen?</summary>'+ 
+       '<div class="table-wrap"><table><thead><tr><th>Ejercicio</th><th>Tipo</th><th>Series reales</th><th>Equivalentes</th></tr></thead>'+ 
+       '<tbody id="volume-source-rows"></tbody></table></div></details>'+
      '</section></div>'+
-   '<p class="muted small progress-method">Se cuentan las series de trabajo completadas, sin calentamientos. Cada serie de un ejercicio unilateral cuenta una vez al terminar ambos lados. Un ejercicio se atribuye a su zona principal, sin sumar de nuevo el trabajo indirecto de otros músculos. Esto describe tu entrenamiento registrado, no mide crecimiento muscular. El periodo actual puede estar incompleto.</p>';
+   '<p class="muted small progress-method">Modelo fraccional: cada serie efectiva completada aporta 1 a su músculo principal y 0,5 por cada músculo secundario dinámico identificado. No se atribuyen 0,5 series a todos los estabilizadores. Una serie unilateral cuenta una sola vez al terminar ambos lados; calentamientos y series incompletas no cuentan. El total por músculo es una estimación, no series físicas adicionales ni una medida de hipertrofia. Los ejercicios personalizados no tienen secundarios automáticos, pero puedes configurarlos desde Editar ejercicio. El periodo actual puede estar incompleto. Basado en Pelland et al. (Sports Medicine, 2026).</p>';
  }else{
    html+='<div class="empty progress-empty">Todavía no hay sesiones terminadas. Cuando guardes entrenamientos, aquí verás la distribución muscular y su evolución semanal y mensual.</div>';
  }
@@ -295,24 +299,31 @@ function renderVolume(){
  if(!radar||!trend)return;
  const snap=SerieProgress.snapshot(db.sessions,SERIE_CATALOG,today(),volumeMode);
  const previousKey=SerieProgress.previousKey(snap.rows.at(-1).key,volumeMode);
- radar.innerHTML=SerieProgress.radarSvg(snap.current,snap.previous);
+ radar.innerHTML=SerieProgress.radarSvg(snap.current,snap.previous,snap.currentDetail.direct);
+ const fmtSeries=v=>Number(v||0).toLocaleString('es-ES',{maximumFractionDigits:1});
  const names=Object.fromEntries(SerieProgress.AXES);
- document.getElementById('volume-now-label').textContent='Actual · '+SerieProgress.periodLabel(snap.rows.at(-1).key,volumeMode);
- document.getElementById('volume-before-label').textContent='Anterior · '+SerieProgress.periodLabel(previousKey,volumeMode);
+ document.getElementById('volume-now-label').textContent='Total actual · '+SerieProgress.periodLabel(snap.rows.at(-1).key,volumeMode);
+ document.getElementById('volume-before-label').textContent='Total anterior · '+SerieProgress.periodLabel(previousKey,volumeMode);
  document.getElementById('volume-muscle-rows').innerHTML=SerieProgress.AXES.map(([zone,label])=>
-  '<tr><td>'+esc(label)+'</td><td>'+snap.current[zone]+'</td><td>'+snap.previous[zone]+'</td></tr>').join('');
+  '<tr><td>'+esc(label)+'</td><td>'+fmtSeries(snap.currentDetail.direct[zone])+'</td><td>'+fmtSeries(snap.currentDetail.indirect[zone])+'</td><td><strong>'+fmtSeries(snap.current[zone])+'</strong></td><td>'+fmtSeries(snap.previous[zone])+'</td></tr>').join('');
  const selected=volumeZone==='all'?snap.total:snap.current[volumeZone]||0;
- document.getElementById('volume-series-total').textContent=selected;
+ document.getElementById('volume-series-total').textContent=fmtSeries(selected);
  trend.innerHTML=SerieProgress.trendSvg(snap.rows,volumeZone,volumeMode);
  document.getElementById('volume-trend-rows').innerHTML=snap.rows.slice().reverse().map(r=>
   '<tr><td>'+SerieProgress.periodLabel(r.key,volumeMode)+'</td><td>'+
-  (volumeZone==='all'?r.total:r.values[volumeZone]||0)+'</td></tr>').join('');
+  fmtSeries(volumeZone==='all'?r.total:r.values[volumeZone]||0)+'</td></tr>').join('');
+ const contributions=SerieProgress.contributions(db.sessions,SERIE_CATALOG,snap.rows.at(-1).key,volumeMode)
+  .filter(e=>volumeZone==='all'||e.muscle===volumeZone);
+ document.getElementById('volume-source-rows').innerHTML=contributions.length?contributions.map(e=>
+  '<tr><td>'+esc(e.name)+'</td><td>'+ (e.type==='direct'?'Directo':'Indirecto') +
+  '</td><td>'+e.sets+'</td><td>'+fmtSeries(e.equivalent)+'</td></tr>').join(''):
+  '<tr><td colspan="4" class="muted">No hay ejercicios registrados en este periodo y zona.</td></tr>';
 }
 function setProgressGroup(value){
  if(!SerieProgress.AXES.some(([zone])=>zone===value))return;
  progressGroup=value;
  const picker=document.getElementById('progress-exercise');if(!picker)return;
- picker.innerHTML=progressEntries.map(([identity,e],i)=>({e,i,zone:SerieProgress.zone(e,SERIE_CATALOG)}))
+ picker.innerHTML=progressEntries.map(([identity,e],i)=>({e,i,zone:SerieProgress.roles(e,SERIE_CATALOG).primary}))
   .filter(item=>item.zone===progressGroup)
   .map(({e,i})=>'<option value="'+i+'">'+esc(e.name)+' · '+e.min+'–'+e.max+
    ' · '+esc(e.loadProfile?.machine||e.equipment)+(e.loadProfile?.unilateral?' · izq./der.':'')+
