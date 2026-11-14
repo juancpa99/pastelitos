@@ -249,7 +249,7 @@ test('a three-exercise superset is displayed as rounds instead of three long exe
  for(const round of rounds){
    const entries=[...round.querySelectorAll(':scope > .superset-round-body > .superset-member')];
    assert.equal(entries.length,3);
-   assert.deepEqual(entries.map(x=>x.querySelector('strong').textContent.replace(/^\d+\.\s*/,'')),names);
+   assert.equal(JSON.stringify(entries.map(x=>x.querySelector('strong').textContent.replace(/^\d+\.\s*/,''))),JSON.stringify(names));
  }
  assert.match(rounds[0].querySelector('summary').textContent,/Serie 1/);
  assert.match(rounds[1].querySelector('summary').textContent,/Serie 2/);
@@ -292,8 +292,8 @@ test('add superset round updates every member while preserving old sets, warmups
  const before=r("current().exercises.slice(0,3).map(e=>e.recordedSets.map(a=>JSON.stringify(a)))");
  const group=r("current().exercises[0].superset");
  r("addSupersetRound('"+group+"')");
- assert.deepEqual(r("current().exercises.slice(0,3).map(e=>e.sets)"),before.map(a=>a.length+1));
- assert.deepEqual(r("current().exercises.slice(0,3).map(e=>e.recordedSets.slice(0,-1).map(a=>JSON.stringify(a)))"),before);
+ assert.equal(JSON.stringify(r("current().exercises.slice(0,3).map(e=>e.sets)")),JSON.stringify(before.map(a=>a.length+1)));
+ assert.equal(JSON.stringify(r("current().exercises.slice(0,3).map(e=>e.recordedSets.slice(0,-1).map(a=>JSON.stringify(a)))")),JSON.stringify(before));
  assert.equal(doc.querySelectorAll('.superset-card .superset-round').length,Math.max(...r("current().exercises.slice(0,3).map(e=>e.sets)")));
  r("addSet('"+ids[1]+"',true)");
  assert.equal(doc.querySelectorAll('.superset-warmups .superset-member').length,1);
@@ -311,7 +311,7 @@ test('superset can be moved as a complete block without separating its exercises
  const ids=r("current().exercises.slice(0,3).map(e=>e.id)");
  r("linkExercises('"+ids[0]+"','"+ids[1]+"');linkExercises('"+ids[0]+"','"+ids[2]+"');render()");
  r("moveBlock('"+ids[0]+"',1)");
- assert.deepEqual(r("current().exercises.slice(1,4).map(e=>e.id)"),ids);
+ assert.equal(JSON.stringify(r("current().exercises.slice(1,4).map(e=>e.id)")),JSON.stringify(ids));
  assert.equal(r("current().exercises.slice(1,4).every(e=>e.superset===current().exercises[1].superset)"),true);
  isolated.w.close();
 });
