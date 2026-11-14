@@ -226,7 +226,7 @@ function historyHTML(){return `<div class="eyebrow">Tu registro</div><h1>Lo que 
 function progressHTML(){
  const finished=db.sessions.filter(s=>s.completed);
  const total=finished.reduce((sum,s)=>sum+s.exercises.reduce((n,e)=>n+SerieProgress.workSets(e).length,0),0);
- const entries=[...new Map(finished.flatMap(s=>s.exercises.filter(e=>e.kind!=='timed')
+ const entries=[...new Map(finished.flatMap(s=>s.exercises.filter(e=>e.kind!=='timed'&&SerieProgress.workSets(e).length>0)
    .map(e=>[SerieCoach.identity({...e,variant:e.superset?'superset':'straight'})+'|'+e.min+'|'+e.max,e]))).entries()];
  window.progressEntries=entries;
  const groups=SerieProgress.AXES.filter(([group])=>entries.some(([,e])=>SerieProgress.zone(e,SERIE_CATALOG)===group));
