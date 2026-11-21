@@ -282,6 +282,7 @@
         kg: null,
         reps: +e.min,
         rir: hi,
+        ...(profile(e).unilateral ? {rightKg:null,rightReps:+e.min} : {}),
       })),
       last: last || null,
       trend: "insufficient",
