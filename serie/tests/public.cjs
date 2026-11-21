@@ -500,5 +500,72 @@ test('replacement never erases already performed sets',()=>{
  assert.equal(r("current().exercises[3].recordedSets[0].kg"),50);
  isolated.w.close();
 });
+
+test('warmups go before effective sets and keep completed work records intact',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-18';startSession(3)");
+ const id=r("current().exercises[0].id");
+ r("current().exercises[0].recordedSets[0]={kg:45,reps:8,rir:2,attemptType:'effective',completedAt:123}");
+ r("addSet('"+id+"',true)");
+ assert.deepEqual(Array.from(r("current().exercises[0].recordedSets.map(a=>a.attemptType)")).slice(0,4),['warmup','effective','effective','effective']);
+ assert.equal(r("current().exercises[0].sets"),3);
+ assert.equal(r("current().exercises[0].recordedSets[1].kg"),45);
+ assert.equal(r("current().exercises[0].recordedSets[1].completedAt"),123);
+ let rows=doc.querySelectorAll('[data-eid="'+id+'"] .set-row');
+ assert.equal(rows[0].querySelector('.muted.small').textContent,'C');
+ assert.equal(rows[1].querySelector('.muted.small').textContent,'1');
+ assert.match(rows[1].querySelector('[data-field="kg"]').getAttribute('aria-label'),/serie 1/);
+ r("addSet('"+id+"',true)");
+ rows=doc.querySelectorAll('[data-eid="'+id+'"] .set-row');
+ assert.equal(rows[0].querySelector('.muted.small').textContent,'C');
+ assert.equal(rows[1].querySelector('.muted.small').textContent,'C');
+ assert.equal(rows[2].querySelector('.muted.small').textContent,'1');
+ assert.equal(r("current().exercises[0].recordedSets[2].completedAt"),123);
+ const snapshot=r('JSON.stringify(db)'),again=app(snapshot);
+ assert.equal(again.run("db.sessions[0].exercises[0].recordedSets[2].completedAt"),123);
+ again.w.close();isolated.w.close();
+});
+test('adding warmup reorganises existing trailing warmup but keeps its measurements',()=>{
+ const isolated=app(),r=isolated.run;
+ r("selectedDate='2026-11-18';startSession(3)");
+ const id=r("current().exercises[0].id");
+ r("current().exercises[0].recordedSets.push({kg:20,reps:12,rir:4,completedAt:999,attemptType:'warmup'})");
+ r("addSet('"+id+"',true)");
+ assert.deepEqual(Array.from(r("current().exercises[0].recordedSets.map(a=>a.attemptType)")).slice(0,5),['warmup','warmup','effective','effective','effective']);
+ assert.equal(r("current().exercises[0].recordedSets[0].kg"),20);
+ assert.equal(r("current().exercises[0].recordedSets[0].completedAt"),999);
+ assert.equal(r("current().exercises[0].sets"),3);
+ isolated.w.close();
+});
+test('unilateral warmups remain first and effective rows stay numbered from one',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-18';startSession(2)");
+ const id=r("current().exercises[4].id");
+ assert.equal(r("current().exercises[4].loadProfile.unilateral"),true);
+ r("current().exercises[4].recordedSets[0].kg=16;current().exercises[4].recordedSets[0].rightKg=14;current().exercises[4].recordedSets[0].reps=8;current().exercises[4].recordedSets[0].rightReps=8");
+ r("addSet('"+id+"',true)");
+ const rows=doc.querySelectorAll('[data-eid="'+id+'"] .unilateral-heading strong');
+ assert.equal(rows[0].textContent,'Calentamiento');
+ assert.equal(rows[1].textContent,'Serie 1');
+ assert.equal(r("current().exercises[4].recordedSets[1].rightKg"),14);
+ assert.match(doc.querySelector('[data-eid="'+id+'"] [data-field="rightKg"][data-set="1"]').getAttribute('aria-label'),/serie 1/);
+ isolated.w.close();
+});
+test('superset warmups display above first round without changing round indexes',()=>{
+ const isolated=app(),r=isolated.run,doc=isolated.w.document;
+ r("selectedDate='2026-11-18';startSession(3)");
+ const a=r("current().exercises[0].id"),b=r("current().exercises[1].id");
+ r("linkExercises('"+a+"','"+b+"');touch();render()");
+ r("addSet('"+b+"',true)");
+ assert.equal(r("workSet(exercise('"+b+"'),0).index"),1);
+ assert.equal(r("workSet(exercise('"+a+"'),0).index"),0);
+ const card=doc.querySelector('.superset-card');
+ const warm=card.querySelector('.superset-warmups');
+ assert.ok(warm);
+ assert.ok(warm.compareDocumentPosition(card.querySelector('.superset-round')) & isolated.w.Node.DOCUMENT_POSITION_FOLLOWING);
+ assert.equal(card.querySelectorAll('.superset-round').length,3);
+ assert.equal(r("exercise('"+b+"').sets"),3);
+ isolated.w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
