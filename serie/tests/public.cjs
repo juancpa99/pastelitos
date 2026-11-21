@@ -422,5 +422,83 @@ test('editing muscle attributions updates the radar and survives saved routine t
  assert.equal(r("db.templates[0].exercises[0].progressPrimary"),'Pectoral');
  isolated.w.close();
 });
+
+test('replacing sumo with single-leg RDL automatically updates later workouts and bilateral targets',()=>{
+ const first=app(),r=first.run;
+ r("selectedDate='2026-11-12';startSession(2)");
+ const removedId=r("current().exercises[3].id");
+ r("replaceExercise('"+removedId+"');addExercise('single_leg_rdl')");
+ assert.equal(r('current().exercises[3].key'),'single_leg_rdl');
+ assert.equal(r('current().exercises[3].loadProfile.unilateral'),true);
+ assert.equal(r('db.templates'),null,'an unfinished workout must not replace a routine');
+ r("current().exercises[3].recordedSets.forEach(a=>Object.assign(a,{kg:18,reps:8,rir:2,completedAt:123,rightKg:16,rightReps:8,rightRir:2,rightCompletedAt:124}))");
+ r("finishSession()");
+ assert.equal(r("db.templates[2].exercises[3].key"),'single_leg_rdl');
+ assert.equal(r("db.templates[2].exercises[3].recordedSets"),undefined);
+ assert.equal(r("db.templates[2].exercises[3].loadProfile.unilateral"),true);
+ const snapshot=r('JSON.stringify(db)'),next=app(snapshot),r2=next.run;
+ r2("selectedDate='2026-11-19';startSession(2)");
+ assert.equal(r2("current().exercises[3].key"),'single_leg_rdl');
+ assert.equal(r2("current().exercises[3].recordedSets[0].completedAt"),null);
+ const target=r2("recommendation(current().exercises[3]).targets[0]");
+ assert.equal(target.kg,18,'prior left load must come from recorded left load');
+ assert.equal(target.rightKg,16,'prior right load must stay independent');
+ assert.ok(target.reps>=8);
+ assert.ok(target.rightReps>=8);
+ assert.match(next.w.document.getElementById('app').textContent,/Próximo objetivo/);
+ next.w.close();first.w.close();
+});
+test('edits of last completed workout automatically update the routine, but edits to older sessions do not',()=>{
+ const isolated=app(),r=isolated.run,w=isolated.w;
+ r("selectedDate='2026-11-12';startSession(2);finishSession()");
+ const oldId=r("current().id"),sumoId=r("current().exercises[3].id");
+ r("replaceExercise('"+sumoId+"');addExercise('single_leg_rdl')");
+ assert.equal(r("db.templates[2].exercises[3].key"),'single_leg_rdl');
+ r("selectedDate='2026-11-19';startSession(2);finishSession()");
+ const recentId=r("current().id"),secondId=r("current().exercises[3].id");
+ r("replaceExercise('"+secondId+"');addExercise('sumo_deadlift')");
+ assert.equal(r("db.templates[2].exercises[3].key"),'sumo_deadlift');
+ r("openSession('"+oldId+"')");
+ const firstId=r("current().exercises[3].id");
+ r("replaceExercise('"+firstId+"');addExercise('back_squat')");
+ assert.equal(r("db.templates[2].exercises[3].key"),'sumo_deadlift');
+ assert.equal(r("db.sessions.find(s=>s.id==='"+oldId+"').exercises[3].key"),'back_squat');
+ assert.equal(r("db.sessions.find(s=>s.id==='"+recentId+"').exercises[3].key"),'sumo_deadlift');
+ w.close();
+});
+test('discarding an unfinished edited workout does not modify the normal routine',()=>{
+ const isolated=app(),r=isolated.run;
+ r("selectedDate='2026-11-12';startSession(2)");
+ const oldId=r("current().exercises[3].id");
+ r("replaceExercise('"+oldId+"');addExercise('single_leg_rdl')");
+ assert.equal(r('db.templates'),null);
+ r("discardSession()");
+ r("startSession(2)");
+ assert.equal(r("current().exercises[3].key"),'sumo_deadlift');
+ isolated.w.close();
+});
+test('legacy completed edits with no explicitly saved template are recovered on reload',()=>{
+ const old=app(),r=old.run;
+ r("selectedDate='2026-11-12';startSession(2)");
+ const oldId=r("current().exercises[3].id");
+ r("replaceExercise('"+oldId+"');addExercise('single_leg_rdl');finishSession()");
+ r("db.templates=null;delete db.routineSyncVersion;delete db.sessions[0].routineEdited;save()");
+ const legacy=r('JSON.stringify(db)'),restored=app(legacy);
+ assert.equal(restored.run("db.templates[2].exercises[3].key"),'single_leg_rdl');
+ assert.equal(restored.run("db.routineSyncVersion"),1);
+ const session=restored.run("db.sessions[0]");
+ assert.equal(session.exercises[3].key,'single_leg_rdl');
+ restored.w.close();old.w.close();
+});
+test('replacement never erases already performed sets',()=>{
+ const isolated=app(),r=isolated.run;
+ r("selectedDate='2026-11-12';startSession(2)");
+ const id=r("current().exercises[3].id");
+ r("current().exercises[3].recordedSets[0]={kg:50,reps:8,rir:2,completedAt:123,attemptType:'effective'}");
+ r("replaceExercise('"+id+"');addExercise('single_leg_rdl')");
+ assert.equal(r("current().exercises[3].key"),'sumo_deadlift');
+ assert.equal(r("current().exercises[3].recordedSets[0].kg"),50);
+ isolated.w.close();
+});
 console.log(`${count} public-app scenarios passed`);
 }finally{w.close();}
