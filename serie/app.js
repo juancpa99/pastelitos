@@ -51,7 +51,7 @@ function syncRoutineFromSession(s,force=false){
   other.id!==s.id&&other.completed&&other.planKey===s.planKey&&
   (other.date>s.date||(other.date===s.date&&(other.startedAt||0)>(s.startedAt||0)))
  ))))return false;
- if(!db.templates)db.templates=structuredClone(SERIE_PLANS);
+ if(!db.templates)db.templates=SERIE_PLANS.map(plan=>({...structuredClone(plan),exercises:plan.exercises.map(source=>{const item=instantiate(source);delete item.id;delete item.recordedSets;return item;})}));
  const p=db.templates.find(plan=>plan.key===s.planKey);
  if(!p)return false;
  p.exercises=s.exercises.map(e=>{const copy=structuredClone(e);delete copy.id;delete copy.recordedSets;return copy;});
