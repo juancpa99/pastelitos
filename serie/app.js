@@ -58,6 +58,22 @@ function syncRoutineFromSession(s,force=false){
  return true;
 }
 function touchStructure(){const s=current();if(s){s.routineEdited=true;if(s.completed)syncRoutineFromSession(s);}touch();}
+// One-time compatibility repair for sessions edited before automatic routine saving.
+// Never overwrite any pre-existing explicitly saved templates.
+function recoverLegacyRoutine(){
+ if(storageError||db.routineSyncVersion===1)return false;
+ let recovered=false;
+ if(!db.templates){
+  for(const p of SERIE_PLANS){
+   const latest=db.sessions.filter(s=>s.completed&&s.planKey===p.key)
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.startedAt||0)-(b.startedAt||0)).at(-1);
+   if(latest){syncRoutineFromSession(latest,true);recovered=true;}
+  }
+ }
+ db.routineSyncVersion=1;
+ save();
+ return recovered;
+}
 function navigate(page){tab=page;sessionId=null;closeDialog();render();window.scrollTo(0,0);}
 function render(){document.body.classList.toggle('dark',db.theme==='dark');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.getElementById('app').innerHTML=sessionId?sessionHTML():({train:trainHTML,history:historyHTML,progress:progressHTML,settings:settingsHTML}[tab]||trainHTML)();}
 function toggleTheme(){db.theme=db.theme==='dark'?'light':'dark';save();render();}
@@ -405,7 +421,7 @@ function validateData(data){if(data?.version!==1||!Array.isArray(data.sessions)|
    }
  }
  for(const a of e.recordedSets)if(!a||typeof a!=='object')throw Error('Serie incorrecta');}}if(data.templates&&(!Array.isArray(data.templates)||data.templates.length!==4||data.templates.some((p,i)=>p.key!==SERIE_PLANS[i].key||!Array.isArray(p.exercises)||p.exercises.some(e=>!validExercise(e)||(e.superset&&!validId(e.superset))))))throw Error('Rutina incorrecta');return {...blank(),...data,theme:data.theme==='dark'?'dark':'light'};}
-async function importData(file){if(!file)return;try{if(file.size>10000000)throw Error('La copia supera 10 MB');const candidate=validateData(JSON.parse(await file.text()));if(!confirm('¿Reemplazar los datos de SERIE con esta copia? Exporta antes los actuales si quieres conservarlos.'))return;db=candidate;storageError=false;save();sessionId=null;render();toast('Copia importada');}catch(error){toast('No se ha importado: '+error.message);}}
+async function importData(file){if(!file)return;try{if(file.size>10000000)throw Error('La copia supera 10 MB');const candidate=validateData(JSON.parse(await file.text()));if(!confirm('¿Reemplazar los datos de SERIE con esta copia? Exporta antes los actuales si quieres conservarlos.'))return;db=candidate;storageError=false;recoverLegacyRoutine();save();sessionId=null;render();toast('Copia importada');}catch(error){toast('No se ha importado: '+error.message);}}
 // Touch-only drag handles leave normal page scrolling available everywhere else.
 let dragging=null;
 function endDrag(commit){if(!dragging)return;const d=dragging;dragging=null;cancelAnimationFrame(d.frame);document.querySelectorAll('.is-dragging,.drop-target').forEach(n=>n.classList.remove('is-dragging','drop-target'));if(d.handle.hasPointerCapture?.(d.pointer))d.handle.releasePointerCapture(d.pointer);if(commit&&d.moved)moveBlock(d.id,d.to);}
@@ -417,4 +433,4 @@ for(const name of ['pointercancel','lostpointercapture'])document.addEventListen
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape')endDrag(false);const h=ev.target.closest?.('[data-drag]');if(h&&['ArrowUp','ArrowDown'].includes(ev.key)){ev.preventDefault();const index=supersetBlocks().findIndex(b=>b.members.some(e=>e.id===h.dataset.drag));moveBlock(h.dataset.drag,index+(ev.key==='ArrowUp'?-1:1));document.querySelector(`[data-drag="${h.dataset.drag}"]`)?.focus({preventScroll:true});}});
 window.addEventListener('blur',()=>endDrag(false));
 const baseRender=render;render=function(){baseRender();if(tab==='progress'&&!sessionId){renderVolume();renderChart();}};
-render();if(storageError)toast('No se pudo leer el registro guardado. Conserva una copia antes de introducir nuevos datos.');
+const legacyRoutineRecovered=recoverLegacyRoutine();render();if(storageError)toast('No se pudo leer el registro guardado. Conserva una copia antes de introducir nuevos datos.');else if(legacyRoutineRecovered)toast('Se ha recuperado tu rutina a partir de tus últimos entrenamientos guardados.');
