@@ -107,8 +107,18 @@ function renderExerciseBlocks(){
 function workSet(e,round){
  return e.recordedSets.map((a,index)=>({a,index})).filter(({a})=>a.attemptType!=='warmup')[round]||null;
 }
+// The round layout uses the same history/coach as individual exercise cards.
+function supersetTargetHTML(e,t){
+ if(!t)return '';
+ const load=(kg,reps)=>`${kg==null?'Elige tu carga':esc(kg)+' kg'} · ${reps==null?'al fallo técnico':esc(reps)+' reps'}`;
+ return `${e.loadProfile?.unilateral?`Izq.: ${load(t.kg,t.reps)} · Der.: ${load(t.rightKg,t.rightReps)}`:load(t.kg,t.reps)} · RIR ${esc(t.rir??e.rir)}`;
+}
+function supersetAction(rec,e){
+ return ({load:e.loadProfile?.mode==='assisted'?'Reducir asistencia':'Subir peso',reps:'Subir repeticiones',hold:'Mantener referencia',calibrate:'Establecer referencia',configure:'Configurar incremento',pain:'Revisar molestias','reduce-fatigue':'Revisar volumen'})[rec.action]||'Revisar objetivo';
+}
 function supersetHTML(members){
  const first=members[0],s=current(),group=first.superset,label=groupLabel(first);
+ const recommendations=new Map(members.filter(e=>e.kind==='strength'&&!s.completed).map(e=>[e.id,recommendation(e)]));
  const total=Math.max(1,...members.map(e=>e.recordedSets.filter(a=>a.attemptType!=='warmup').length));
  const data=Array.from({length:total},(_,round)=>{
    const entries=members.map(e=>({e,item:workSet(e,round)})).filter(({item})=>!!item);
@@ -124,6 +134,9 @@ function supersetHTML(members){
     <span class="pill">${finished}/${total} rondas</span>
   </summary>
   <div class="exercise-body superset-body">
+    ${recommendations.size?`<div class="target superset-targets"><strong>Próximos objetivos · por ejercicio</strong>
+      ${members.filter(e=>recommendations.has(e.id)).map(e=>{const rec=recommendations.get(e.id);return `<details class="superset-target-summary" data-target-member="${e.id}"><summary><strong>${esc(e.name)}</strong> · ${esc(supersetAction(rec,e))} · ${rec.targets.length} series</summary><p>${esc(rec.reason)}</p>${rec.last?`<small>Última referencia: ${pretty(rec.last.date)}</small>`:''}${rec.targets.map((t,i)=>`<p>Serie ${i+1}: ${supersetTargetHTML(e,t)}</p>`).join('')}</details>`;}).join('')}
+    </div>`:''}
     ${warmups.length?`<details class="superset-warmups" open><summary>Calentamientos · ${warmups.length} series</summary><div class="superset-warmups-body">
       ${warmups.map(({e,a,index})=>`<div class="superset-member"><strong>${esc(e.name)}</strong>${setHTML(e,a,index)}</div>`).join('')}
     </div></details>`:''}
@@ -133,6 +146,7 @@ function supersetHTML(members){
         ${entries.map(({e,item},position)=>`<section class="superset-member" data-member="${e.id}">
           <div class="superset-member-title"><strong>${position+1}. ${esc(e.name)}</strong>
             <small>${dose(e)} · ${esc(e.equipment)}${e.loadProfile?.unilateral?' · ambos lados':''}</small></div>
+          ${recommendations.get(e.id)?.targets[round]?`<p class="target superset-round-target"><strong>Objetivo:</strong> ${supersetTargetHTML(e,recommendations.get(e.id).targets[round])}</p>`:''}
           ${e.loadProfile?.unilateral?'':`<div class="set-head"><span>Serie</span><span>kg</span><span>${e.kind==='timed'?'seg':'reps'}</span><span>RIR</span><span>Hecha</span></div>`}
           ${setHTML(e,item.a,item.index)}
         </section>`).join('')}
