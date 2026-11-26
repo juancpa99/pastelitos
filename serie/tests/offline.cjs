@@ -5,7 +5,11 @@ test('public PWA caches all assets offline and preserves other apps caches',asyn
  const context={self:{addEventListener:(n,cb)=>events[n]=cb,skipWaiting:async()=>{},clients:{claim:async()=>{}},registration:{scope:'https://example.test/serie/'}},location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline')},URL,Promise};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../sw.js'),'utf8'),context);let work;events.install({waitUntil:p=>work=p});await work;events.activate({waitUntil:p=>work=p});await work;assert.ok(stores.has('training-lab-pages-personal'));assert.ok(!stores.has('serie-public-old'));
  const respondWith=p=>work=p;events.fetch({request:{url:'https://example.test/serie/',method:'GET',mode:'navigate'},respondWith});assert.match(await work,/SERIE/);
- for(const file of ['plans.js'])assert.ok((await caches.match('./'+file+'?v=3')).length>100);assert.ok((await caches.match('./coach.js?v=4')).length>100);assert.ok((await caches.match('./catalog.js?v=5')).length>100);assert.ok((await caches.match('./progress.js?v=2')).length>100);assert.ok((await caches.match('./app.js?v=10')).length>100);assert.ok((await caches.match('./install.js?v=4')).length>100);assert.ok((await caches.match('./updates.js?v=1')).length>100);assert.ok((await caches.match('./style.css?v=8')).length>100);
+ // Check the actual versioned URLs referenced by the HTML, not obsolete hardcoded versions.
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const assets=[...html.matchAll(/(?:src|href)="([^"#]+\.(?:js|css)(?:\?[^"]*)?)"/g)].map(m=>m[1]);
+ assert.ok(assets.some(a=>a.startsWith('app.js?')));
+ for(const asset of assets){const content=await caches.match('./'+asset);assert.equal(typeof content,'string',asset+' missing from offline cache');assert.ok(content.length>100,asset);}
 });
 
 test('online assets refresh their cached copy and keep the new version offline',async()=>{
